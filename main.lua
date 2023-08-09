@@ -1,9 +1,14 @@
 function math.sign(x)
 	return x > 0 and 1 or x == 0 and 0 or -1
 end
+math.tau = math.pi * 2
 
 local vec2 = require("lib.mathsies").vec2
 local list = require("lib.list")
+
+local function randCircle(r)
+	return vec2.fromAngle(love.math.random() * math.tau) * r * love.math.random() ^ 0.5
+end
 
 local assets
 
@@ -23,17 +28,17 @@ local controls = {
 	shoot = "space"
 }
 
-local player, gameState, spareLives, enemies, playerBullets, enemyBullets, cameraYOffset
+local player, gameState, spareLives, enemies, playerBullets, enemyBullets, cameraYOffset, particles
 local gameCanvas, canvasScale
 
 function love.load()
 	player = {
 		pos = vec2(gameWidth / 2, gameHeight - borderSize),
 		vel = vec2(),
-		maxSpeedX = 200,
-		maxSpeedUp = 250,
-		maxSpeedDown = 200,
-		accelX = 400,
+		maxSpeedX = 100,
+		maxSpeedUp = 200,
+		maxSpeedDown = 150,
+		accelX = 800,
 		accelUp = 1000,
 		accelDown = 750,
 		maxBullets = 5,
@@ -46,6 +51,20 @@ function love.load()
 	playerBullets = list()
 	enemyBullets = list()
 	cameraYOffset = 128
+	particles = list()
+
+	enemies:add({
+		pos = vec2(100, 200),
+		vel = vec2(),
+		radius = 6,
+		health = 1
+	})
+	enemies:add({
+		pos = vec2(200, 200),
+		vel = vec2(),
+		radius = 10,
+		health = 2
+	})
 
 	canvasScale = 2
 	love.window.setMode(gameWidth * canvasScale, gameHeight * canvasScale)
@@ -62,7 +81,8 @@ function love.keypressed(key)
 			playerBullets:add({
 				vel = vec2(0, -450),
 				pos = player.pos + player.bulletExitOffset,
-				trailLength = 8
+				trailLength = 8,
+				damage = 1
 			})
 		end
 	end
@@ -117,30 +137,72 @@ function love.update(dt)
 	-- 	player.vel.y = math.min(0, player.vel.y)
 	-- end
 
-	-- pos += vel * dt
 	player.pos = player.pos + player.vel * dt
 	local cameraSlowdownFactorSameDirection = (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax
 	local cameraSlowdownFactorOppositeDirections = (1 - (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax)
 	local cameraSlowdownFactor = math.sign(player.vel.y) * math.sign(cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
 	cameraYOffset = math.min(cameraYOffsetMax, math.max(-cameraYOffsetMax * 0, cameraYOffset + player.vel.y * dt * cameraSlowdownFactor))
-	for i = 1, enemies.size do
-		local enemy = enemies:get(i)
-		enemy.pos = enemy.pos + enemy.vel * dt
-	end
+
 	local deleteThesePlayerBullets = {}
 	for i = 1, playerBullets.size do
 		local playerBullet = playerBullets:get(i)
 		playerBullet.pos = playerBullet.pos + playerBullet.vel * dt
 		if playerBullet.pos.y + playerBullet.trailLength - player.pos.y + cameraYOffset + gameHeight / 2 < 0 then
 			deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
+		else
+			for j = 1, enemies.size do
+				local enemy = enemies:get(j)
+				if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
+					deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
+					enemy.health = enemy.health - playerBullet.damage
+				end
+			end
 		end
 	end
 	for _, playerBullet in ipairs(deleteThesePlayerBullets) do
 		playerBullets:remove(playerBullet)
 	end
+
+	local enemiesToDelete = {}
+	for i = 1, enemies.size do
+		local enemy = enemies:get(i)
+		if enemy.health <= 0 then
+			enemiesToDelete[#enemiesToDelete+1] = enemy
+		end
+		enemy.pos = enemy.pos + enemy.vel * dt
+	end
+	for _, enemy in ipairs(enemiesToDelete) do
+		enemies:remove(enemy)
+		local particlesPerArea = 1
+		local newParticleCount = math.floor((math.pi * enemy.radius ^ 2) * particlesPerArea)
+		for i = 1, newParticleCount do
+			local relPos = randCircle(enemy.radius)
+			particles:add({
+				pos = relPos + enemy.pos,
+				vel = relPos * 15,
+				lifetime = (love.math.random() / 2 + 0.5) * 0.5,
+				size = love.math.random() < 0.1 and 2 or 1,
+				colour = {1, 1, 1}
+			})
+		end
+	end
+
 	for i = 1, enemyBullets.size do
 		local enemyBullet = enemyBullets:get(i)
 		enemyBullet.pos = enemyBullet.pos + enemyBullet.vel * dt
+	end
+
+	local particlesToDelete = {}
+	for i = 1, particles.size do
+		local particle = particles:get(i)
+		particle.pos = particle.pos + particle.vel * dt
+		particle.lifetime = particle.lifetime - dt
+		if particle.lifetime <= 0 then
+			particlesToDelete[#particlesToDelete+1] = particle
+		end
+	end
+	for _, particle in ipairs(particlesToDelete) do
+		particles:remove(particle)
 	end
 end
 
@@ -178,6 +240,14 @@ function love.draw()
 		local enemyBullet = enemyBullets:get(i)
 		love.graphics.circle("fill", enemyBullet.pos.x, enemyBullet.pos.y, 1)
 	end
+	for i = 1, particles.size do
+		local particle = particles:get(i)
+		love.graphics.setPointSize(particle.size)
+		love.graphics.setColor(particle.colour)
+		love.graphics.points(particle.pos.x, particle.pos.y)
+	end
+	love.graphics.setPointSize(1)
+	love.graphics.setColor(1, 1, 1)
 	love.graphics.draw(assets.player, player.pos.x - assets.player:getWidth() / 2, player.pos.y - assets.player:getHeight() / 2)
 
 	love.graphics.origin()
