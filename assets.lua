@@ -1,5 +1,10 @@
-local assets = {}
+local assets = {images = {}}
 
-assets.player = love.graphics.newImage("assets/player.png")
+local function image(name)
+	assets.images[name] = love.graphics.newImage("assets/images/" .. name .. ".png")
+end
+
+image("player")
+image("fighter1")
 
 return assets

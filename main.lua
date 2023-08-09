@@ -10,6 +10,14 @@ local function randCircle(r)
 	return vec2.fromAngle(love.math.random() * math.tau) * r * love.math.random() ^ 0.5
 end
 
+local function shallowClone(t)
+	local ret = {}
+	for k, v in pairs(t) do
+		ret[k] = v
+	end
+	return ret
+end
+
 local assets
 
 local gameWidth, gameHeight = 160*2, 144*3
@@ -36,17 +44,17 @@ local function spawnEnemy(enemy, timer)
 	enemy.timeUntilSpawn = timer
 	enemiesToMaterialise:add(enemy)
 	local newParticleCount = math.floor((math.pi * enemy.radius ^ 2) * particlesPerArea)
-		for i = 1, newParticleCount do
-			local relPos = randCircle(enemy.radius)
-			local vel = relPos * 15
-			particles:add({
-				pos = relPos + enemy.pos + vel * timer,
-				vel = -vel,
-				lifetime = timer,
-				size = love.math.random() < 0.1 and 2 or 1,
-				colour = {1, 1, 1}
-			})
-		end
+	for i = 1, newParticleCount do
+		local relPos = randCircle(enemy.radius)
+		local vel = relPos * 15
+		particles:add({
+			pos = relPos + enemy.pos + vel * timer,
+			vel = -vel,
+			lifetime = timer,
+			size = love.math.random() < 0.1 and 2 or 1,
+			colour = shallowClone(enemy.colour)
+		})
+	end
 end
 
 function love.load()
@@ -76,13 +84,16 @@ function love.load()
 		pos = vec2(100, 200),
 		vel = vec2(),
 		radius = 6,
-		health = 1
+		health = 1,
+		type = "fighter1",
+		colour = {0.5, 0.5, 0.6}
 	}, 1)
 	spawnEnemy({
 		pos = vec2(200, 200),
 		vel = vec2(),
 		radius = 10,
-		health = 2
+		health = 2,
+		colour = {1, 1, 1}
 	}, 2)
 
 	canvasScale = 2
@@ -200,7 +211,7 @@ function love.update(dt)
 				vel = relPos * 15,
 				lifetime = (love.math.random() / 2 + 0.5) * 0.5,
 				size = love.math.random() < 0.1 and 2 or 1,
-				colour = {1, 1, 1}
+				colour = shallowClone(enemy.colour)
 			})
 		end
 	end
@@ -262,7 +273,12 @@ function love.draw()
 	love.graphics.translate(0, cameraYOffset)
 	for i = 1, enemies.size do
 		local enemy = enemies:get(i)
-		love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
+		local asset = assets.images[enemy.type]
+		if asset then
+			love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
+		else
+			love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
+		end
 	end
 	for i = 1, playerBullets.size do
 		local playerBullet = playerBullets:get(i)
@@ -280,7 +296,7 @@ function love.draw()
 	end
 	love.graphics.setPointSize(1)
 	love.graphics.setColor(1, 1, 1)
-	love.graphics.draw(assets.player, player.pos.x - assets.player:getWidth() / 2, player.pos.y - assets.player:getHeight() / 2)
+	love.graphics.draw(assets.images.player, player.pos.x - assets.images.player:getWidth() / 2, player.pos.y - assets.images.player:getHeight() / 2)
 
 	love.graphics.origin()
 	love.graphics.setCanvas()
