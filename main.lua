@@ -86,7 +86,8 @@ function love.load()
 		radius = 6,
 		health = 1,
 		type = "fighter1",
-		colour = {0.5, 0.5, 0.6}
+		colour = {0.5, 0.5, 0.6},
+		speed = 75
 	}, 0.5)
 	spawnEnemy({
 		pos = vec2(200, 200),
@@ -94,7 +95,8 @@ function love.load()
 		radius = 10,
 		health = 2,
 		type = "bomber1",
-		colour = {0.6, 0.5, 0.6}
+		colour = {0.6, 0.5, 0.6},
+		speed = 50
 	}, 1)
 
 	canvasScale = 2
@@ -247,6 +249,12 @@ function love.update(dt)
 	for _, enemy in ipairs(enemiesToSpawn) do
 		enemiesToMaterialise:remove(enemy)
 		enemies:add(enemy)
+		if player.pos ~= enemy.pos then
+			enemy.vel = enemy.speed * vec2.normalise(player.pos - enemy.pos)
+			enemy.vel.y = math.abs(enemy.vel.y)
+		else
+			enemy.vel = vec2()
+		end
 	end
 end
 
