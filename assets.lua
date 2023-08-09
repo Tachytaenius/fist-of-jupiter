@@ -6,5 +6,6 @@ end
 
 image("player")
 image("fighter1")
+image("bomber1")
 
 return assets

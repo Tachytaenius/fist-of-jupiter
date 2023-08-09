@@ -87,14 +87,15 @@ function love.load()
 		health = 1,
 		type = "fighter1",
 		colour = {0.5, 0.5, 0.6}
-	}, 1)
+	}, 0.5)
 	spawnEnemy({
 		pos = vec2(200, 200),
 		vel = vec2(),
 		radius = 10,
 		health = 2,
-		colour = {1, 1, 1}
-	}, 2)
+		type = "bomber1",
+		colour = {0.6, 0.5, 0.6}
+	}, 1)
 
 	canvasScale = 2
 	love.window.setMode(gameWidth * canvasScale, gameHeight * canvasScale)
