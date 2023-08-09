@@ -57,7 +57,21 @@ local function spawnEnemy(enemy, timer)
 	end
 end
 
-function love.load()
+local function explode(radius, pos, colour)
+	local newParticleCount = math.floor((math.pi * radius ^ 2) * particlesPerArea)
+	for i = 1, newParticleCount do
+		local relPos = randCircle(radius)
+		particles:add({
+			pos = relPos + pos,
+			vel = relPos * 15,
+			lifetime = (love.math.random() / 2 + 0.5) * 0.5,
+			size = love.math.random() < 0.1 and 2 or 1,
+			colour = shallowClone(colour)
+		})
+	end
+end
+
+local function initGame()
 	player = {
 		pos = vec2(gameWidth / 2, gameHeight - borderSize),
 		vel = vec2(),
@@ -69,7 +83,10 @@ function love.load()
 		accelDown = 750,
 		maxBullets = 5,
 		radius = 6,
-		bulletExitOffset = vec2(0, -5)
+		bulletExitOffset = vec2(0, -5),
+		health = 1,
+		dead = false,
+		colour = {0.6, 0.2, 0.2}
 	}
 	gameState = "play"
 	spareLives = 2
@@ -87,7 +104,12 @@ function love.load()
 		health = 1,
 		type = "fighter1",
 		colour = {0.5, 0.5, 0.6},
-		speed = 75
+		speed = 75,
+		shootTimerLength = 1,
+		shootTimer = love.math.random() * 0.5,
+		bulletSpeed = 150,
+		bulletRadius = 1,
+		bulletDamage = 2
 	}, 0.5)
 	spawnEnemy({
 		pos = vec2(200, 200),
@@ -96,8 +118,17 @@ function love.load()
 		health = 2,
 		type = "bomber1",
 		colour = {0.6, 0.5, 0.6},
-		speed = 50
+		speed = 50,
+		shootTimerLength = 2,
+		shootTimer = love.math.random() * 0.5,
+		bulletSpeed = 100,
+		bulletRadius = 2,
+		bulletDamage = 2
 	}, 1)
+end
+
+function love.load()
+	initGame()
 
 	canvasScale = 2
 	love.window.setMode(gameWidth * canvasScale, gameHeight * canvasScale)
@@ -110,7 +141,7 @@ end
 
 function love.keypressed(key)
 	if key == controls.shoot then
-		if playerBullets.size < player.maxBullets then
+		if not player.dead and playerBullets.size < player.maxBullets then
 			playerBullets:add({
 				vel = vec2(0, -450),
 				pos = player.pos + player.bulletExitOffset,
@@ -122,38 +153,44 @@ function love.keypressed(key)
 end
 
 function love.update(dt)
-	-- Player movement x
-	local movedX = false
-	if love.keyboard.isDown(controls.left) then
-		player.vel.x = player.vel.x - player.accelX * dt
-		movedX = true
+	if player.health <= 0 and not player.dead then
+		player.dead = true
+		explode(player.radius, player.pos, player.colour)
 	end
-	if love.keyboard.isDown(controls.right) then
-		player.vel.x = player.vel.x + player.accelX * dt
-		movedX = true
-	end
-	if not movedX then
-		player.vel.x = math.max(0, math.abs(player.vel.x) - player.accelX * dt) * math.sign(player.vel.x)
-	end
-	player.vel.x = math.max(-player.maxSpeedX, math.min(player.maxSpeedX, player.vel.x))
-	-- Player movement y
-	local movedY = false
-	if love.keyboard.isDown(controls.up) then
-		player.vel.y = player.vel.y - player.accelUp * dt
-		movedY = true
-	end
-	if love.keyboard.isDown(controls.down) then
-		player.vel.y = player.vel.y + player.accelDown * dt
-		movedY = true
-	end
-	if not movedY then
-		if player.vel.y > 0 then
-			player.vel.y = math.max(0, player.vel.y - player.accelUp * dt)
-		else
-			player.vel.y = math.min(0, player.vel.y + player.accelDown * dt)
+	if not player.dead then
+		-- Player movement x
+		local movedX = false
+		if love.keyboard.isDown(controls.left) then
+			player.vel.x = player.vel.x - player.accelX * dt
+			movedX = true
 		end
+		if love.keyboard.isDown(controls.right) then
+			player.vel.x = player.vel.x + player.accelX * dt
+			movedX = true
+		end
+		if not movedX then
+			player.vel.x = math.max(0, math.abs(player.vel.x) - player.accelX * dt) * math.sign(player.vel.x)
+		end
+		player.vel.x = math.max(-player.maxSpeedX, math.min(player.maxSpeedX, player.vel.x))
+		-- Player movement y
+		local movedY = false
+		if love.keyboard.isDown(controls.up) then
+			player.vel.y = player.vel.y - player.accelUp * dt
+			movedY = true
+		end
+		if love.keyboard.isDown(controls.down) then
+			player.vel.y = player.vel.y + player.accelDown * dt
+			movedY = true
+		end
+		if not movedY then
+			if player.vel.y > 0 then
+				player.vel.y = math.max(0, player.vel.y - player.accelUp * dt)
+			else
+				player.vel.y = math.min(0, player.vel.y + player.accelDown * dt)
+			end
+		end
+		player.vel.y = math.max(-player.maxSpeedUp, math.min(player.maxSpeedDown, player.vel.y))
 	end
-	player.vel.y = math.max(-player.maxSpeedUp, math.min(player.maxSpeedDown, player.vel.y))
 	-- Player movement limiting
 	if player.pos.x < borderSize then
 		player.pos.x = borderSize
@@ -170,11 +207,13 @@ function love.update(dt)
 	-- 	player.vel.y = math.min(0, player.vel.y)
 	-- end
 
-	player.pos = player.pos + player.vel * dt
-	local cameraSlowdownFactorSameDirection = (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax
-	local cameraSlowdownFactorOppositeDirections = (1 - (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax)
-	local cameraSlowdownFactor = math.sign(player.vel.y) * math.sign(cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
-	cameraYOffset = math.min(cameraYOffsetMax, math.max(-cameraYOffsetMax * 0, cameraYOffset + player.vel.y * dt * cameraSlowdownFactor))
+	if not player.dead then
+		player.pos = player.pos + player.vel * dt
+		local cameraSlowdownFactorSameDirection = (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax
+		local cameraSlowdownFactorOppositeDirections = (1 - (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax)
+		local cameraSlowdownFactor = math.sign(player.vel.y) * math.sign(cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
+		cameraYOffset = math.min(cameraYOffsetMax, math.max(-cameraYOffsetMax * 0, cameraYOffset + player.vel.y * dt * cameraSlowdownFactor))
+	end
 
 	local deleteThesePlayerBullets = {}
 	for i = 1, playerBullets.size do
@@ -203,25 +242,43 @@ function love.update(dt)
 			enemiesToDelete[#enemiesToDelete+1] = enemy
 		end
 		enemy.pos = enemy.pos + enemy.vel * dt
+		enemy.shootTimer = enemy.shootTimer - dt
+		if enemy.shootTimer <= 0 then
+			local timerFactor = love.math.random() / 0.5 + 0.75
+			enemy.shootTimer = enemy.shootTimerLength * timerFactor
+			local posDiff = player.pos - enemy.pos
+			if #posDiff > 0 then
+				enemyBullets:add({
+					pos = enemy.pos,
+					vel = enemy.bulletSpeed * vec2.normalise(posDiff),
+					radius = enemy.bulletRadius,
+					damage = enemy.bulletDamage
+				})
+			end
+		end
 	end
 	for _, enemy in ipairs(enemiesToDelete) do
 		enemies:remove(enemy)
-		local newParticleCount = math.floor((math.pi * enemy.radius ^ 2) * particlesPerArea)
-		for i = 1, newParticleCount do
-			local relPos = randCircle(enemy.radius)
-			particles:add({
-				pos = relPos + enemy.pos,
-				vel = relPos * 15,
-				lifetime = (love.math.random() / 2 + 0.5) * 0.5,
-				size = love.math.random() < 0.1 and 2 or 1,
-				colour = shallowClone(enemy.colour)
-			})
-		end
+		explode(enemy.radius, enemy.pos, enemy.colour)
 	end
 
+	local enemyBulletsToDelete = {}
 	for i = 1, enemyBullets.size do
 		local enemyBullet = enemyBullets:get(i)
 		enemyBullet.pos = enemyBullet.pos + enemyBullet.vel * dt
+		if
+			enemyBullet.pos.x + enemyBullet.radius <= 0 or enemyBullet.pos.x - enemyBullet.radius >= gameWidth or
+			enemyBullet.pos.y - player.pos.y + cameraYOffset + gameHeight / 2 + enemyBullet.radius <= 0 or
+			enemyBullet.pos.y - player.pos.y + cameraYOffset + gameHeight / 2 - enemyBullet.radius >= gameHeight
+		then
+			enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
+		elseif not player.dead and vec2.distance(enemyBullet.pos, player.pos) <= player.radius then
+			enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
+			player.health = player.health - enemyBullet.damage
+		end
+	end
+	for _, enemyBullet in ipairs(enemyBulletsToDelete) do
+		enemyBullets:remove(enemyBullet)
 	end
 
 	local particlesToDelete = {}
@@ -295,7 +352,7 @@ function love.draw()
 	end
 	for i = 1, enemyBullets.size do
 		local enemyBullet = enemyBullets:get(i)
-		love.graphics.circle("fill", enemyBullet.pos.x, enemyBullet.pos.y, 1)
+		love.graphics.circle("fill", enemyBullet.pos.x, enemyBullet.pos.y, enemyBullet.radius)
 	end
 	for i = 1, particles.size do
 		local particle = particles:get(i)
@@ -305,7 +362,9 @@ function love.draw()
 	end
 	love.graphics.setPointSize(1)
 	love.graphics.setColor(1, 1, 1)
-	love.graphics.draw(assets.images.player, player.pos.x - assets.images.player:getWidth() / 2, player.pos.y - assets.images.player:getHeight() / 2)
+	if not player.dead then
+		love.graphics.draw(assets.images.player, player.pos.x - assets.images.player:getWidth() / 2, player.pos.y - assets.images.player:getHeight() / 2)
+	end
 
 	love.graphics.origin()
 	love.graphics.setCanvas()
