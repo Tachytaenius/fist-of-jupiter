@@ -107,7 +107,7 @@ local function initGame()
 		speed = 75,
 		shootTimerLength = 1,
 		shootTimer = love.math.random() * 0.5,
-		bulletSpeed = 150,
+		bulletSpeed = 200,
 		bulletRadius = 1,
 		bulletDamage = 2
 	}, 0.5)
@@ -121,7 +121,7 @@ local function initGame()
 		speed = 50,
 		shootTimerLength = 2,
 		shootTimer = love.math.random() * 0.5,
-		bulletSpeed = 100,
+		bulletSpeed = 250,
 		bulletRadius = 2,
 		bulletDamage = 2
 	}, 1)
