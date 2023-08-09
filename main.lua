@@ -346,10 +346,12 @@ function love.draw()
 			love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
 		end
 	end
+	love.graphics.setColor(1, 0, 0)
 	for i = 1, playerBullets.size do
 		local playerBullet = playerBullets:get(i)
 		love.graphics.line(playerBullet.pos.x, playerBullet.pos.y + playerBullet.trailLength, playerBullet.pos.x, playerBullet.pos.y)
 	end
+	love.graphics.setColor(1, 1, 1)
 	for i = 1, enemyBullets.size do
 		local enemyBullet = enemyBullets:get(i)
 		love.graphics.circle("fill", enemyBullet.pos.x, enemyBullet.pos.y, enemyBullet.radius)
