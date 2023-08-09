@@ -20,6 +20,7 @@ local backgroundPointDistanceX = gameWidth / 8
 local backgroundPointDistanceY = gameWidth / 8
 local backgroundPointOffsetX = gameWidth / 16
 local backgroundPointOffsetY = gameWidth / 16
+local particlesPerArea = 0.75
 local controls = {
 	up = "w",
 	down = "s",
@@ -28,8 +29,25 @@ local controls = {
 	shoot = "space"
 }
 
-local player, gameState, spareLives, enemies, playerBullets, enemyBullets, cameraYOffset, particles
+local player, gameState, spareLives, enemies, enemiesToMaterialise, playerBullets, enemyBullets, cameraYOffset, particles
 local gameCanvas, canvasScale
+
+local function spawnEnemy(enemy, timer)
+	enemy.timeUntilSpawn = timer
+	enemiesToMaterialise:add(enemy)
+	local newParticleCount = math.floor((math.pi * enemy.radius ^ 2) * particlesPerArea)
+		for i = 1, newParticleCount do
+			local relPos = randCircle(enemy.radius)
+			local vel = relPos * 15
+			particles:add({
+				pos = relPos + enemy.pos + vel * timer,
+				vel = -vel,
+				lifetime = timer,
+				size = love.math.random() < 0.1 and 2 or 1,
+				colour = {1, 1, 1}
+			})
+		end
+end
 
 function love.load()
 	player = {
@@ -48,23 +66,24 @@ function love.load()
 	gameState = "play"
 	spareLives = 2
 	enemies = list()
+	enemiesToMaterialise = list()
 	playerBullets = list()
 	enemyBullets = list()
 	cameraYOffset = 128
 	particles = list()
 
-	enemies:add({
+	spawnEnemy({
 		pos = vec2(100, 200),
 		vel = vec2(),
 		radius = 6,
 		health = 1
-	})
-	enemies:add({
+	}, 1)
+	spawnEnemy({
 		pos = vec2(200, 200),
 		vel = vec2(),
 		radius = 10,
 		health = 2
-	})
+	}, 2)
 
 	canvasScale = 2
 	love.window.setMode(gameWidth * canvasScale, gameHeight * canvasScale)
@@ -173,7 +192,6 @@ function love.update(dt)
 	end
 	for _, enemy in ipairs(enemiesToDelete) do
 		enemies:remove(enemy)
-		local particlesPerArea = 1
 		local newParticleCount = math.floor((math.pi * enemy.radius ^ 2) * particlesPerArea)
 		for i = 1, newParticleCount do
 			local relPos = randCircle(enemy.radius)
@@ -203,6 +221,20 @@ function love.update(dt)
 	end
 	for _, particle in ipairs(particlesToDelete) do
 		particles:remove(particle)
+	end
+
+	local enemiesToSpawn = {}
+	for i = 1, enemiesToMaterialise.size do
+		local enemy = enemiesToMaterialise:get(i)
+		enemy.timeUntilSpawn = enemy.timeUntilSpawn - dt
+		if enemy.timeUntilSpawn <= 0 then
+			enemy.timeUntilSpawn = nil
+			enemiesToSpawn[#enemiesToSpawn+1] = enemy
+		end
+	end
+	for _, enemy in ipairs(enemiesToSpawn) do
+		enemiesToMaterialise:remove(enemy)
+		enemies:add(enemy)
 	end
 end
 
