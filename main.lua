@@ -148,16 +148,24 @@ function love.draw()
 	love.graphics.setCanvas(gameCanvas)
 	love.graphics.clear()
 
-	love.graphics.translate(0, -player.pos.y)
+	love.graphics.translate(-player.pos.x / 4, -player.pos.y / 2)
 	love.graphics.translate(0, gameHeight/2)
-	love.graphics.translate(0, cameraYOffset)
+	love.graphics.translate(0, cameraYOffset / 2)
 	for x = -backgroundPointDistanceX * 20, gameWidth + backgroundPointDistanceX * 20, backgroundPointDistanceX do
 		x = x + backgroundPointOffsetX
 		for y = -backgroundPointDistanceY * 5, gameHeight + backgroundPointDistanceY * 5, backgroundPointDistanceY do
 			y = y + backgroundPointOffsetY
-			love.graphics.points(x, y)
+			love.graphics.points(
+				-- TODO: Add some perspective
+				x,
+				y
+			)
 		end
 	end
+	love.graphics.origin()
+	love.graphics.translate(0, -player.pos.y)
+	love.graphics.translate(0, gameHeight/2)
+	love.graphics.translate(0, cameraYOffset)
 	for i = 1, enemies.size do
 		local enemy = enemies:get(i)
 		love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
