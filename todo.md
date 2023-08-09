@@ -1,0 +1,2 @@
+- Ending where the player goes forwards and (relative to camera, so camera pos changes) moves to a point in the upper middle of the screen and then flies off as the camera stops(?).
+- Hyper beam powerup with rainbow attack!
