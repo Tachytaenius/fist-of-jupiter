@@ -108,9 +108,9 @@ local function initGame()
 		fighter1 = 8,
 		bomber1 = 3
 	}
-	spawnAttemptTimer = 0.75
-	spawnAttemptTimerLength = 0.9
-	maxEnemies = 4
+	spawnAttemptTimer = 0.5
+	spawnAttemptTimerLength = 0.5
+	maxEnemies = 6
 	minEnemiesToSpawn = 1
 	maxEnemiesToSpawn = 3
 end
