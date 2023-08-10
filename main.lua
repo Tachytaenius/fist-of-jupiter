@@ -6,6 +6,8 @@ math.tau = math.pi * 2
 local vec2 = require("lib.mathsies").vec2
 local list = require("lib.list")
 
+local registry = require("registry")
+
 local function randCircle(r)
 	return vec2.fromAngle(love.math.random() * math.tau) * r * love.math.random() ^ 0.5
 end
@@ -37,7 +39,8 @@ local controls = {
 	shoot = "space"
 }
 
-local player, gameState, spareLives, enemies, enemiesToMaterialise, playerBullets, enemyBullets, cameraYOffset, particles
+local player, gameState, spareLives, enemies, enemiesToMaterialise, playerBullets, enemyBullets, cameraYOffset, particles, enemyPool, spawnAttemptTimer, spawnAttemptTimerLength, maxEnemies
+local minEnemiesToSpawn, maxEnemiesToSpawn
 local gameCanvas, canvasScale
 
 local function spawnEnemy(enemy, timer)
@@ -71,9 +74,13 @@ local function explode(radius, pos, colour)
 	end
 end
 
+local function winWave()
+	-- TODO
+end
+
 local function initGame()
 	player = {
-		pos = vec2(gameWidth / 2, gameHeight - borderSize),
+		pos = vec2(gameWidth / 2, 1000),
 		vel = vec2(),
 		maxSpeedX = 100,
 		maxSpeedUp = 200,
@@ -97,34 +104,15 @@ local function initGame()
 	cameraYOffset = 128
 	particles = list()
 
-	spawnEnemy({
-		pos = vec2(100, 200),
-		vel = vec2(),
-		radius = 6,
-		health = 1,
-		type = "fighter1",
-		colour = {0.5, 0.5, 0.6},
-		speed = 75,
-		shootTimerLength = 1,
-		shootTimer = love.math.random() * 0.5,
-		bulletSpeed = 200,
-		bulletRadius = 1,
-		bulletDamage = 2
-	}, 0.5)
-	spawnEnemy({
-		pos = vec2(200, 200),
-		vel = vec2(),
-		radius = 10,
-		health = 2,
-		type = "bomber1",
-		colour = {0.6, 0.5, 0.6},
-		speed = 50,
-		shootTimerLength = 2,
-		shootTimer = love.math.random() * 0.5,
-		bulletSpeed = 250,
-		bulletRadius = 2,
-		bulletDamage = 2
-	}, 1)
+	enemyPool = {
+		fighter1 = 8,
+		bomber1 = 3
+	}
+	spawnAttemptTimer = 0.75
+	spawnAttemptTimerLength = 0.9
+	maxEnemies = 4
+	minEnemiesToSpawn = 1
+	maxEnemiesToSpawn = 3
 end
 
 function love.load()
@@ -311,6 +299,45 @@ function love.update(dt)
 			enemy.vel.y = math.abs(enemy.vel.y)
 		else
 			enemy.vel = vec2()
+		end
+	end
+
+	spawnAttemptTimer = spawnAttemptTimer - dt
+	if spawnAttemptTimer <= 0 then
+		local timerFactor = love.math.random() / 0.5 + 0.75
+		spawnAttemptTimer = spawnAttemptTimerLength * timerFactor
+		local numberToSpawn = math.max(0, math.min(love.math.random(minEnemiesToSpawn, maxEnemiesToSpawn), maxEnemies - enemies.size))
+		for _=1, numberToSpawn do
+			local options = {}
+			for k, v in pairs(enemyPool) do
+				if v > 0 then
+					options[#options+1] = k
+				end
+			end
+			if #options == 0 then
+				winWave()
+				break
+			end
+			local enemyType = options[love.math.random(#options)]
+			enemyPool[enemyType] = enemyPool[enemyType] - 1
+			local registryEntry = registry.enemies[enemyType]
+			local x = love.math.random() * (gameWidth - borderSize * 2) + borderSize
+			local screenTopInWorldSpace = cameraYOffset + player.pos.y - gameHeight
+			local y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
+			spawnEnemy({
+				pos = vec2(x, y),
+				vel = vec2(),
+				radius = registryEntry.radius,
+				health = registryEntry.health,
+				type = enemyType,
+				colour = shallowClone(registryEntry.colour),
+				speed = registryEntry.speed,
+				shootTimerLength = registryEntry.shootTimerLength,
+				shootTimer = love.math.random() * 0.5,
+				bulletSpeed = registryEntry.bulletSpeed,
+				bulletRadius = registryEntry.bulletRadius,
+				bulletDamage = registryEntry.bulletDamage
+			}, registryEntry.materialisationTime)
 		end
 	end
 end
