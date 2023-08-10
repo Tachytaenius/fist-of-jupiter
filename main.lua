@@ -255,6 +255,7 @@ function love.update(dt)
 		local enemy = enemies:get(i)
 		if enemy.health <= 0 then
 			enemiesToDelete[#enemiesToDelete+1] = enemy
+			explode(enemy.radius, enemy.pos, enemy.colour)
 		elseif circleOffScreen(enemy.radius, enemy.pos) then
 			enemiesToDelete[#enemiesToDelete+1] = enemy
 			enemyPool[enemy.type] = enemyPool[enemy.type] + 1 -- Let the enemy come back
@@ -277,7 +278,6 @@ function love.update(dt)
 	end
 	for _, enemy in ipairs(enemiesToDelete) do
 		enemies:remove(enemy)
-		explode(enemy.radius, enemy.pos, enemy.colour)
 	end
 
 	local enemyBulletsToDelete = {}
