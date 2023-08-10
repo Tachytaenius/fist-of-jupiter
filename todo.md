@@ -3,3 +3,4 @@
 - Enemies despawning
 - Hit confirmation when hitting an enemy with large health
 - Gamestates and winWave and lives
+- Add perspective to the background points
