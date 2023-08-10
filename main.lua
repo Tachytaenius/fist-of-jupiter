@@ -342,7 +342,7 @@ function love.update(dt)
 			enemyPool[enemyType] = enemyPool[enemyType] - 1
 			local registryEntry = registry.enemies[enemyType]
 			local x = love.math.random() * (gameWidth - borderSize * 2) + borderSize
-			local screenTopInWorldSpace = cameraYOffset + player.pos.y - gameHeight
+			local screenTopInWorldSpace = player.pos.y - gameHeight / 2 - cameraYOffset
 			local y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
 			spawnEnemy({
 				pos = vec2(x, y),
