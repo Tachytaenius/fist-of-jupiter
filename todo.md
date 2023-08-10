@@ -2,3 +2,4 @@
 - Hyper beam powerup with rainbow attack!
 - Enemies despawning
 - Hit confirmation when hitting an enemy with large health
+- Gamestates and winWave and lives
