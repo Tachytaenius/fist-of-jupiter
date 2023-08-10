@@ -31,6 +31,7 @@ local backgroundPointDistanceY = gameWidth / 8
 local backgroundPointOffsetX = gameWidth / 16
 local backgroundPointOffsetY = gameWidth / 16
 local particlesPerArea = 0.75
+local flashAlpha = 0.5
 local controls = {
 	up = "w",
 	down = "s",
@@ -413,9 +414,11 @@ function love.draw()
 	love.graphics.setColor(1, 1, 1)
 	if not player.dead then
 		local flash = player.contactInvulnerabilityTimer and math.floor(player.contactInvulnerabilityTimer * player.flashAnimationSpeed) % 2 == 0
-		if not flash then
-			love.graphics.draw(assets.images.player, player.pos.x - assets.images.player:getWidth() / 2, player.pos.y - assets.images.player:getHeight() / 2)
+		if flash then
+			love.graphics.setColor(1, 1, 1, flashAlpha)
 		end
+		love.graphics.draw(assets.images.player, player.pos.x - assets.images.player:getWidth() / 2, player.pos.y - assets.images.player:getHeight() / 2)
+		love.graphics.setColor(1, 1, 1)
 	end
 
 	love.graphics.origin()
