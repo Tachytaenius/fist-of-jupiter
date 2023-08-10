@@ -79,6 +79,13 @@ local function winWave()
 	-- TODO
 end
 
+local function circleOffScreen(radius, pos)
+	return
+		pos.x + radius <= 0 or pos.x - radius >= gameWidth or
+		pos.y - player.pos.y + cameraYOffset + gameHeight / 2 + radius <= 0 or
+		pos.y - player.pos.y + cameraYOffset + gameHeight / 2 - radius >= gameHeight
+end
+
 local function initGame()
 	player = {
 		pos = vec2(gameWidth / 2, 1000),
@@ -248,6 +255,9 @@ function love.update(dt)
 		local enemy = enemies:get(i)
 		if enemy.health <= 0 then
 			enemiesToDelete[#enemiesToDelete+1] = enemy
+		elseif circleOffScreen(enemy.radius, enemy.pos) then
+			enemiesToDelete[#enemiesToDelete+1] = enemy
+			enemyPool[enemy.type] = enemyPool[enemy.type] + 1 -- Let the enemy come back
 		end
 		enemy.pos = enemy.pos + enemy.vel * dt
 		enemy.shootTimer = enemy.shootTimer - dt
@@ -274,11 +284,7 @@ function love.update(dt)
 	for i = 1, enemyBullets.size do
 		local enemyBullet = enemyBullets:get(i)
 		enemyBullet.pos = enemyBullet.pos + enemyBullet.vel * dt
-		if
-			enemyBullet.pos.x + enemyBullet.radius <= 0 or enemyBullet.pos.x - enemyBullet.radius >= gameWidth or
-			enemyBullet.pos.y - player.pos.y + cameraYOffset + gameHeight / 2 + enemyBullet.radius <= 0 or
-			enemyBullet.pos.y - player.pos.y + cameraYOffset + gameHeight / 2 - enemyBullet.radius >= gameHeight
-		then
+		if circleOffScreen(enemyBullet.radius, enemyBullet.pos) then
 			enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 		elseif not player.dead and vec2.distance(enemyBullet.pos, player.pos) <= player.radius then
 			enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
