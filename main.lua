@@ -93,7 +93,10 @@ local function initGame()
 		bulletExitOffset = vec2(0, -5),
 		health = 1,
 		dead = false,
-		colour = {0.6, 0.2, 0.2}
+		colour = {0.6, 0.2, 0.2},
+		contactInvulnerabilityTimerLength = 1,
+		contactInvulnerabilityTimer = nil,
+		flashAnimationSpeed = 30
 	}
 	gameState = "play"
 	spareLives = 2
@@ -178,6 +181,22 @@ function love.update(dt)
 			end
 		end
 		player.vel.y = math.max(-player.maxSpeedUp, math.min(player.maxSpeedDown, player.vel.y))
+		
+		if not player.contactInvulnerabilityTimer then
+			for i = 1, enemies.size do
+				local enemy = enemies:get(i)
+				if vec2.distance(player.pos, enemy.pos) <= player.radius + enemy.radius then
+					player.health = player.health - enemy.contactDamage
+					player.contactInvulnerabilityTimer = player.contactInvulnerabilityTimerLength
+					break
+				end
+			end
+		else
+			player.contactInvulnerabilityTimer = player.contactInvulnerabilityTimer - dt
+			if player.contactInvulnerabilityTimer <= 0 then
+				player.contactInvulnerabilityTimer = nil
+			end
+		end
 	end
 	-- Player movement limiting
 	if player.pos.x < borderSize then
@@ -336,7 +355,8 @@ function love.update(dt)
 				shootTimer = love.math.random() * 0.5,
 				bulletSpeed = registryEntry.bulletSpeed,
 				bulletRadius = registryEntry.bulletRadius,
-				bulletDamage = registryEntry.bulletDamage
+				bulletDamage = registryEntry.bulletDamage,
+				contactDamage = registryEntry.contactDamage
 			}, registryEntry.materialisationTime)
 		end
 	end
@@ -392,7 +412,10 @@ function love.draw()
 	love.graphics.setPointSize(1)
 	love.graphics.setColor(1, 1, 1)
 	if not player.dead then
-		love.graphics.draw(assets.images.player, player.pos.x - assets.images.player:getWidth() / 2, player.pos.y - assets.images.player:getHeight() / 2)
+		local flash = player.contactInvulnerabilityTimer and math.floor(player.contactInvulnerabilityTimer * player.flashAnimationSpeed) % 2 == 0
+		if not flash then
+			love.graphics.draw(assets.images.player, player.pos.x - assets.images.player:getWidth() / 2, player.pos.y - assets.images.player:getHeight() / 2)
+		end
 	end
 
 	love.graphics.origin()
