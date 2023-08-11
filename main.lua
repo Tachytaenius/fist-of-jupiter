@@ -12,6 +12,14 @@ local function randCircle(r)
 	return vec2.fromAngle(love.math.random() * math.tau) * r * love.math.random() ^ 0.5
 end
 
+local function normaliseOrZero(v)
+	local r = #v
+	if r == 0 then
+		return vec2()
+	end
+	return v/r
+end
+
 local function shallowClone(t)
 	local ret = {}
 	for k, v in pairs(t) do
@@ -32,6 +40,8 @@ local backgroundPointOffsetX = gameWidth / 16
 local backgroundPointOffsetY = gameWidth / 16
 local particlesPerArea = 0.75
 local flashAlpha = 0.5
+local explosionSourceRadiusPerDamage = 1.5
+local bulletHitParticleBounceMultiplier = 0.1
 local controls = {
 	up = "w",
 	down = "s",
@@ -61,13 +71,14 @@ local function spawnEnemy(enemy, timer)
 	end
 end
 
-local function explode(radius, pos, colour)
+local function explode(radius, pos, colour, velocityBoost)
+	velocityBoost = velocityBoost or vec2()
 	local newParticleCount = math.floor((math.pi * radius ^ 2) * particlesPerArea)
 	for i = 1, newParticleCount do
 		local relPos = randCircle(radius)
 		particles:add({
 			pos = relPos + pos,
-			vel = relPos * 15,
+			vel = relPos * 15 + velocityBoost,
 			lifetime = (love.math.random() / 2 + 0.5) * 0.5,
 			size = love.math.random() < 0.1 and 2 or 1,
 			colour = shallowClone(colour)
@@ -195,6 +206,9 @@ function love.update(dt)
 				local enemy = enemies:get(i)
 				if vec2.distance(player.pos, enemy.pos) <= player.radius + enemy.radius then
 					player.health = player.health - enemy.contactDamage
+					if player.health > 0 then
+						explode(enemy.contactDamage * explosionSourceRadiusPerDamage, player.pos + normaliseOrZero(enemy.pos - player.pos) * player.radius, shallowClone(player.colour))
+					end
 					player.contactInvulnerabilityTimer = player.contactInvulnerabilityTimerLength
 					break
 				end
@@ -242,6 +256,9 @@ function love.update(dt)
 				if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
 					deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
 					enemy.health = enemy.health - playerBullet.damage
+					if enemy.health > 0 then
+						explode(playerBullet.damage * explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * bulletHitParticleBounceMultiplier)
+					end
 				end
 			end
 		end
@@ -289,6 +306,9 @@ function love.update(dt)
 		elseif not player.dead and vec2.distance(enemyBullet.pos, player.pos) <= player.radius then
 			enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			player.health = player.health - enemyBullet.damage
+			if player.health > 0 then
+				explode(enemyBullet.damage * explosionSourceRadiusPerDamage, enemyBullet.pos, shallowClone(player.colour), -enemyBullet.vel * bulletHitParticleBounceMultiplier)
+			end
 		end
 	end
 	for _, enemyBullet in ipairs(enemyBulletsToDelete) do

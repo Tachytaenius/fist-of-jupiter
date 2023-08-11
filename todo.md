@@ -1,6 +1,5 @@
 - Ending where the player goes forwards and (relative to camera, so camera pos changes) moves to a point in the upper middle of the screen and then flies off as the camera stops(?).
 - Hyper beam powerup with rainbow attack!
-- Enemies despawning
 - Hit confirmation when hitting an enemy with large health
 - Gamestates and winWave and lives
 - Add perspective to the background points
