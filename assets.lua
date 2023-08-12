@@ -4,6 +4,8 @@ local function image(name)
 	assets.images[name] = love.graphics.newImage("assets/images/" .. name .. ".png")
 end
 
+image("title")
+image("cursor")
 image("player")
 image("fighter1")
 image("bomber1")
