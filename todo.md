@@ -1,6 +1,14 @@
 - Ending where the player goes forwards and (relative to camera, so camera pos changes) moves to a point in the upper middle of the screen and then flies off as the camera stops(?).
 - Hyper beam powerup with rainbow attack!
 - Hit confirmation when hitting an enemy with large health
-- Gamestates and winWave and lives
+- Gamestates and winWave (postpone until all bullets are gone too) and lives
 - Add perspective to the background points
 - Shotgun enemy projectiles
+- Fine tune particle block parameters for performance
+- Add window title
+- Make font cooler
+- Make player materialise before play
+- When you die, make all enemies fly off to the closest side of the screen before you respawn
+- Maybe don't let the player backtrack off the screen and despawn alll the enemies? What about going forwards, too
+- Stop enemies from spawning (and shooting?) when you're dead
+- Add sparkles to title screen logo
