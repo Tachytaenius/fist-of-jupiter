@@ -342,7 +342,7 @@ function love.update(dt)
 	if gameState == "title" then
 		local function newTargetVel()
 			local targetSpeed = titleScreenCameraSpeed -- Do I want to randomise this?
-			titleCameraTargetVelocity = vec2.fromAngle(love.math.random() * math.tau) * targetSpeed
+			titleCameraTargetVelocity = vec2.fromAngle(love.math.random() * math.tau) * targetSpeed * (love.math.random() / 2 + 3/4)
 		end
 		if not titleCameraTargetVelocity then
 			-- Just entered state
