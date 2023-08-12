@@ -72,7 +72,10 @@ local titleOptionCount = 2
 local titleOptionsYPos = 256
 local distanceToGenerateBlocks = 2000
 local particleBlockSize = 500
-local particlesPerBlock = 20
+local permanentStationaryParticlesPerBlock = 20
+local movingParticlesPerBlock = 2
+local movingBlockParticleMaxSpeed = 100
+local movingBackgroundParticleDeletionTime = 2
 local backgroundParticlePointScale = 8
 local maxParticleBlockDistance = 4000
 local titleScreenVelocityChangeTimerLength = 3
@@ -247,6 +250,17 @@ end
 
 function love.update(dt)
 	if backgroundParticleBlockLayers then
+		local function addMovingParticleToBlock(block, layer, x, y)
+			block.movingParticles:add({
+				pos = particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
+				vel = randCircle(movingBlockParticleMaxSpeed),
+				size = backgroundParticlePointScale / layer.distance,
+				deletionTimer = movingBackgroundParticleDeletionTime * (love.math.random() * 1/2 + 3/4),
+				colour = {hsv2rgb(love.math.random() * 360, 1, 0.75 * math.min(1, 3/layer.distance))},
+				-- colour = {0.5 * math.min(1, 3/layer.distance), 0, 0}
+				-- colour = {hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
+			})
+		end
 		local cameraPos = gameState == "title" and titleCameraPos or gameState == "play" and player.pos
 		for _, layer in ipairs(backgroundParticleBlockLayers) do
 			-- Add needed blocks
@@ -262,10 +276,13 @@ function love.update(dt)
 						layer.blocks[x] = blocksX
 					end
 					if not blocksX[y] then
-						local newBlock = list()
+						local newBlock = {
+							permanentStationaryParticles = list(),
+							movingParticles = list()
+						}
 						blocksX[y] = newBlock
-						for i = 1, particlesPerBlock do
-							newBlock:add({
+						for i = 1, permanentStationaryParticlesPerBlock do
+							newBlock.permanentStationaryParticles:add({
 								pos = particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
 								vel = vec2(),
 								size = backgroundParticlePointScale / layer.distance,
@@ -273,6 +290,9 @@ function love.update(dt)
 								-- colour = {0.5 * math.min(1, 3/layer.distance), 0, 0}
 								colour = {hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
 							})
+						end
+						for i = 1, movingParticlesPerBlock do
+							addMovingParticleToBlock(newBlock, layer, x, y)
 						end
 					end
 				end
@@ -294,6 +314,26 @@ function love.update(dt)
 					end
 					if not hasBlocks then
 						layer.blocks[x] = nil
+					end
+				end
+			end
+			-- Update moving particles
+			for x, blocksX in pairs(layer.blocks) do
+				for y, block in pairs(blocksX) do
+					local particlesToDelete = {}
+					for i = 1, block.movingParticles.size do
+						local particle = block.movingParticles:get(i)
+						particle.pos = particle.pos + particle.vel * dt
+						particle.deletionTimer = particle.deletionTimer - dt
+						if particle.deletionTimer <= 0 then
+							particlesToDelete[#particlesToDelete+1] = particle
+						end
+					end
+					for _, particle in ipairs(particlesToDelete) do
+						block.movingParticles:remove(particle)
+					end
+					for _=1, movingParticlesPerBlock - block.movingParticles.size do
+						addMovingParticleToBlock(block, layer, x, y)
 					end
 				end
 			end
@@ -565,8 +605,14 @@ function love.draw()
 			love.graphics.translate(-cameraPos.x, -cameraPos.y)
 			for x, blocksX in pairs(layer.blocks) do
 				for y, block in pairs(blocksX) do
-					for j = 1, block.size do
-						local particle = block:get(j)
+					for j = 1, block.permanentStationaryParticles.size do
+						local particle = block.permanentStationaryParticles:get(j)
+						love.graphics.setPointSize(particle.size)
+						love.graphics.setColor(particle.colour)
+						love.graphics.points(particle.pos.x, particle.pos.y)
+					end
+					for j = 1, block.movingParticles.size do
+						local particle = block.movingParticles:get(j)
 						love.graphics.setPointSize(particle.size)
 						love.graphics.setColor(particle.colour)
 						love.graphics.points(particle.pos.x, particle.pos.y)
