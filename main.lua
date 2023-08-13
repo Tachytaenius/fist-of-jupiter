@@ -212,6 +212,7 @@ function love.load()
 
 	canvasScale = 2
 	love.window.setMode(gameWidth * canvasScale, gameHeight * canvasScale)
+	love.window.setTitle("Fist of Jupiter")
 	love.graphics.setDefaultFilter("nearest", "nearest")
 	love.graphics.setLineStyle("rough")
 	gameCanvas = love.graphics.newCanvas(gameWidth, gameHeight)
