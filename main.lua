@@ -81,6 +81,7 @@ local maxParticleBlockDistance = 4000
 local titleScreenVelocityChangeTimerLength = 3
 local titleScreenCameraSpeed = 600
 local titleCameraAccel = 1000
+local gameOverTextWaitTimerLength = 1.5
 local controls = {
 	up = "w",
 	down = "s",
@@ -97,6 +98,7 @@ local cursorPos, titleCameraPos, titleCameraVelocity, titleCameraTargetVelocity,
 
 -- Play variables
 local player, gameState, spareLives, enemies, enemiesToMaterialise, playerBullets, enemyBullets, cameraYOffset, particles, enemyPool, spawnAttemptTimer, spawnAttemptTimerLength, maxEnemies
+local gameOverTextWaitTimer, gameOverTextPresent
 local minEnemiesToSpawn, maxEnemiesToSpawn
 
 local gameCanvas, canvasScale, font
@@ -205,6 +207,8 @@ local function initPlayState()
 	maxEnemies = 6
 	minEnemiesToSpawn = 1
 	maxEnemiesToSpawn = 3
+	gameOverTextPresent = false
+	gameOverTextWaitTimer = nil
 end
 
 function love.load()
@@ -232,6 +236,8 @@ function love.keypressed(key)
 					trailLength = 8,
 					damage = 1
 				})
+			elseif player.dead and gameOverTextPresent then
+				initTitleState()
 			end
 		end
 	elseif gameState == "title" then
@@ -444,6 +450,20 @@ function love.update(dt)
 			local cameraSlowdownFactorOppositeDirections = (1 - (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax)
 			local cameraSlowdownFactor = math.sign(player.vel.y) * math.sign(cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
 			cameraYOffset = math.min(cameraYOffsetMax, math.max(-cameraYOffsetMax * 0, cameraYOffset + player.vel.y * dt * cameraSlowdownFactor))
+		end
+
+		if player.dead then
+			if not gameOverTextPresent then
+				if gameOverTextWaitTimer then
+					gameOverTextWaitTimer = gameOverTextWaitTimer - dt
+					if gameOverTextWaitTimer <= 0 then
+						gameOverTextPresent = true
+					end
+				-- elseif enemyBullets.size == 0 and enemiesToMaterialise.size == 0 and enemies.size == 0 then
+				else
+					gameOverTextWaitTimer = gameOverTextWaitTimerLength
+				end
+			end
 		end
 
 		local deleteThesePlayerBullets = {}
@@ -699,6 +719,12 @@ function love.draw()
 			end
 			love.graphics.draw(assets.images.player, player.pos.x - assets.images.player:getWidth() / 2, player.pos.y - assets.images.player:getHeight() / 2)
 			love.graphics.setColor(1, 1, 1)
+		end
+
+		love.graphics.origin()
+		if gameOverTextPresent then
+			local text = "GAME OVER"
+			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight / 2 - font:getHeight() / 2)
 		end
 	end
 
