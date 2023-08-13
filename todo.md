@@ -3,9 +3,10 @@
 - Gamestates and winWave (postpone until all bullets are gone too) and lives
 - Add perspective to the background points
 - Shotgun enemy projectiles
-- Fine tune particle block parameters for performance
+- Fine tune particle block parameters for performance, and check performance with a full grid of particle blocks
 - Make font cooler
 - Make player materialise before play
-- When you die, make all enemies fly off to the closest side of the screen before you respawn
 - Maybe don't let the player backtrack off the screen and despawn alll the enemies? What about going forwards, too
 - Add sparkles to title screen logo
+- Move x to gameWidth / 2 before respawning
+- Give implosions the reverse of the lifetime effect
