@@ -139,7 +139,7 @@ local function spawnEnemy(enemy, timer)
 	implode(enemy.radius, enemy.pos, enemy.colour, timer)
 end
 
-local function explode(radius, pos, colour, velocityBoost)
+local function explode(radius, pos, colour, velocityBoost, isPlayer)
 	velocityBoost = velocityBoost or vec2()
 	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
 	for i = 1, newParticleCount do
@@ -149,7 +149,8 @@ local function explode(radius, pos, colour, velocityBoost)
 			vel = relPos * 15 + velocityBoost,
 			lifetime = (love.math.random() / 2 + 0.5) * 0.5,
 			size = love.math.random() < 0.1 and 2 or 1,
-			colour = shallowClone(colour)
+			colour = shallowClone(colour),
+			isPlayer = isPlayer
 		})
 	end
 end
@@ -421,7 +422,7 @@ function love.update(dt)
 
 		if player.health <= 0 and not player.dead then
 			player.dead = true
-			explode(player.radius, player.pos, player.colour)
+			explode(player.radius, player.pos, player.colour, vec2(), true)
 			if spareLives == 0 then
 				gameOver = true
 			else
@@ -589,7 +590,17 @@ function love.update(dt)
 				end
 			end
 			local allCentringFinished = not preRespawnCentringTimer and player.pos.x == gameWidth / 2 and not postRespawnCentringTimer
-			if enemyBullets.size == 0 and enemiesToMaterialise.size == 0 and enemies.size == 0 and allCentringFinished then
+
+			local noPlayerParticlesLeft = true
+			for i = 1, particles.size do
+				local particle = particles:get(i)
+				if particle.isPlayer then
+					noPlayerParticlesLeft = false
+					break
+				end
+			end
+
+			if enemyBullets.size == 0 and enemiesToMaterialise.size == 0 and enemies.size == 0 and allCentringFinished and noPlayerParticlesLeft then
 				generatePlayer()
 			end
 		end
@@ -660,7 +671,7 @@ function love.update(dt)
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 				player.health = player.health - enemyBullet.damage
 				if player.health > 0 then
-					explode(enemyBullet.damage * consts.explosionSourceRadiusPerDamage, enemyBullet.pos, shallowClone(player.colour), -enemyBullet.vel * consts.bulletHitParticleBounceMultiplier)
+					explode(enemyBullet.damage * consts.explosionSourceRadiusPerDamage, enemyBullet.pos, shallowClone(player.colour), -enemyBullet.vel * consts.bulletHitParticleBounceMultiplier, true)
 				end
 			end
 		end

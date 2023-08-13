@@ -10,4 +10,3 @@
 - Add sparkles to title screen logo
 - Give implosions the reverse of the lifetime effect
 - Fix weirdness when you push into the side of the screen
-- Fix respawning while your death particles are still around
