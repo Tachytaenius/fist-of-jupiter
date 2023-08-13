@@ -5,6 +5,5 @@
 - Shotgun enemy projectiles
 - Fine tune particle block parameters for performance, and check performance with a full grid of particle blocks
 - Make font cooler
-- Make player materialise before play
 - Maybe don't let the player backtrack off the screen and despawn alll the enemies? What about going forwards, too
 - Add sparkles to title screen logo
