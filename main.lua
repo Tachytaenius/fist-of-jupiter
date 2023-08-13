@@ -106,7 +106,7 @@ local cursorPos, titleCameraPos, titleCameraVelocity, titleCameraTargetVelocity,
 
 -- Play variables
 local player, gameState, spareLives, enemies, enemiesToMaterialise, playerBullets, enemyBullets, cameraYOffset, particles, enemyPool, spawnAttemptTimer, spawnAttemptTimerLength, maxEnemies
-local gameOverTextWaitTimer, gameOverTextPresent
+local gameOverTextWaitTimer, gameOverTextPresent, gameOver
 local minEnemiesToSpawn, maxEnemiesToSpawn
 
 local gameCanvas, canvasScale, font
@@ -176,12 +176,21 @@ local function initTitleState()
 	titleScreenVelocityChangeTimer = titleScreenVelocityChangeTimerLength * love.math.random() * 1/2 + 3/4
 end
 
-local function initPlayState()
-	gameState = "play"
-	backgroundParticleBlockLayers = {}
+local function isPlayerPresent()
+	return not (player.dead or player.spawning)
+end
 
+local function generatePlayer()
+	local pos
+	if player then
+		local screenTopInWorldSpace = player.pos.y - gameHeight / 2 - cameraYOffset
+		pos = vec2(player.pos.x, screenTopInWorldSpace + gameHeight / 2 + cameraYOffsetMax)
+		cameraYOffset = cameraYOffsetMax
+	else
+		pos = vec2(gameWidth / 2, 0)
+	end
 	player = {
-		pos = vec2(gameWidth / 2, 1000),
+		pos = pos,
 		vel = vec2(),
 		maxSpeedX = 100,
 		maxSpeedUp = 200,
@@ -199,12 +208,19 @@ local function initPlayState()
 		contactInvulnerabilityTimer = nil,
 		flashAnimationSpeed = 30
 	}
+end
+
+local function initPlayState()
+	gameState = "play"
+	backgroundParticleBlockLayers = {}
+
+	generatePlayer()
 	spareLives = 2
 	enemies = list()
 	enemiesToMaterialise = list()
 	playerBullets = list()
 	enemyBullets = list()
-	cameraYOffset = 128
+	cameraYOffset = cameraYOffsetMax
 	particles = list()
 
 	enemyPool = {
@@ -218,6 +234,7 @@ local function initPlayState()
 	maxEnemiesToSpawn = 3
 	gameOverTextPresent = false
 	gameOverTextWaitTimer = nil
+	gameOver = false
 end
 
 function love.load()
@@ -238,7 +255,7 @@ end
 function love.keypressed(key)
 	if gameState == "play" then
 		if key == controls.shoot then
-			if not player.dead and playerBullets.size < player.maxBullets then
+			if isPlayerPresent() and playerBullets.size < player.maxBullets then
 				playerBullets:add({
 					vel = vec2(0, -450),
 					pos = player.pos + player.bulletExitOffset,
@@ -378,8 +395,12 @@ function love.update(dt)
 		if player.health <= 0 and not player.dead then
 			player.dead = true
 			explode(player.radius, player.pos, player.colour)
+			if spareLives == 0 then
+				gameOver = true
+			end
+			spareLives = math.max(0, spareLives - 1)
 		end
-		if not player.dead then
+		if isPlayerPresent() then
 			-- Player movement x
 			local movedX = false
 			if love.keyboard.isDown(controls.left) then
@@ -448,7 +469,7 @@ function love.update(dt)
 		-- 	player.vel.y = math.min(0, player.vel.y)
 		-- end
 
-		if not player.dead then
+		if isPlayerPresent() then
 			player.pos = player.pos + player.vel * dt
 			local cameraSlowdownFactorSameDirection = (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax
 			local cameraSlowdownFactorOppositeDirections = (1 - (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax)
@@ -456,7 +477,7 @@ function love.update(dt)
 			cameraYOffset = math.min(cameraYOffsetMax, math.max(-cameraYOffsetMax * 0, cameraYOffset + player.vel.y * dt * cameraSlowdownFactor))
 		end
 
-		if player.dead then
+		if gameOver then
 			if not gameOverTextPresent then
 				if gameOverTextWaitTimer then
 					gameOverTextWaitTimer = gameOverTextWaitTimer - dt
@@ -467,6 +488,55 @@ function love.update(dt)
 				else
 					gameOverTextWaitTimer = gameOverTextWaitTimerLength
 				end
+			end
+		elseif player.dead then
+			-- Not game over but we're dead, make enemies go away quickly for another round
+			local screenTopInWorldSpace = player.pos.y - gameHeight / 2 - cameraYOffset
+			for i = 1, enemies.size do
+				-- There are nicer ways to do this, I'm sure, and I had one in mind but didn't bother to execute it for some reason
+				local enemy = enemies:get(i)
+				local topDist = math.abs(screenTopInWorldSpace - enemy.pos.y)
+				local bottomDist = math.abs(screenTopInWorldSpace + gameHeight - enemy.pos.y)
+				-- local leftDist = math.abs(0 - enemy.pos.x)
+				local leftDist = enemy.pos.x
+				local rightDist = math.abs(gameWidth - enemy.pos.x)
+				local topOverBottom = topDist < bottomDist
+				local leftOverRight = leftDist < rightDist
+				local dir
+				if topOverBottom then
+					if leftOverRight then
+						if topDist < leftDist then
+							dir = vec2(0, -1)
+						else
+							dir = vec2(-1, 0)
+						end
+					else
+						if topDist < rightDist then
+							dir = vec2(0, -1)
+						else
+							dir = vec2(1, 0)
+						end
+					end
+				else
+					if leftOverRight then
+						if bottomDist < leftDist then
+							dir = vec2(0, 1)
+						else
+							dir = vec2(-1, 0)
+						end
+					else
+						if bottomDist < rightDist then
+							dir = vec2(0, 1)
+						else
+							dir = vec2(1, 0)
+						end
+					end
+				end
+				enemy.targetVel = dir * enemy.speed
+			end
+
+			if enemyBullets.size == 0 and enemiesToMaterialise.size == 0 and enemies.size == 0 then -- All gone?
+				generatePlayer()
 			end
 		end
 
@@ -509,7 +579,7 @@ function love.update(dt)
 			if enemy.shootTimer <= 0 then
 				local timerFactor = love.math.random() / 0.5 + 0.75
 				enemy.shootTimer = enemy.shootTimerLength * timerFactor
-				if not player.dead then
+				if isPlayerPresent() then
 					local posDiff = player.pos - enemy.pos
 					if #posDiff > 0 then
 						enemyBullets:add({
@@ -532,7 +602,7 @@ function love.update(dt)
 			enemyBullet.pos = enemyBullet.pos + enemyBullet.vel * dt
 			if circleOffScreen(enemyBullet.radius, enemyBullet.pos) then
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
-			elseif not player.dead and vec2.distance(enemyBullet.pos, player.pos) <= player.radius then
+			elseif isPlayerPresent() and vec2.distance(enemyBullet.pos, player.pos) <= player.radius then
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 				player.health = player.health - enemyBullet.damage
 				if player.health > 0 then
@@ -583,7 +653,7 @@ function love.update(dt)
 		if spawnAttemptTimer <= 0 then
 			local timerFactor = love.math.random() / 0.5 + 0.75
 			spawnAttemptTimer = spawnAttemptTimerLength * timerFactor
-			local numberToSpawn = player.dead and 0 or math.max(0, math.min(love.math.random(minEnemiesToSpawn, maxEnemiesToSpawn), maxEnemies - enemies.size))
+			local numberToSpawn = not isPlayerPresent() and 0 or math.max(0, math.min(love.math.random(minEnemiesToSpawn, maxEnemiesToSpawn), maxEnemies - enemies.size))
 			for _=1, numberToSpawn do
 				local options = {}
 				for k, v in pairs(enemyPool) do
@@ -721,7 +791,7 @@ function love.draw()
 		end
 		love.graphics.setPointSize(1)
 		love.graphics.setColor(1, 1, 1)
-		if not player.dead then
+		if isPlayerPresent() then
 			local flash = player.contactInvulnerabilityTimer and math.floor(player.contactInvulnerabilityTimer * player.flashAnimationSpeed) % 2 == 0
 			if flash then
 				love.graphics.setColor(1, 1, 1, flashAlpha)
@@ -731,6 +801,11 @@ function love.draw()
 		end
 
 		love.graphics.origin()
+
+		for i = 0, spareLives - 1 do
+			love.graphics.draw(assets.images.player, i * assets.images.player:getWidth(), 0)
+		end
+
 		if gameOverTextPresent then
 			local text = "GAME OVER"
 			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight / 2 - font:getHeight() / 2)
