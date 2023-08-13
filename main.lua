@@ -111,21 +111,25 @@ local minEnemiesToSpawn, maxEnemiesToSpawn
 
 local gameCanvas, canvasScale, font
 
-local function spawnEnemy(enemy, timer)
-	enemy.timeUntilSpawn = timer
-	enemiesToMaterialise:add(enemy)
-	local newParticleCount = math.floor((math.pi * enemy.radius ^ 2) * particlesPerArea)
+local function implode(radius, pos, colour, timer, velocityBoost)
+	local newParticleCount = math.floor((math.pi * radius ^ 2) * particlesPerArea)
 	for i = 1, newParticleCount do
-		local relPos = randCircle(enemy.radius)
-		local vel = relPos * 15
+		local relPos = randCircle(radius)
+		local vel = relPos * 15 + (velocityBoost or vec2())
 		particles:add({
-			pos = relPos + enemy.pos + vel * timer,
+			pos = relPos + pos + vel * timer,
 			vel = -vel,
 			lifetime = timer,
 			size = love.math.random() < 0.1 and 2 or 1,
-			colour = shallowClone(enemy.colour)
+			colour = shallowClone(colour)
 		})
 	end
+end
+
+local function spawnEnemy(enemy, timer)
+	enemy.timeUntilSpawn = timer
+	enemiesToMaterialise:add(enemy)
+	implode(enemy.radius, enemy.pos, enemy.colour, timer)
 end
 
 local function explode(radius, pos, colour, velocityBoost)
@@ -189,6 +193,7 @@ local function generatePlayer()
 	else
 		pos = vec2(gameWidth / 2, 0)
 	end
+	local spawnTime = 0.75
 	player = {
 		pos = pos,
 		vel = vec2(),
@@ -206,15 +211,17 @@ local function generatePlayer()
 		colour = {0.6, 0.2, 0.2},
 		contactInvulnerabilityTimerLength = 1,
 		contactInvulnerabilityTimer = nil,
-		flashAnimationSpeed = 30
+		flashAnimationSpeed = 30,
+		spawning = true,
+		spawnTimer = spawnTime
 	}
+	implode(player.radius, player.pos, player.colour, spawnTime)
 end
 
 local function initPlayState()
 	gameState = "play"
 	backgroundParticleBlockLayers = {}
 
-	generatePlayer()
 	spareLives = 2
 	enemies = list()
 	enemiesToMaterialise = list()
@@ -222,13 +229,14 @@ local function initPlayState()
 	enemyBullets = list()
 	cameraYOffset = cameraYOffsetMax
 	particles = list()
+	generatePlayer()
 
 	enemyPool = {
 		fighter1 = 8,
 		bomber1 = 3
 	}
-	spawnAttemptTimer = 0.5
 	spawnAttemptTimerLength = 0.5
+	spawnAttemptTimer = spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
 	maxEnemies = 6
 	minEnemiesToSpawn = 1
 	maxEnemiesToSpawn = 3
@@ -392,6 +400,15 @@ function love.update(dt)
 		titleCameraVelocity = marchVectorToTarget(titleCameraVelocity, titleCameraTargetVelocity, titleCameraAccel, dt)
 		titleCameraPos = titleCameraPos + titleCameraVelocity * dt
 	elseif gameState == "play" then
+		if player.spawning then
+			player.spawnTimer = player.spawnTimer - dt
+			if player.spawnTimer <= 0 then
+				player.spawning = false
+				player.spawnTimer = nil
+				spawnAttemptTimer = spawnAttemptTimerLength
+			end
+		end
+
 		if player.health <= 0 and not player.dead then
 			player.dead = true
 			explode(player.radius, player.pos, player.colour)
@@ -575,11 +592,11 @@ function love.update(dt)
 			end
 			enemy.vel = marchVectorToTarget(enemy.vel, enemy.targetVel, enemy.accel, dt)
 			enemy.pos = enemy.pos + enemy.vel * dt
-			enemy.shootTimer = enemy.shootTimer - dt
-			if enemy.shootTimer <= 0 then
-				local timerFactor = love.math.random() / 0.5 + 0.75
-				enemy.shootTimer = enemy.shootTimerLength * timerFactor
-				if isPlayerPresent() then
+			if isPlayerPresent() then
+				enemy.shootTimer = enemy.shootTimer - dt
+				if enemy.shootTimer <= 0 then
+					local timerFactor = love.math.random() / 0.5 + 0.75
+					enemy.shootTimer = enemy.shootTimerLength * timerFactor
 					local posDiff = player.pos - enemy.pos
 					if #posDiff > 0 then
 						enemyBullets:add({
