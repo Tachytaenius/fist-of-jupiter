@@ -3,7 +3,6 @@
 - Add score
 - Continue playing after a wave is won
 - Add perspective to the background points
-- Shotgun enemy projectiles
 - Fine tune particle block parameters for performance, and check performance with a full grid of particle blocks
 - Make font cooler
 - Maybe don't let the player backtrack off the screen and despawn alll the enemies? What about going forwards, too

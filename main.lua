@@ -661,12 +661,15 @@ function love.update(dt)
 					enemy.shootTimer = enemy.shootTimerLength * timerFactor
 					local posDiff = player.pos - enemy.pos
 					if #posDiff > 0 then
-						enemyBullets:add({
-							pos = enemy.pos,
-							vel = enemy.bulletSpeed * vec2.normalise(posDiff),
-							radius = enemy.bulletRadius,
-							damage = enemy.bulletDamage
-						})
+						for i = 0, enemy.bulletCount - 1 do
+							local angleOffset = enemy.bulletCount == 1 and 0 or (i / (enemy.bulletCount - 1) - 0.5) * enemy.bulletSpreadAngle
+							enemyBullets:add({
+								pos = enemy.pos,
+								vel = enemy.bulletSpeed * vec2.rotate(vec2.normalise(posDiff), angleOffset),
+								radius = enemy.bulletRadius,
+								damage = enemy.bulletDamage
+							})
+						end
 					end
 				end
 			end
@@ -769,6 +772,8 @@ function love.update(dt)
 					bulletSpeed = registryEntry.bulletSpeed,
 					bulletRadius = registryEntry.bulletRadius,
 					bulletDamage = registryEntry.bulletDamage,
+					bulletCount = registryEntry.bulletCount,
+					bulletSpreadAngle = registryEntry.bulletSpreadAngle,
 					contactDamage = registryEntry.contactDamage,
 					accel = registryEntry.accel
 				}, registryEntry.materialisationTime)
