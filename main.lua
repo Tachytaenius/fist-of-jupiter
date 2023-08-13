@@ -126,6 +126,7 @@ local function implode(radius, pos, colour, timer, velocityBoost)
 		particles:add({
 			pos = relPos + pos + vel * timer,
 			vel = -vel,
+			invisibleTime = timer - (love.math.random() / 2 + 0.5) * 0.5,
 			lifetime = timer,
 			size = love.math.random() < 0.1 and 2 or 1,
 			colour = shallowClone(colour)
@@ -683,6 +684,12 @@ function love.update(dt)
 		for i = 1, particles.size do
 			local particle = particles:get(i)
 			particle.pos = particle.pos + particle.vel * dt
+			if particle.invisibleTime then
+				particle.invisibleTime = particle.invisibleTime - dt
+				if particle.invisibleTime <= 0 then
+					particle.invisibleTime = nil
+				end
+			end
 			particle.lifetime = particle.lifetime - dt
 			if particle.lifetime <= 0 then
 				particlesToDelete[#particlesToDelete+1] = particle
@@ -850,9 +857,11 @@ function love.draw()
 		end
 		for i = 1, particles.size do
 			local particle = particles:get(i)
-			love.graphics.setPointSize(particle.size)
-			love.graphics.setColor(particle.colour)
-			love.graphics.points(particle.pos.x, particle.pos.y)
+			if not particle.invisibleTime then
+				love.graphics.setPointSize(particle.size)
+				love.graphics.setColor(particle.colour)
+				love.graphics.points(particle.pos.x, particle.pos.y)
+			end
 		end
 		love.graphics.setPointSize(1)
 		love.graphics.setColor(1, 1, 1)

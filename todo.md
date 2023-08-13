@@ -8,5 +8,4 @@
 - Make player materialise before play
 - Maybe don't let the player backtrack off the screen and despawn alll the enemies? What about going forwards, too
 - Add sparkles to title screen logo
-- Give implosions the reverse of the lifetime effect
 - Fix weirdness when you push into the side of the screen
