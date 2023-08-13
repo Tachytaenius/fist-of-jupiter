@@ -484,14 +484,16 @@ function love.update(dt)
 			if enemy.shootTimer <= 0 then
 				local timerFactor = love.math.random() / 0.5 + 0.75
 				enemy.shootTimer = enemy.shootTimerLength * timerFactor
-				local posDiff = player.pos - enemy.pos
-				if #posDiff > 0 then
-					enemyBullets:add({
-						pos = enemy.pos,
-						vel = enemy.bulletSpeed * vec2.normalise(posDiff),
-						radius = enemy.bulletRadius,
-						damage = enemy.bulletDamage
-					})
+				if not player.dead then
+					local posDiff = player.pos - enemy.pos
+					if #posDiff > 0 then
+						enemyBullets:add({
+							pos = enemy.pos,
+							vel = enemy.bulletSpeed * vec2.normalise(posDiff),
+							radius = enemy.bulletRadius,
+							damage = enemy.bulletDamage
+						})
+					end
 				end
 			end
 		end
@@ -554,7 +556,7 @@ function love.update(dt)
 		if spawnAttemptTimer <= 0 then
 			local timerFactor = love.math.random() / 0.5 + 0.75
 			spawnAttemptTimer = spawnAttemptTimerLength * timerFactor
-			local numberToSpawn = math.max(0, math.min(love.math.random(minEnemiesToSpawn, maxEnemiesToSpawn), maxEnemies - enemies.size))
+			local numberToSpawn = player.dead and 0 or math.max(0, math.min(love.math.random(minEnemiesToSpawn, maxEnemiesToSpawn), maxEnemies - enemies.size))
 			for _=1, numberToSpawn do
 				local options = {}
 				for k, v in pairs(enemyPool) do
