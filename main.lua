@@ -444,7 +444,11 @@ function love.update(dt)
 			end
 			if gameState == "play" and love.keyboard.isDown(controls.right) then
 				player.vel.x = player.vel.x + player.accelX * dt
-				movedX = true
+				if movedX then
+					movedX = false
+				else
+					movedX = true
+				end
 			end
 			if not movedX then
 				player.vel.x = math.max(0, math.abs(player.vel.x) - player.accelX * dt) * math.sign(player.vel.x)
@@ -458,7 +462,11 @@ function love.update(dt)
 			end
 			if gameState == "play" and love.keyboard.isDown(controls.down) then
 				player.vel.y = player.vel.y + player.accelDown * dt
-				movedY = true
+				if movedY then
+					movedY = false
+				else
+					movedY = true
+				end
 			end
 			if not movedY then
 				if player.vel.y > 0 then
