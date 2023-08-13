@@ -8,4 +8,3 @@
 - Make player materialise before play
 - Maybe don't let the player backtrack off the screen and despawn alll the enemies? What about going forwards, too
 - Add sparkles to title screen logo
-- Fix weirdness when you push into the side of the screen

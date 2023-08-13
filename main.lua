@@ -496,6 +496,15 @@ function love.update(dt)
 				end
 			end
 		end
+
+		if isPlayerPresent() then
+			player.pos = player.pos + player.vel * dt
+			local cameraSlowdownFactorSameDirection = (consts.cameraYOffsetMax - cameraYOffset) / consts.cameraYOffsetMax
+			local cameraSlowdownFactorOppositeDirections = (1 - (consts.cameraYOffsetMax - cameraYOffset) / consts.cameraYOffsetMax)
+			local cameraSlowdownFactor = math.sign(player.vel.y) * math.sign(cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
+			cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, cameraYOffset + player.vel.y * dt * cameraSlowdownFactor))
+		end
+
 		-- Player movement limiting
 		if player.pos.x < consts.borderSize then
 			player.pos.x = consts.borderSize
@@ -511,14 +520,6 @@ function love.update(dt)
 		-- 	player.pos.y = gameHeight - consts.borderSize
 		-- 	player.vel.y = math.min(0, player.vel.y)
 		-- end
-
-		if isPlayerPresent() then
-			player.pos = player.pos + player.vel * dt
-			local cameraSlowdownFactorSameDirection = (consts.cameraYOffsetMax - cameraYOffset) / consts.cameraYOffsetMax
-			local cameraSlowdownFactorOppositeDirections = (1 - (consts.cameraYOffsetMax - cameraYOffset) / consts.cameraYOffsetMax)
-			local cameraSlowdownFactor = math.sign(player.vel.y) * math.sign(cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
-			cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, cameraYOffset + player.vel.y * dt * cameraSlowdownFactor))
-		end
 
 		if gameOver then
 			if not gameOverTextPresent then
