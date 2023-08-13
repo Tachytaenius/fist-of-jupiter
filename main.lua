@@ -94,7 +94,11 @@ local consts = {
 	gameOverTextWaitTimerLength = 1.5,
 	preRespawnCentringTimerLength = 0.25,
 	postRespawnCentringTimerLength = 0.1,
-	respawnCentringSpeed = 100
+	respawnCentringSpeed = 100,
+	playLikeStates = {
+		play = true,
+		waveWon = true
+	}
 }
 
 local controls = {
@@ -157,7 +161,7 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer)
 end
 
 local function winWave()
-	-- TODO
+	gameState = "waveWon"
 end
 
 local function circleOffScreen(radius, pos)
@@ -314,7 +318,7 @@ function love.update(dt)
 				-- colour = {hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
 			})
 		end
-		local cameraPos = gameState == "title" and titleCameraPos or gameState == "play" and player.pos
+		local cameraPos = gameState == "title" and titleCameraPos or consts.playLikeStates[gameState] and player.pos
 		for _, layer in ipairs(backgroundParticleBlockLayers) do
 			-- Add needed blocks
 			local minXWorldSpace = cameraPos.x - consts.distanceToGenerateBlocks + gameWidth / 2
@@ -411,7 +415,7 @@ function love.update(dt)
 
 		titleCameraVelocity = marchVectorToTarget(titleCameraVelocity, titleCameraTargetVelocity, consts.titleCameraAccel, dt)
 		titleCameraPos = titleCameraPos + titleCameraVelocity * dt
-	elseif gameState == "play" then
+	elseif consts.playLikeStates[gameState] then
 		if player.spawning then
 			player.spawnTimer = player.spawnTimer - dt
 			if player.spawnTimer <= 0 then
@@ -434,11 +438,11 @@ function love.update(dt)
 		if isPlayerPresent() then
 			-- Player movement x
 			local movedX = false
-			if love.keyboard.isDown(controls.left) then
+			if gameState == "play" and love.keyboard.isDown(controls.left) then
 				player.vel.x = player.vel.x - player.accelX * dt
 				movedX = true
 			end
-			if love.keyboard.isDown(controls.right) then
+			if gameState == "play" and love.keyboard.isDown(controls.right) then
 				player.vel.x = player.vel.x + player.accelX * dt
 				movedX = true
 			end
@@ -448,11 +452,11 @@ function love.update(dt)
 			player.vel.x = math.max(-player.maxSpeedX, math.min(player.maxSpeedX, player.vel.x))
 			-- Player movement y
 			local movedY = false
-			if love.keyboard.isDown(controls.up) then
+			if gameState == "play" and love.keyboard.isDown(controls.up) then
 				player.vel.y = player.vel.y - player.accelUp * dt
 				movedY = true
 			end
-			if love.keyboard.isDown(controls.down) then
+			if gameState == "play" and love.keyboard.isDown(controls.down) then
 				player.vel.y = player.vel.y + player.accelDown * dt
 				movedY = true
 			end
@@ -734,7 +738,6 @@ function love.update(dt)
 					end
 				end
 				if #options == 0 then
-					winWave()
 					break
 				end
 				local enemyType = options[love.math.random(#options)]
@@ -762,6 +765,17 @@ function love.update(dt)
 				}, registryEntry.materialisationTime)
 			end
 		end
+
+		local enemyPoolIsEmpty = true
+		for k, v in pairs(enemyPool) do
+			if v > 0 then
+				enemyPoolIsEmpty = false
+				break
+			end
+		end
+		if enemies.size == 0 and enemiesToMaterialise.size == 0 and enemyBullets.size == 0 and enemyPoolIsEmpty then
+			winWave()
+		end
 	end
 end
 
@@ -771,7 +785,7 @@ function love.draw()
 	love.graphics.clear()
 
 	if backgroundParticleBlockLayers then
-		local cameraPos = gameState == "title" and titleCameraPos or gameState == "play" and player.pos
+		local cameraPos = gameState == "title" and titleCameraPos or consts.playLikeStates[gameState] and player.pos
 		for _, layer in ipairs(backgroundParticleBlockLayers) do
 			love.graphics.push()
 			love.graphics.translate(gameWidth / 2, gameHeight / 2)
@@ -817,7 +831,7 @@ function love.draw()
 		for i, v in ipairs(texts) do
 			love.graphics.print(v, 0, font:getHeight() * (i-1))
 		end
-	elseif gameState == "play" then
+	elseif consts.playLikeStates[gameState] then
 		love.graphics.translate(-player.pos.x / 4, -player.pos.y / 2)
 		love.graphics.translate(0, gameHeight/2)
 		love.graphics.translate(0, cameraYOffset / 2)
