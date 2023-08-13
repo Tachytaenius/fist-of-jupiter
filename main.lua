@@ -54,6 +54,14 @@ local function hsv2rgb(h, s, v)
 	end
 end
 
+local function marchVectorToTarget(movee, target, speed, dt)
+	local moveeRelativeToTarget = movee - target
+	local direction = normaliseOrZero(moveeRelativeToTarget)
+	local length = #moveeRelativeToTarget
+	local newMoveeRelativeToTarget = direction * math.max(0, length - speed * dt)
+	return newMoveeRelativeToTarget + target
+end
+
 local assets
 
 local gameWidth, gameHeight = 160*2, 144*3
@@ -164,6 +172,7 @@ local function initTitleState()
 	cursorPos = 0
 	titleCameraPos = vec2()
 	titleCameraVelocity = vec2()
+	titleCameraTargetVelocity = nil
 	titleScreenVelocityChangeTimer = titleScreenVelocityChangeTimerLength * love.math.random() * 1/2 + 3/4
 end
 
@@ -363,12 +372,7 @@ function love.update(dt)
 			newTargetVel()
 		end
 
-		local velRelativeToTargetVel = titleCameraVelocity - titleCameraTargetVelocity
-		local dir = normaliseOrZero(velRelativeToTargetVel)
-		local len = #velRelativeToTargetVel
-		velRelativeToTargetVel = dir * math.max(0, len - titleCameraAccel * dt)
-		titleCameraVelocity = velRelativeToTargetVel + titleCameraTargetVelocity
-
+		titleCameraVelocity = marchVectorToTarget(titleCameraVelocity, titleCameraTargetVelocity, titleCameraAccel, dt)
 		titleCameraPos = titleCameraPos + titleCameraVelocity * dt
 	elseif gameState == "play" then
 		if player.health <= 0 and not player.dead then
@@ -499,6 +503,7 @@ function love.update(dt)
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				enemyPool[enemy.type] = enemyPool[enemy.type] + 1 -- Let the enemy come back
 			end
+			enemy.vel = marchVectorToTarget(enemy.vel, enemy.targetVel, enemy.accel, dt)
 			enemy.pos = enemy.pos + enemy.vel * dt
 			enemy.shootTimer = enemy.shootTimer - dt
 			if enemy.shootTimer <= 0 then
@@ -565,8 +570,10 @@ function love.update(dt)
 			enemiesToMaterialise:remove(enemy)
 			enemies:add(enemy)
 			if player.pos ~= enemy.pos then
-				enemy.vel = enemy.speed * vec2.normalise(player.pos - enemy.pos)
-				enemy.vel.y = math.abs(enemy.vel.y)
+				-- enemy.vel = enemy.speed * vec2.normalise(player.pos - enemy.pos)
+				-- enemy.vel.y = math.abs(enemy.vel.y)
+				enemy.targetVel = enemy.speed * vec2.normalise(player.pos - enemy.pos)
+				enemy.targetVel.y = math.abs(enemy.targetVel.y)
 			else
 				enemy.vel = vec2()
 			end
@@ -597,6 +604,7 @@ function love.update(dt)
 				spawnEnemy({
 					pos = vec2(x, y),
 					vel = vec2(),
+					targetVel = vec2(),
 					radius = registryEntry.radius,
 					health = registryEntry.health,
 					type = enemyType,
@@ -607,7 +615,8 @@ function love.update(dt)
 					bulletSpeed = registryEntry.bulletSpeed,
 					bulletRadius = registryEntry.bulletRadius,
 					bulletDamage = registryEntry.bulletDamage,
-					contactDamage = registryEntry.contactDamage
+					contactDamage = registryEntry.contactDamage,
+					accel = registryEntry.accel
 				}, registryEntry.materialisationTime)
 			end
 		end
