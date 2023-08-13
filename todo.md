@@ -5,7 +5,6 @@
 - Add perspective to the background points
 - Shotgun enemy projectiles
 - Fine tune particle block parameters for performance
-- Add window title
 - Make font cooler
 - Make player materialise before play
 - When you die, make all enemies fly off to the closest side of the screen before you respawn
