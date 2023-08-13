@@ -65,31 +65,38 @@ end
 local assets
 
 local gameWidth, gameHeight = 160*2, 144*3
-local borderSize = 24
-local cameraYOffsetMax = 128
-local backgroundScale = 0.75
-local backgroundPointDistanceX = gameWidth / 8
-local backgroundPointDistanceY = gameWidth / 8
-local backgroundPointOffsetX = gameWidth / 16
-local backgroundPointOffsetY = gameWidth / 16
-local particlesPerArea = 0.75
-local flashAlpha = 0.5
-local explosionSourceRadiusPerDamage = 1.5
-local bulletHitParticleBounceMultiplier = 0.1
-local titleOptionCount = 2
-local titleOptionsYPos = 256
-local distanceToGenerateBlocks = 2000
-local particleBlockSize = 500
-local permanentStationaryParticlesPerBlock = 20
-local movingParticlesPerBlock = 2
-local movingBlockParticleMaxSpeed = 100
-local movingBackgroundParticleDeletionTime = 2
-local backgroundParticlePointScale = 8
-local maxParticleBlockDistance = 4000
-local titleScreenVelocityChangeTimerLength = 3
-local titleScreenCameraSpeed = 600
-local titleCameraAccel = 1000
-local gameOverTextWaitTimerLength = 1.5
+
+local consts = {
+	borderSize = 24,
+	cameraYOffsetMax = 128,
+	backgroundScale = 0.75,
+	backgroundPointDistanceX = gameWidth / 8,
+	backgroundPointDistanceY = gameWidth / 8,
+	backgroundPointOffsetX = gameWidth / 16,
+	backgroundPointOffsetY = gameWidth / 16,
+	particlesPerArea = 0.75,
+	flashAlpha = 0.5,
+	explosionSourceRadiusPerDamage = 1.5,
+	bulletHitParticleBounceMultiplier = 0.1,
+	titleOptionCount = 2,
+	titleOptionsYPos = 256,
+	distanceToGenerateBlocks = 2000,
+	particleBlockSize = 500,
+	permanentStationaryParticlesPerBlock = 20,
+	movingParticlesPerBlock = 2,
+	movingBlockParticleMaxSpeed = 100,
+	movingBackgroundParticleDeletionTime = 2,
+	backgroundParticlePointScale = 8,
+	maxParticleBlockDistance = 4000,
+	titleScreenVelocityChangeTimerLength = 3,
+	titleScreenCameraSpeed = 600,
+	titleCameraAccel = 1000,
+	gameOverTextWaitTimerLength = 1.5,
+	preRespawnCentringTimerLength = 0.25,
+	postRespawnCentringTimerLength = 0.1,
+	respawnCentringSpeed = 100
+}
+
 local controls = {
 	up = "w",
 	down = "s",
@@ -106,13 +113,13 @@ local cursorPos, titleCameraPos, titleCameraVelocity, titleCameraTargetVelocity,
 
 -- Play variables
 local player, gameState, spareLives, enemies, enemiesToMaterialise, playerBullets, enemyBullets, cameraYOffset, particles, enemyPool, spawnAttemptTimer, spawnAttemptTimerLength, maxEnemies
-local gameOverTextWaitTimer, gameOverTextPresent, gameOver
+local gameOverTextWaitTimer, gameOverTextPresent, gameOver, respawnCentringDone, preRespawnCentringTimer, postRespawnCentringTimer, respawnCentringAnimationInProgress
 local minEnemiesToSpawn, maxEnemiesToSpawn
 
 local gameCanvas, canvasScale, font
 
 local function implode(radius, pos, colour, timer, velocityBoost)
-	local newParticleCount = math.floor((math.pi * radius ^ 2) * particlesPerArea)
+	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
 	for i = 1, newParticleCount do
 		local relPos = randCircle(radius)
 		local vel = relPos * 15 + (velocityBoost or vec2())
@@ -134,7 +141,7 @@ end
 
 local function explode(radius, pos, colour, velocityBoost)
 	velocityBoost = velocityBoost or vec2()
-	local newParticleCount = math.floor((math.pi * radius ^ 2) * particlesPerArea)
+	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
 	for i = 1, newParticleCount do
 		local relPos = randCircle(radius)
 		particles:add({
@@ -177,7 +184,7 @@ local function initTitleState()
 	titleCameraPos = vec2()
 	titleCameraVelocity = vec2()
 	titleCameraTargetVelocity = nil
-	titleScreenVelocityChangeTimer = titleScreenVelocityChangeTimerLength * love.math.random() * 1/2 + 3/4
+	titleScreenVelocityChangeTimer = consts.titleScreenVelocityChangeTimerLength * love.math.random() * 1/2 + 3/4
 end
 
 local function isPlayerPresent()
@@ -188,8 +195,8 @@ local function generatePlayer()
 	local pos
 	if player then
 		local screenTopInWorldSpace = player.pos.y - gameHeight / 2 - cameraYOffset
-		pos = vec2(player.pos.x, screenTopInWorldSpace + gameHeight / 2 + cameraYOffsetMax)
-		cameraYOffset = cameraYOffsetMax
+		pos = vec2(player.pos.x, screenTopInWorldSpace + gameHeight / 2 + consts.cameraYOffsetMax)
+		cameraYOffset = consts.cameraYOffsetMax
 	else
 		pos = vec2(gameWidth / 2, 0)
 	end
@@ -227,7 +234,7 @@ local function initPlayState()
 	enemiesToMaterialise = list()
 	playerBullets = list()
 	enemyBullets = list()
-	cameraYOffset = cameraYOffsetMax
+	cameraYOffset = consts.cameraYOffsetMax
 	particles = list()
 	generatePlayer()
 
@@ -243,6 +250,9 @@ local function initPlayState()
 	gameOverTextPresent = false
 	gameOverTextWaitTimer = nil
 	gameOver = false
+	preRespawnCentringTimer = nil
+	postRespawnCentringTimer = nil
+	respawnCentringAnimationInProgress = false
 end
 
 function love.load()
@@ -276,9 +286,9 @@ function love.keypressed(key)
 		end
 	elseif gameState == "title" then
 		if key == controls.up then
-			cursorPos = (cursorPos - 1) % titleOptionCount
+			cursorPos = (cursorPos - 1) % consts.titleOptionCount
 		elseif key == controls.down then
-			cursorPos = (cursorPos + 1) % titleOptionCount
+			cursorPos = (cursorPos + 1) % consts.titleOptionCount
 		elseif key == controls.shoot then
 			if cursorPos == 0 then
 				initPlayState()
@@ -293,10 +303,10 @@ function love.update(dt)
 	if backgroundParticleBlockLayers then
 		local function addMovingParticleToBlock(block, layer, x, y)
 			block.movingParticles:add({
-				pos = particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
-				vel = randCircle(movingBlockParticleMaxSpeed),
-				size = backgroundParticlePointScale / layer.distance,
-				deletionTimer = movingBackgroundParticleDeletionTime * (love.math.random() * 1/2 + 3/4),
+				pos = consts.particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
+				vel = randCircle(consts.movingBlockParticleMaxSpeed),
+				size = consts.backgroundParticlePointScale / layer.distance,
+				deletionTimer = consts.movingBackgroundParticleDeletionTime * (love.math.random() * 1/2 + 3/4),
 				colour = {hsv2rgb(love.math.random() * 360, 1, 0.75 * math.min(1, 3/layer.distance))},
 				-- colour = {0.5 * math.min(1, 3/layer.distance), 0, 0}
 				-- colour = {hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
@@ -305,12 +315,12 @@ function love.update(dt)
 		local cameraPos = gameState == "title" and titleCameraPos or gameState == "play" and player.pos
 		for _, layer in ipairs(backgroundParticleBlockLayers) do
 			-- Add needed blocks
-			local minXWorldSpace = cameraPos.x - distanceToGenerateBlocks + gameWidth / 2
-			local maxXWorldSpace = cameraPos.x + distanceToGenerateBlocks + gameWidth / 2
-			local minYWorldSpace = cameraPos.y - distanceToGenerateBlocks + gameHeight / 2
-			local maxYWorldSpace = cameraPos.y + distanceToGenerateBlocks + gameHeight / 2
-			for x = math.floor(minXWorldSpace / particleBlockSize), math.ceil(maxXWorldSpace / particleBlockSize) do
-				for y = math.floor(minYWorldSpace / particleBlockSize), math.ceil(maxYWorldSpace / particleBlockSize) do
+			local minXWorldSpace = cameraPos.x - consts.distanceToGenerateBlocks + gameWidth / 2
+			local maxXWorldSpace = cameraPos.x + consts.distanceToGenerateBlocks + gameWidth / 2
+			local minYWorldSpace = cameraPos.y - consts.distanceToGenerateBlocks + gameHeight / 2
+			local maxYWorldSpace = cameraPos.y + consts.distanceToGenerateBlocks + gameHeight / 2
+			for x = math.floor(minXWorldSpace / consts.particleBlockSize), math.ceil(maxXWorldSpace / consts.particleBlockSize) do
+				for y = math.floor(minYWorldSpace / consts.particleBlockSize), math.ceil(maxYWorldSpace / consts.particleBlockSize) do
 					local blocksX = layer.blocks[x]
 					if not blocksX then
 						blocksX = {}
@@ -322,17 +332,17 @@ function love.update(dt)
 							movingParticles = list()
 						}
 						blocksX[y] = newBlock
-						for i = 1, permanentStationaryParticlesPerBlock do
+						for i = 1, consts.permanentStationaryParticlesPerBlock do
 							newBlock.permanentStationaryParticles:add({
-								pos = particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
+								pos = consts.particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
 								vel = vec2(),
-								size = backgroundParticlePointScale / layer.distance,
+								size = consts.backgroundParticlePointScale / layer.distance,
 								-- colour = {hsv2rgb(love.math.random() * 360, 1, 0.75 * math.min(1, 3/layer.distance))}
 								-- colour = {0.5 * math.min(1, 3/layer.distance), 0, 0}
 								colour = {hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
 							})
 						end
-						for i = 1, movingParticlesPerBlock do
+						for i = 1, consts.movingParticlesPerBlock do
 							addMovingParticleToBlock(newBlock, layer, x, y)
 						end
 					end
@@ -340,11 +350,11 @@ function love.update(dt)
 			end
 			-- Prune distant blocks
 			for x, blocksX in pairs(layer.blocks) do
-				if x * particleBlockSize - cameraPos.x > maxParticleBlockDistance then -- maybe the cameraPos.x part technically needs to have gameWidth / 2 added
+				if x * consts.particleBlockSize - cameraPos.x > consts.maxParticleBlockDistance then -- maybe the cameraPos.x part technically needs to have gameWidth / 2 added
 					layer.blocks[x] = nil
 				else
 					for y, blocksY in pairs(blocksX) do
-						if y * particleBlockSize - cameraPos.y > maxParticleBlockDistance then
+						if y * consts.particleBlockSize - cameraPos.y > consts.maxParticleBlockDistance then
 							blocksX[y] = nil
 						end
 					end
@@ -373,7 +383,7 @@ function love.update(dt)
 					for _, particle in ipairs(particlesToDelete) do
 						block.movingParticles:remove(particle)
 					end
-					for _=1, movingParticlesPerBlock - block.movingParticles.size do
+					for _=1, consts.movingParticlesPerBlock - block.movingParticles.size do
 						addMovingParticleToBlock(block, layer, x, y)
 					end
 				end
@@ -382,7 +392,7 @@ function love.update(dt)
 	end
 	if gameState == "title" then
 		local function newTargetVel()
-			local targetSpeed = titleScreenCameraSpeed -- Do I want to randomise this?
+			local targetSpeed = consts.titleScreenCameraSpeed -- Do I want to randomise this?
 			titleCameraTargetVelocity = vec2.fromAngle(love.math.random() * math.tau) * targetSpeed * (love.math.random() / 2 + 3/4)
 		end
 		if not titleCameraTargetVelocity then
@@ -393,11 +403,11 @@ function love.update(dt)
 
 		titleScreenVelocityChangeTimer = titleScreenVelocityChangeTimer - dt
 		if titleScreenVelocityChangeTimer <= 0 then
-			titleScreenVelocityChangeTimer = titleScreenVelocityChangeTimerLength * (love.math.random() * 1/2 + 3/4)
+			titleScreenVelocityChangeTimer = consts.titleScreenVelocityChangeTimerLength * (love.math.random() * 1/2 + 3/4)
 			newTargetVel()
 		end
 
-		titleCameraVelocity = marchVectorToTarget(titleCameraVelocity, titleCameraTargetVelocity, titleCameraAccel, dt)
+		titleCameraVelocity = marchVectorToTarget(titleCameraVelocity, titleCameraTargetVelocity, consts.titleCameraAccel, dt)
 		titleCameraPos = titleCameraPos + titleCameraVelocity * dt
 	elseif gameState == "play" then
 		if player.spawning then
@@ -414,6 +424,8 @@ function love.update(dt)
 			explode(player.radius, player.pos, player.colour)
 			if spareLives == 0 then
 				gameOver = true
+			else
+				preRespawnCentringTimer = consts.preRespawnCentringTimerLength
 			end
 			spareLives = math.max(0, spareLives - 1)
 		end
@@ -457,7 +469,7 @@ function love.update(dt)
 					if vec2.distance(player.pos, enemy.pos) <= player.radius + enemy.radius then
 						player.health = player.health - enemy.contactDamage
 						if player.health > 0 then
-							explode(enemy.contactDamage * explosionSourceRadiusPerDamage, player.pos + normaliseOrZero(enemy.pos - player.pos) * player.radius, shallowClone(player.colour))
+							explode(enemy.contactDamage * consts.explosionSourceRadiusPerDamage, player.pos + normaliseOrZero(enemy.pos - player.pos) * player.radius, shallowClone(player.colour))
 						end
 						player.contactInvulnerabilityTimer = player.contactInvulnerabilityTimerLength
 						break
@@ -471,27 +483,27 @@ function love.update(dt)
 			end
 		end
 		-- Player movement limiting
-		if player.pos.x < borderSize then
-			player.pos.x = borderSize
+		if player.pos.x < consts.borderSize then
+			player.pos.x = consts.borderSize
 			player.vel.x = math.max(0, player.vel.x)
-		elseif player.pos.x > gameWidth - borderSize then
-			player.pos.x = gameWidth - borderSize
+		elseif player.pos.x > gameWidth - consts.borderSize then
+			player.pos.x = gameWidth - consts.borderSize
 			player.vel.x = math.min(0, player.vel.x)
 		end
-		-- if player.pos.y < borderSize then
-		-- 	player.pos.y = borderSize
+		-- if player.pos.y < consts.borderSize then
+		-- 	player.pos.y = consts.borderSize
 		-- 	player.vel.y = math.max(0, player.vel.y)
-		-- elseif player.pos.y > gameHeight - borderSize then
-		-- 	player.pos.y = gameHeight - borderSize
+		-- elseif player.pos.y > gameHeight - consts.borderSize then
+		-- 	player.pos.y = gameHeight - consts.borderSize
 		-- 	player.vel.y = math.min(0, player.vel.y)
 		-- end
 
 		if isPlayerPresent() then
 			player.pos = player.pos + player.vel * dt
-			local cameraSlowdownFactorSameDirection = (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax
-			local cameraSlowdownFactorOppositeDirections = (1 - (cameraYOffsetMax - cameraYOffset) / cameraYOffsetMax)
+			local cameraSlowdownFactorSameDirection = (consts.cameraYOffsetMax - cameraYOffset) / consts.cameraYOffsetMax
+			local cameraSlowdownFactorOppositeDirections = (1 - (consts.cameraYOffsetMax - cameraYOffset) / consts.cameraYOffsetMax)
 			local cameraSlowdownFactor = math.sign(player.vel.y) * math.sign(cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
-			cameraYOffset = math.min(cameraYOffsetMax, math.max(-cameraYOffsetMax * 0, cameraYOffset + player.vel.y * dt * cameraSlowdownFactor))
+			cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, cameraYOffset + player.vel.y * dt * cameraSlowdownFactor))
 		end
 
 		if gameOver then
@@ -503,7 +515,7 @@ function love.update(dt)
 					end
 				-- elseif enemyBullets.size == 0 and enemiesToMaterialise.size == 0 and enemies.size == 0 then
 				else
-					gameOverTextWaitTimer = gameOverTextWaitTimerLength
+					gameOverTextWaitTimer = consts.gameOverTextWaitTimerLength
 				end
 			end
 		elseif player.dead then
@@ -552,7 +564,32 @@ function love.update(dt)
 				enemy.targetVel = dir * enemy.speed
 			end
 
-			if enemyBullets.size == 0 and enemiesToMaterialise.size == 0 and enemies.size == 0 then -- All gone?
+			if preRespawnCentringTimer then
+				preRespawnCentringTimer = preRespawnCentringTimer - dt
+				if preRespawnCentringTimer <= 0 then
+					preRespawnCentringTimer = nil
+					respawnCentringAnimationInProgress = true
+				end
+			end
+			if respawnCentringAnimationInProgress then
+				if player.pos.x > gameWidth / 2 then
+					player.pos.x = math.max(gameWidth / 2, player.pos.x - consts.respawnCentringSpeed * dt)
+				else
+					player.pos.x = math.min(gameWidth / 2, player.pos.x + consts.respawnCentringSpeed * dt)
+				end
+				if player.pos.x == gameWidth / 2 then
+					respawnCentringAnimationInProgress = false
+					postRespawnCentringTimer = consts.postRespawnCentringTimerLength
+				end
+			end
+			if postRespawnCentringTimer then
+				postRespawnCentringTimer = postRespawnCentringTimer - dt
+				if postRespawnCentringTimer <= 0 then
+					postRespawnCentringTimer = nil
+				end
+			end
+			local allCentringFinished = not preRespawnCentringTimer and player.pos.x == gameWidth / 2 and not postRespawnCentringTimer
+			if enemyBullets.size == 0 and enemiesToMaterialise.size == 0 and enemies.size == 0 and allCentringFinished then
 				generatePlayer()
 			end
 		end
@@ -570,7 +607,7 @@ function love.update(dt)
 						deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
 						enemy.health = enemy.health - playerBullet.damage
 						if enemy.health > 0 then
-							explode(playerBullet.damage * explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * bulletHitParticleBounceMultiplier)
+							explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
 						end
 					end
 				end
@@ -623,7 +660,7 @@ function love.update(dt)
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 				player.health = player.health - enemyBullet.damage
 				if player.health > 0 then
-					explode(enemyBullet.damage * explosionSourceRadiusPerDamage, enemyBullet.pos, shallowClone(player.colour), -enemyBullet.vel * bulletHitParticleBounceMultiplier)
+					explode(enemyBullet.damage * consts.explosionSourceRadiusPerDamage, enemyBullet.pos, shallowClone(player.colour), -enemyBullet.vel * consts.bulletHitParticleBounceMultiplier)
 				end
 			end
 		end
@@ -685,7 +722,7 @@ function love.update(dt)
 				local enemyType = options[love.math.random(#options)]
 				enemyPool[enemyType] = enemyPool[enemyType] - 1
 				local registryEntry = registry.enemies[enemyType]
-				local x = love.math.random() * (gameWidth - borderSize * 2) + borderSize
+				local x = love.math.random() * (gameWidth - consts.borderSize * 2) + consts.borderSize
 				local screenTopInWorldSpace = player.pos.y - gameHeight / 2 - cameraYOffset
 				local y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
 				spawnEnemy({
@@ -756,7 +793,7 @@ function love.draw()
 		for i, v in ipairs(texts) do
 			textWidth = math.max(textWidth, font:getWidth(v))
 		end
-		love.graphics.translate(gameWidth / 2 - textWidth / 2, titleOptionsYPos)
+		love.graphics.translate(gameWidth / 2 - textWidth / 2, consts.titleOptionsYPos)
 		love.graphics.draw(assets.images.cursor, 0, font:getHeight() * cursorPos + font:getHeight() / 2 - assets.images.cursor:getHeight() / 2)
 		love.graphics.translate(assets.images.cursor:getWidth(), 0)
 		for i, v in ipairs(texts) do
@@ -766,10 +803,10 @@ function love.draw()
 		love.graphics.translate(-player.pos.x / 4, -player.pos.y / 2)
 		love.graphics.translate(0, gameHeight/2)
 		love.graphics.translate(0, cameraYOffset / 2)
-		for x = -backgroundPointDistanceX * 20, gameWidth + backgroundPointDistanceX * 20, backgroundPointDistanceX do
-			x = x + backgroundPointOffsetX
-			for y = -backgroundPointDistanceY * 5, gameHeight + backgroundPointDistanceY * 5, backgroundPointDistanceY do
-				y = y + backgroundPointOffsetY
+		for x = -consts.backgroundPointDistanceX * 20, gameWidth + consts.backgroundPointDistanceX * 20, consts.backgroundPointDistanceX do
+			x = x + consts.backgroundPointOffsetX
+			for y = -consts.backgroundPointDistanceY * 5, gameHeight + consts.backgroundPointDistanceY * 5, consts.backgroundPointDistanceY do
+				y = y + consts.backgroundPointOffsetY
 				love.graphics.points(
 					-- TODO: Add some perspective
 					x,
@@ -811,7 +848,7 @@ function love.draw()
 		if isPlayerPresent() then
 			local flash = player.contactInvulnerabilityTimer and math.floor(player.contactInvulnerabilityTimer * player.flashAnimationSpeed) % 2 == 0
 			if flash then
-				love.graphics.setColor(1, 1, 1, flashAlpha)
+				love.graphics.setColor(1, 1, 1, consts.flashAlpha)
 			end
 			love.graphics.draw(assets.images.player, player.pos.x - assets.images.player:getWidth() / 2, player.pos.y - assets.images.player:getHeight() / 2)
 			love.graphics.setColor(1, 1, 1)
