@@ -3,7 +3,6 @@
 - Add perspective to the background points
 - Fine tune particle block parameters for performance, and check performance with a full grid of particle blocks
 - Make font cooler
-- Maybe don't let the player backtrack off the screen and despawn alll the enemies? What about going forwards, too
 - Balance score so that no factor dominates
 - Add hacking with blue line effects around hackee, stopping them from shooting
 - Use interpolation for respawn centring
