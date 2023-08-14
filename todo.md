@@ -1,6 +1,6 @@
 - Ending where the player goes forwards and (relative to camera, so camera pos changes) moves to a point in the upper middle of the screen and then flies off as the camera stops(?).
 - Hyper beam powerup with rainbow attack!
-- Add score
+- Add a recorded high score system with names
 - Continue playing after a wave is won
 - Add perspective to the background points
 - Fine tune particle block parameters for performance, and check performance with a full grid of particle blocks

@@ -98,7 +98,9 @@ local consts = {
 	playLikeStates = {
 		play = true,
 		waveWon = true
-	}
+	},
+	scoreReductionTimerLength = 0.2,
+	scoreReductionAmount = 1
 }
 
 local controls = {
@@ -117,7 +119,8 @@ local cursorPos, titleCameraPos, titleCameraVelocity, titleCameraTargetVelocity,
 
 -- Play variables
 local player, gameState, spareLives, enemies, enemiesToMaterialise, playerBullets, enemyBullets, cameraYOffset, particles, enemyPool, spawnAttemptTimer, spawnAttemptTimerLength, maxEnemies
-local gameOverTextWaitTimer, gameOverTextPresent, gameOver, respawnCentringDone, preRespawnCentringTimer, postRespawnCentringTimer, respawnCentringAnimationInProgress
+local gameOverTextWaitTimer, gameOverTextPresent, gameOver, respawnCentringDone, preRespawnCentringTimer, postRespawnCentringTimer, respawnCentringAnimationInProgress, score
+local scoreReductionTimer
 local minEnemiesToSpawn, maxEnemiesToSpawn
 
 local gameCanvas, canvasScale, font
@@ -259,6 +262,8 @@ local function initPlayState()
 	preRespawnCentringTimer = nil
 	postRespawnCentringTimer = nil
 	respawnCentringAnimationInProgress = false
+	score = 0
+	scoreReductionTimer = consts.scoreReductionTimerLength
 end
 
 function love.load()
@@ -648,6 +653,7 @@ function love.update(dt)
 			if enemy.health <= 0 then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				explode(enemy.radius, enemy.pos, enemy.colour)
+				score = score + enemy.defeatScore
 			elseif circleOffScreen(enemy.radius, enemy.pos) then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				enemyPool[enemy.type] = enemyPool[enemy.type] + 1 -- Let the enemy come back
@@ -775,6 +781,7 @@ function love.update(dt)
 					bulletCount = registryEntry.bulletCount,
 					bulletSpreadAngle = registryEntry.bulletSpreadAngle,
 					contactDamage = registryEntry.contactDamage,
+					defeatScore = registryEntry.defeatScore,
 					accel = registryEntry.accel
 				}, registryEntry.materialisationTime)
 			end
@@ -789,6 +796,14 @@ function love.update(dt)
 		end
 		if enemies.size == 0 and enemiesToMaterialise.size == 0 and enemyBullets.size == 0 and enemyPoolIsEmpty then
 			winWave()
+		end
+
+		if gameState == "play" and isPlayerPresent() then
+			scoreReductionTimer = scoreReductionTimer - dt
+			if scoreReductionTimer <= 0 then
+				scoreReductionTimer = consts.scoreReductionTimerLength
+				score = math.max(0, score - consts.scoreReductionAmount)
+			end
 		end
 	end
 end
@@ -904,14 +919,16 @@ function love.draw()
 
 		love.graphics.origin()
 
-		for i = 0, spareLives - 1 do
-			love.graphics.draw(assets.images.player, i * assets.images.player:getWidth(), 0)
+		for i = 1, spareLives do
+			love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
 		end
 
 		if gameOverTextPresent then
 			local text = "GAME OVER"
 			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight / 2 - font:getHeight() / 2)
 		end
+
+		love.graphics.print("SCORE: " .. score, 0, 0)
 	end
 
 	love.graphics.origin()

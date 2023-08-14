@@ -14,6 +14,7 @@ registry.enemies.fighter1 = {
 	bulletSpreadAngle = 0,
 	contactDamage = 2,
 	accel = 150,
+	defeatScore = 50,
 	materialisationTime = 0.2
 }
 registry.enemies.bomber1 = {
@@ -29,6 +30,7 @@ registry.enemies.bomber1 = {
 	bulletSpreadAngle = 0,
 	contactDamage = 3,
 	accel = 125,
+	defeatScore = 50,
 	materialisationTime = 0.3
 }
 
