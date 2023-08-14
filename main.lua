@@ -227,7 +227,13 @@ local function initWave()
 	playVars.onResultsScreen = false
 	playVars.waveScore = 0
 
+	playVars.enemies = list()
+	playVars.enemiesToMaterialise = list()
+	playVars.playerBullets = list()
+	playVars.enemyBullets = list()
+	playVars.particles = list()
 	generatePlayer(true)
+
 	playVars.enemyPool = {
 		fighter1 = 8 + (num-1) * 3,
 		bomber1 = 3 + 2 * (num-1)
@@ -285,13 +291,7 @@ local function initPlayState()
 	playVars = {}
 
 	playVars.spareLives = 2
-	playVars.enemies = list()
-	playVars.enemiesToMaterialise = list()
-	playVars.playerBullets = list()
-	playVars.enemyBullets = list()
 	playVars.cameraYOffset = consts.cameraYOffsetMax
-	playVars.particles = list()
-	generatePlayer()
 
 	playVars.gameOverTextPresent = false
 	playVars.gameOverTextWaitTimer = nil

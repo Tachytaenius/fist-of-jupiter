@@ -10,5 +10,4 @@
 - Balance score so that no factor dominates
 - Add hacking with blue line effects around hackee, stopping them from shooting
 - Don't change score at all when game over'd
-- Reset all entity lists on initWave
 - Use interpolation for respawn centring
