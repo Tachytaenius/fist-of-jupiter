@@ -1,6 +1,9 @@
 function math.sign(x)
 	return x > 0 and 1 or x == 0 and 0 or -1
 end
+function math.lerp(a, b, i)
+	return a + (b - a) * i
+end
 math.tau = math.pi * 2
 
 local vec2 = require("lib.mathsies").vec2
@@ -100,7 +103,8 @@ local consts = {
 		waveWon = true
 	},
 	waveWonDelayBeforeResultsScreenTimerLength = 1.5,
-	defaultAutoShootTime = 0.5
+	defaultAutoShootTime = 0.5,
+	finalNonBossWave = 19
 }
 
 local controls = {
@@ -238,11 +242,12 @@ local function initWave()
 	for k, v in pairs(registry.enemies) do
 		playVars.enemyPool[k] = math.floor(v.count(playVars.waveNumber))
 	end
-	playVars.spawnAttemptTimerLength = 0.5
+	local lerpFactor = (playVars.waveNumber - 1) / (consts.finalNonBossWave - 1)
+	playVars.spawnAttemptTimerLength = math.lerp(1.5, 0.5, lerpFactor)
 	playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
-	playVars.maxEnemies = 6
-	playVars.minEnemiesToSpawn = 1
-	playVars.maxEnemiesToSpawn = 3
+	playVars.maxEnemies = math.floor(math.lerp(6, 12, lerpFactor))
+	playVars.minEnemiesToSpawn = math.floor(math.lerp(1, 3, lerpFactor))
+	playVars.maxEnemiesToSpawn = math.floor(math.lerp(3, 9, lerpFactor))
 end
 
 local function winWave()
