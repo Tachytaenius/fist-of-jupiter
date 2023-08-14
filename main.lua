@@ -99,7 +99,8 @@ local consts = {
 		play = true,
 		waveWon = true
 	},
-	waveWonDelayBeforeResultsScreenTimerLength = 1.5
+	waveWonDelayBeforeResultsScreenTimerLength = 1.5,
+	defaultAutoShootTime = 0.5
 }
 
 local controls = {
@@ -157,6 +158,17 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer)
 	end
 end
 
+local function givePowerup(name)
+	if name == "hyperBeam" then
+		playVars.player.powerups.hyperBeam = {
+			shootTimerLength = 0.01,
+			timer = 10,
+			timerLength = 10,
+			hueCycleSpeed = 10
+		}
+	end
+end
+
 local function generatePlayer(resetPos)
 	local pos
 	if not resetPos and playVars.player then
@@ -176,9 +188,9 @@ local function generatePlayer(resetPos)
 		accelX = 800,
 		accelUp = 1000,
 		accelDown = 750,
-		maxBullets = 5,
+		maxbulletCostBeforeShooting = 5,
 		radius = 6,
-		bulletExitOffset = vec2(0, -5),
+		bulletExitOffset = vec2(0, -4),
 		health = 1,
 		dead = false,
 		colour = {0.6, 0.2, 0.2},
@@ -186,7 +198,8 @@ local function generatePlayer(resetPos)
 		contactInvulnerabilityTimer = nil,
 		flashAnimationSpeed = 30,
 		spawning = true,
-		spawnTimer = spawnTime
+		spawnTimer = spawnTime,
+		powerups = {}
 	}
 	implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, spawnTime)
 end
@@ -300,16 +313,53 @@ function love.load()
 	font = love.graphics.newImageFont("assets/images/font.png", " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.!?$,#@~:;-{}&()<>'%/*0123456789")
 end
 
+local function getPlayerBulletsCostUsed()
+	local use = 0
+	for i = 1, playVars.playerBullets.size do
+		use = use + playVars.playerBullets:get(i).cost
+	end
+	return use
+end
+
+local function shootBullet()
+	local newBullet = {
+		vel = vec2(0, -450),
+		pos = playVars.player.pos + playVars.player.bulletExitOffset,
+		trailLength = 8,
+		damage = 1,
+		colour = {1, 0, 0},
+		lineSize = 1,
+		missPenalty = playVars.bulletMissedScorePenalty,
+		cost = 1
+	}
+	if playVars.player.powerups.hyperBeam then
+		local hue = (playVars.player.powerups.hyperBeam.timer / playVars.player.powerups.hyperBeam.timerLength * playVars.player.powerups.hyperBeam.hueCycleSpeed) % 1 * 360
+		local freshness = playVars.player.powerups.hyperBeam.timer / playVars.player.powerups.hyperBeam.timerLength
+		local saturation = (freshness ^ 0.5) * 0.75 + 0.25
+		local value = freshness ^ 0.5 * 0.5 + 0.5
+		newBullet.colour = {hsv2rgb(hue, saturation, value)}
+		newBullet.trailLength = 12
+		newBullet.vel = vec2(0, -750)
+		newBullet.damage = 0.25
+		newBullet.missPenalty = 0
+		newBullet.cost = 0
+		newBullet.lineSize = 2
+	end
+	playVars.playerBullets:add(newBullet)
+end
+
+local function getPlayerShootingType()
+	if playVars.player.powerups.hyperBeam then
+		return "auto"
+	end
+	return "semiAuto"
+end
+
 function love.keypressed(key)
 	if gameState == "play" then
 		if key == controls.shoot then
-			if isPlayerPresent() and playVars.playerBullets.size < playVars.player.maxBullets then
-				playVars.playerBullets:add({
-					vel = vec2(0, -450),
-					pos = playVars.player.pos + playVars.player.bulletExitOffset,
-					trailLength = 8,
-					damage = 1
-				})
+			if isPlayerPresent() and getPlayerBulletsCostUsed() < playVars.player.maxbulletCostBeforeShooting and getPlayerShootingType() == "semiAuto" then
+				shootBullet()
 			elseif playVars.player.dead and playVars.gameOverTextPresent then
 				initTitleState()
 			end
@@ -327,7 +377,9 @@ function love.keypressed(key)
 			end
 		end
 	elseif gameState == "waveWon" and playVars.onResultsScreen then
-		initWave()
+		if key == controls.shoot then
+			initWave()
+		end
 	end
 end
 
@@ -533,6 +585,37 @@ function love.update(dt)
 			playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, playVars.cameraYOffset + playVars.player.vel.y * dt * cameraSlowdownFactor))
 		end
 
+		if getPlayerShootingType() ~= "auto" then
+			playVars.player.autoShootTimer = nil
+		end
+		if not playVars.player.autoShootTimer and getPlayerShootingType() == "auto" then
+			playVars.player.autoShootTimer = 0
+		end
+		if isPlayerPresent() then
+			if getPlayerShootingType() == "auto" then
+				playVars.player.autoShootTimer = math.max(0, playVars.player.autoShootTimer - dt)
+				if playVars.player.autoShootTimer <= 0 and love.keyboard.isDown(controls.shoot) then
+					local minShootTime = math.huge
+					for k, v in pairs(playVars.player.powerups) do
+						if v.shootTimerLength then
+							minShootTime = math.min(minShootTime, v.shootTimerLength)
+						end
+					end
+					playVars.player.autoShootTimer = minShootTime ~= math.huge and minShootTime or consts.defaultAutoShootTime
+					shootBullet()
+				end
+			end
+		end
+
+		if isPlayerPresent() then
+			for k, v in pairs(playVars.player.powerups) do
+				v.timer = v.timer - dt
+				if v.timer <= 0 then
+					playVars.player.powerups[k] = nil
+				end
+			end
+		end
+
 		-- player movement limiting
 		if playVars.player.pos.x < consts.borderSize then
 			playVars.player.pos.x = consts.borderSize
@@ -656,7 +739,7 @@ function love.update(dt)
 			playerBullet.pos = playerBullet.pos + playerBullet.vel * dt
 			if playerBullet.pos.y + playerBullet.trailLength - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 < 0 then
 				deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
-				playVars.waveScore = math.max(0, playVars.waveScore - playVars.bulletMissedScorePenalty)
+				playVars.waveScore = math.max(0, playVars.waveScore - playerBullet.missPenalty)
 			else
 				for j = 1, playVars.enemies.size do
 					local enemy = playVars.enemies:get(j)
@@ -828,7 +911,7 @@ function love.update(dt)
 			playVars.enemiesToMaterialise.size == 0 and
 			playVars.enemyBullets.size == 0 and
 			enemyPoolIsEmpty and
-			playVars.playerBullets.size == 0 and -- Bullets drop your score when they leave the screen
+			playVars.playerBullets.size == 0 and
 			isPlayerPresent()
 		then
 			winWave()
@@ -953,11 +1036,13 @@ function love.draw()
 					love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
 				end
 			end
-			love.graphics.setColor(1, 0, 0)
 			for i = 1, playVars.playerBullets.size do
 				local playerBullet = playVars.playerBullets:get(i)
+				love.graphics.setColor(playerBullet.colour)
+				love.graphics.setLineWidth(playerBullet.lineSize)
 				love.graphics.line(playerBullet.pos.x, playerBullet.pos.y + playerBullet.trailLength, playerBullet.pos.x, playerBullet.pos.y)
 			end
+			love.graphics.setLineWidth(1)
 			love.graphics.setColor(1, 1, 1)
 			for i = 1, playVars.enemyBullets.size do
 				local enemyBullet = playVars.enemyBullets:get(i)
