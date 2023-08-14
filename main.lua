@@ -111,17 +111,12 @@ local controls = {
 	shoot = "space"
 }
 
+local gameState
+
 -- Variables for all states
 local backgroundParticleBlockLayers
 
--- Title variables
-local cursorPos, titleCameraPos, titleCameraVelocity, titleCameraTargetVelocity, titleScreenVelocityChangeTimer
-
--- Play variables
-local player, gameState, spareLives, enemies, enemiesToMaterialise, playerBullets, enemyBullets, cameraYOffset, particles, enemyPool, spawnAttemptTimer, spawnAttemptTimerLength, maxEnemies
-local gameOverTextWaitTimer, gameOverTextPresent, gameOver, respawnCentringDone, preRespawnCentringTimer, postRespawnCentringTimer, respawnCentringAnimationInProgress, score
-local scoreReductionTimer
-local minEnemiesToSpawn, maxEnemiesToSpawn
+local titleVars, playVars
 
 local gameCanvas, canvasScale, font
 
@@ -130,7 +125,7 @@ local function implode(radius, pos, colour, timer, velocityBoost)
 	for i = 1, newParticleCount do
 		local relPos = randCircle(radius)
 		local vel = relPos * 15 + (velocityBoost or vec2())
-		particles:add({
+		playVars.particles:add({
 			pos = relPos + pos + vel * timer,
 			vel = -vel,
 			invisibleTime = timer - (love.math.random() / 2 + 0.5) * 0.5,
@@ -143,7 +138,7 @@ end
 
 local function spawnEnemy(enemy, timer)
 	enemy.timeUntilSpawn = timer
-	enemiesToMaterialise:add(enemy)
+	playVars.enemiesToMaterialise:add(enemy)
 	implode(enemy.radius, enemy.pos, enemy.colour, timer)
 end
 
@@ -152,7 +147,7 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer)
 	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
 	for i = 1, newParticleCount do
 		local relPos = randCircle(radius)
-		particles:add({
+		playVars.particles:add({
 			pos = relPos + pos,
 			vel = relPos * 15 + velocityBoost,
 			lifetime = (love.math.random() / 2 + 0.5) * 0.5,
@@ -170,8 +165,8 @@ end
 local function circleOffScreen(radius, pos)
 	return
 		pos.x + radius <= 0 or pos.x - radius >= gameWidth or
-		pos.y - player.pos.y + cameraYOffset + gameHeight / 2 + radius <= 0 or
-		pos.y - player.pos.y + cameraYOffset + gameHeight / 2 - radius >= gameHeight
+		pos.y - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 + radius <= 0 or
+		pos.y - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 - radius >= gameHeight
 end
 
 local function initBackgroundParticles()
@@ -187,30 +182,31 @@ end
 
 local function initTitleState()
 	gameState = "title"
+	titleVars = {}
 	initBackgroundParticles()
 
-	cursorPos = 0
-	titleCameraPos = vec2()
-	titleCameraVelocity = vec2()
-	titleCameraTargetVelocity = nil
-	titleScreenVelocityChangeTimer = consts.titleScreenVelocityChangeTimerLength * love.math.random() * 1/2 + 3/4
+	titleVars.cursorPos = 0
+	titleVars.titleCameraPos = vec2()
+	titleVars.titleCameraVelocity = vec2()
+	titleVars.titleCameraTargetVelocity = nil
+	titleVars.titleScreenVelocityChangeTimer = consts.titleScreenVelocityChangeTimerLength * love.math.random() * 1/2 + 3/4
 end
 
 local function isPlayerPresent()
-	return not (player.dead or player.spawning)
+	return not (playVars.player.dead or playVars.player.spawning)
 end
 
 local function generatePlayer()
 	local pos
-	if player then
-		local screenTopInWorldSpace = player.pos.y - gameHeight / 2 - cameraYOffset
-		pos = vec2(player.pos.x, screenTopInWorldSpace + gameHeight / 2 + consts.cameraYOffsetMax)
-		cameraYOffset = consts.cameraYOffsetMax
+	if playVars.player then
+		local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+		pos = vec2(playVars.player.pos.x, screenTopInWorldSpace + gameHeight / 2 + consts.cameraYOffsetMax)
+		playVars.cameraYOffset = consts.cameraYOffsetMax
 	else
 		pos = vec2(gameWidth / 2, 0)
 	end
 	local spawnTime = 0.75
-	player = {
+	playVars.player = {
 		pos = pos,
 		vel = vec2(),
 		maxSpeedX = 100,
@@ -231,39 +227,41 @@ local function generatePlayer()
 		spawning = true,
 		spawnTimer = spawnTime
 	}
-	implode(player.radius, player.pos, player.colour, spawnTime)
+	implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, spawnTime)
 end
 
 local function initPlayState()
 	gameState = "play"
 	backgroundParticleBlockLayers = {}
 
-	spareLives = 2
-	enemies = list()
-	enemiesToMaterialise = list()
-	playerBullets = list()
-	enemyBullets = list()
-	cameraYOffset = consts.cameraYOffsetMax
-	particles = list()
+	playVars = {}
+
+	playVars.spareLives = 2
+	playVars.enemies = list()
+	playVars.enemiesToMaterialise = list()
+	playVars.playerBullets = list()
+	playVars.enemyBullets = list()
+	playVars.cameraYOffset = consts.cameraYOffsetMax
+	playVars.particles = list()
 	generatePlayer()
 
-	enemyPool = {
+	playVars.enemyPool = {
 		fighter1 = 8,
 		bomber1 = 3
 	}
-	spawnAttemptTimerLength = 0.5
-	spawnAttemptTimer = spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
-	maxEnemies = 6
-	minEnemiesToSpawn = 1
-	maxEnemiesToSpawn = 3
-	gameOverTextPresent = false
-	gameOverTextWaitTimer = nil
-	gameOver = false
-	preRespawnCentringTimer = nil
-	postRespawnCentringTimer = nil
-	respawnCentringAnimationInProgress = false
-	score = 0
-	scoreReductionTimer = consts.scoreReductionTimerLength
+	playVars.spawnAttemptTimerLength = 0.5
+	playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
+	playVars.maxEnemies = 6
+	playVars.minEnemiesToSpawn = 1
+	playVars.maxEnemiesToSpawn = 3
+	playVars.gameOverTextPresent = false
+	playVars.gameOverTextWaitTimer = nil
+	playVars.gameOver = false
+	playVars.preRespawnCentringTimer = nil
+	playVars.postRespawnCentringTimer = nil
+	playVars.respawnCentringAnimationInProgress = false
+	playVars.score = 0
+	playVars.scoreReductionTimer = consts.scoreReductionTimerLength
 end
 
 function love.load()
@@ -284,26 +282,26 @@ end
 function love.keypressed(key)
 	if gameState == "play" then
 		if key == controls.shoot then
-			if isPlayerPresent() and playerBullets.size < player.maxBullets then
-				playerBullets:add({
+			if isPlayerPresent() and playVars.playerBullets.size < playVars.player.maxBullets then
+				playVars.playerBullets:add({
 					vel = vec2(0, -450),
-					pos = player.pos + player.bulletExitOffset,
+					pos = playVars.player.pos + playVars.player.bulletExitOffset,
 					trailLength = 8,
 					damage = 1
 				})
-			elseif player.dead and gameOverTextPresent then
+			elseif playVars.player.dead and playVars.gameOverTextPresent then
 				initTitleState()
 			end
 		end
 	elseif gameState == "title" then
 		if key == controls.up then
-			cursorPos = (cursorPos - 1) % consts.titleOptionCount
+			titleVars.cursorPos = (titleVars.cursorPos - 1) % consts.titleOptionCount
 		elseif key == controls.down then
-			cursorPos = (cursorPos + 1) % consts.titleOptionCount
+			titleVars.cursorPos = (titleVars.cursorPos + 1) % consts.titleOptionCount
 		elseif key == controls.shoot then
-			if cursorPos == 0 then
+			if titleVars.cursorPos == 0 then
 				initPlayState()
-			elseif cursorPos == 1 then
+			elseif titleVars.cursorPos == 1 then
 				
 			end
 		end
@@ -323,7 +321,7 @@ function love.update(dt)
 				-- colour = {hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
 			})
 		end
-		local cameraPos = gameState == "title" and titleCameraPos or consts.playLikeStates[gameState] and player.pos
+		local cameraPos = gameState == "title" and titleVars.titleCameraPos or consts.playLikeStates[gameState] and playVars.player.pos
 		for _, layer in ipairs(backgroundParticleBlockLayers) do
 			-- Add needed blocks
 			local minXWorldSpace = cameraPos.x - consts.distanceToGenerateBlocks + gameWidth / 2
@@ -404,51 +402,51 @@ function love.update(dt)
 	if gameState == "title" then
 		local function newTargetVel()
 			local targetSpeed = consts.titleScreenCameraSpeed -- Do I want to randomise this?
-			titleCameraTargetVelocity = vec2.fromAngle(love.math.random() * math.tau) * targetSpeed * (love.math.random() / 2 + 3/4)
+			titleVars.titleCameraTargetVelocity = vec2.fromAngle(love.math.random() * math.tau) * targetSpeed * (love.math.random() / 2 + 3/4)
 		end
-		if not titleCameraTargetVelocity then
+		if not titleVars.titleCameraTargetVelocity then
 			-- Just entered state
 			newTargetVel()
-			titleCameraVelocity = titleCameraTargetVelocity
+			titleVars.titleCameraVelocity = titleVars.titleCameraTargetVelocity
 		end
 
-		titleScreenVelocityChangeTimer = titleScreenVelocityChangeTimer - dt
-		if titleScreenVelocityChangeTimer <= 0 then
-			titleScreenVelocityChangeTimer = consts.titleScreenVelocityChangeTimerLength * (love.math.random() * 1/2 + 3/4)
+		titleVars.titleScreenVelocityChangeTimer = titleVars.titleScreenVelocityChangeTimer - dt
+		if titleVars.titleScreenVelocityChangeTimer <= 0 then
+			titleVars.titleScreenVelocityChangeTimer = consts.titleScreenVelocityChangeTimerLength * (love.math.random() * 1/2 + 3/4)
 			newTargetVel()
 		end
 
-		titleCameraVelocity = marchVectorToTarget(titleCameraVelocity, titleCameraTargetVelocity, consts.titleCameraAccel, dt)
-		titleCameraPos = titleCameraPos + titleCameraVelocity * dt
+		titleVars.titleCameraVelocity = marchVectorToTarget(titleVars.titleCameraVelocity, titleVars.titleCameraTargetVelocity, consts.titleCameraAccel, dt)
+		titleVars.titleCameraPos = titleVars.titleCameraPos + titleVars.titleCameraVelocity * dt
 	elseif consts.playLikeStates[gameState] then
-		if player.spawning then
-			player.spawnTimer = player.spawnTimer - dt
-			if player.spawnTimer <= 0 then
-				player.spawning = false
-				player.spawnTimer = nil
-				spawnAttemptTimer = spawnAttemptTimerLength
+		if playVars.player.spawning then
+			playVars.player.spawnTimer = playVars.player.spawnTimer - dt
+			if playVars.player.spawnTimer <= 0 then
+				playVars.player.spawning = false
+				playVars.player.spawnTimer = nil
+				playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength
 			end
 		end
 
-		if player.health <= 0 and not player.dead then
-			player.dead = true
-			explode(player.radius, player.pos, player.colour, vec2(), true)
-			if spareLives == 0 then
-				gameOver = true
+		if playVars.player.health <= 0 and not playVars.player.dead then
+			playVars.player.dead = true
+			explode(playVars.player.radius, playVars.player.pos, playVars.player.colour, vec2(), true)
+			if playVars.spareLives == 0 then
+				playVars.gameOver = true
 			else
-				preRespawnCentringTimer = consts.preRespawnCentringTimerLength
+				playVars.preRespawnCentringTimer = consts.preRespawnCentringTimerLength
 			end
-			spareLives = math.max(0, spareLives - 1)
+			playVars.spareLives = math.max(0, playVars.spareLives - 1)
 		end
 		if isPlayerPresent() then
-			-- Player movement x
+			-- player movement x
 			local movedX = false
 			if gameState == "play" and love.keyboard.isDown(controls.left) then
-				player.vel.x = player.vel.x - player.accelX * dt
+				playVars.player.vel.x = playVars.player.vel.x - playVars.player.accelX * dt
 				movedX = true
 			end
 			if gameState == "play" and love.keyboard.isDown(controls.right) then
-				player.vel.x = player.vel.x + player.accelX * dt
+				playVars.player.vel.x = playVars.player.vel.x + playVars.player.accelX * dt
 				if movedX then
 					movedX = false
 				else
@@ -456,17 +454,17 @@ function love.update(dt)
 				end
 			end
 			if not movedX then
-				player.vel.x = math.max(0, math.abs(player.vel.x) - player.accelX * dt) * math.sign(player.vel.x)
+				playVars.player.vel.x = math.max(0, math.abs(playVars.player.vel.x) - playVars.player.accelX * dt) * math.sign(playVars.player.vel.x)
 			end
-			player.vel.x = math.max(-player.maxSpeedX, math.min(player.maxSpeedX, player.vel.x))
-			-- Player movement y
+			playVars.player.vel.x = math.max(-playVars.player.maxSpeedX, math.min(playVars.player.maxSpeedX, playVars.player.vel.x))
+			-- player movement y
 			local movedY = false
 			if gameState == "play" and love.keyboard.isDown(controls.up) then
-				player.vel.y = player.vel.y - player.accelUp * dt
+				playVars.player.vel.y = playVars.player.vel.y - playVars.player.accelUp * dt
 				movedY = true
 			end
 			if gameState == "play" and love.keyboard.isDown(controls.down) then
-				player.vel.y = player.vel.y + player.accelDown * dt
+				playVars.player.vel.y = playVars.player.vel.y + playVars.player.accelDown * dt
 				if movedY then
 					movedY = false
 				else
@@ -474,76 +472,76 @@ function love.update(dt)
 				end
 			end
 			if not movedY then
-				if player.vel.y > 0 then
-					player.vel.y = math.max(0, player.vel.y - player.accelUp * dt)
+				if playVars.player.vel.y > 0 then
+					playVars.player.vel.y = math.max(0, playVars.player.vel.y - playVars.player.accelUp * dt)
 				else
-					player.vel.y = math.min(0, player.vel.y + player.accelDown * dt)
+					playVars.player.vel.y = math.min(0, playVars.player.vel.y + playVars.player.accelDown * dt)
 				end
 			end
-			player.vel.y = math.max(-player.maxSpeedUp, math.min(player.maxSpeedDown, player.vel.y))
+			playVars.player.vel.y = math.max(-playVars.player.maxSpeedUp, math.min(playVars.player.maxSpeedDown, playVars.player.vel.y))
 			
-			if not player.contactInvulnerabilityTimer then
-				for i = 1, enemies.size do
-					local enemy = enemies:get(i)
-					if vec2.distance(player.pos, enemy.pos) <= player.radius + enemy.radius then
-						player.health = player.health - enemy.contactDamage
-						if player.health > 0 then
-							explode(enemy.contactDamage * consts.explosionSourceRadiusPerDamage, player.pos + normaliseOrZero(enemy.pos - player.pos) * player.radius, shallowClone(player.colour))
+			if not playVars.player.contactInvulnerabilityTimer then
+				for i = 1, playVars.enemies.size do
+					local enemy = playVars.enemies:get(i)
+					if vec2.distance(playVars.player.pos, enemy.pos) <= playVars.player.radius + enemy.radius then
+						playVars.player.health = playVars.player.health - enemy.contactDamage
+						if playVars.player.health > 0 then
+							explode(enemy.contactDamage * consts.explosionSourceRadiusPerDamage, playVars.player.pos + normaliseOrZero(enemy.pos - playVars.player.pos) * playVars.player.radius, shallowClone(playVars.player.colour))
 						end
-						player.contactInvulnerabilityTimer = player.contactInvulnerabilityTimerLength
+						playVars.player.contactInvulnerabilityTimer = playVars.player.contactInvulnerabilityTimerLength
 						break
 					end
 				end
 			else
-				player.contactInvulnerabilityTimer = player.contactInvulnerabilityTimer - dt
-				if player.contactInvulnerabilityTimer <= 0 then
-					player.contactInvulnerabilityTimer = nil
+				playVars.player.contactInvulnerabilityTimer = playVars.player.contactInvulnerabilityTimer - dt
+				if playVars.player.contactInvulnerabilityTimer <= 0 then
+					playVars.player.contactInvulnerabilityTimer = nil
 				end
 			end
 		end
 
 		if isPlayerPresent() then
-			player.pos = player.pos + player.vel * dt
-			local cameraSlowdownFactorSameDirection = (consts.cameraYOffsetMax - cameraYOffset) / consts.cameraYOffsetMax
-			local cameraSlowdownFactorOppositeDirections = (1 - (consts.cameraYOffsetMax - cameraYOffset) / consts.cameraYOffsetMax)
-			local cameraSlowdownFactor = math.sign(player.vel.y) * math.sign(cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
-			cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, cameraYOffset + player.vel.y * dt * cameraSlowdownFactor))
+			playVars.player.pos = playVars.player.pos + playVars.player.vel * dt
+			local cameraSlowdownFactorSameDirection = (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax
+			local cameraSlowdownFactorOppositeDirections = (1 - (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax)
+			local cameraSlowdownFactor = math.sign(playVars.player.vel.y) * math.sign(playVars.cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
+			playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, playVars.cameraYOffset + playVars.player.vel.y * dt * cameraSlowdownFactor))
 		end
 
-		-- Player movement limiting
-		if player.pos.x < consts.borderSize then
-			player.pos.x = consts.borderSize
-			player.vel.x = math.max(0, player.vel.x)
-		elseif player.pos.x > gameWidth - consts.borderSize then
-			player.pos.x = gameWidth - consts.borderSize
-			player.vel.x = math.min(0, player.vel.x)
+		-- player movement limiting
+		if playVars.player.pos.x < consts.borderSize then
+			playVars.player.pos.x = consts.borderSize
+			playVars.player.vel.x = math.max(0, playVars.player.vel.x)
+		elseif playVars.player.pos.x > gameWidth - consts.borderSize then
+			playVars.player.pos.x = gameWidth - consts.borderSize
+			playVars.player.vel.x = math.min(0, playVars.player.vel.x)
 		end
-		-- if player.pos.y < consts.borderSize then
-		-- 	player.pos.y = consts.borderSize
-		-- 	player.vel.y = math.max(0, player.vel.y)
-		-- elseif player.pos.y > gameHeight - consts.borderSize then
-		-- 	player.pos.y = gameHeight - consts.borderSize
-		-- 	player.vel.y = math.min(0, player.vel.y)
+		-- if playVars.player.pos.y < consts.borderSize then
+		-- 	playVars.player.pos.y = consts.borderSize
+		-- 	playVars.player.vel.y = math.max(0, playVars.player.vel.y)
+		-- elseif playVars.player.pos.y > gameHeight - consts.borderSize then
+		-- 	playVars.player.pos.y = gameHeight - consts.borderSize
+		-- 	playVars.player.vel.y = math.min(0, playVars.player.vel.y)
 		-- end
 
-		if gameOver then
-			if not gameOverTextPresent then
-				if gameOverTextWaitTimer then
-					gameOverTextWaitTimer = gameOverTextWaitTimer - dt
-					if gameOverTextWaitTimer <= 0 then
-						gameOverTextPresent = true
+		if playVars.gameOver then
+			if not playVars.gameOverTextPresent then
+				if playVars.gameOverTextWaitTimer then
+					playVars.gameOverTextWaitTimer = playVars.gameOverTextWaitTimer - dt
+					if playVars.gameOverTextWaitTimer <= 0 then
+						playVars.gameOverTextPresent = true
 					end
-				-- elseif enemyBullets.size == 0 and enemiesToMaterialise.size == 0 and enemies.size == 0 then
+				-- elseif playVars.enemyBullets.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemies.size == 0 then
 				else
-					gameOverTextWaitTimer = consts.gameOverTextWaitTimerLength
+					playVars.gameOverTextWaitTimer = consts.gameOverTextWaitTimerLength
 				end
 			end
-		elseif player.dead then
-			-- Not game over but we're dead, make enemies go away quickly for another round
-			local screenTopInWorldSpace = player.pos.y - gameHeight / 2 - cameraYOffset
-			for i = 1, enemies.size do
+		elseif playVars.player.dead then
+			-- Not game over but we're dead, make playVars.enemies go away quickly for another round
+			local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+			for i = 1, playVars.enemies.size do
 				-- There are nicer ways to do this, I'm sure, and I had one in mind but didn't bother to execute it for some reason
-				local enemy = enemies:get(i)
+				local enemy = playVars.enemies:get(i)
 				local topDist = math.abs(screenTopInWorldSpace - enemy.pos.y)
 				local bottomDist = math.abs(screenTopInWorldSpace + gameHeight - enemy.pos.y)
 				-- local leftDist = math.abs(0 - enemy.pos.x)
@@ -584,55 +582,55 @@ function love.update(dt)
 				enemy.targetVel = dir * enemy.speed
 			end
 
-			if preRespawnCentringTimer then
-				preRespawnCentringTimer = preRespawnCentringTimer - dt
-				if preRespawnCentringTimer <= 0 then
-					preRespawnCentringTimer = nil
-					respawnCentringAnimationInProgress = true
+			if playVars.preRespawnCentringTimer then
+				playVars.preRespawnCentringTimer = playVars.preRespawnCentringTimer - dt
+				if playVars.preRespawnCentringTimer <= 0 then
+					playVars.preRespawnCentringTimer = nil
+					playVars.respawnCentringAnimationInProgress = true
 				end
 			end
-			if respawnCentringAnimationInProgress then
-				if player.pos.x > gameWidth / 2 then
-					player.pos.x = math.max(gameWidth / 2, player.pos.x - consts.respawnCentringSpeed * dt)
+			if playVars.respawnCentringAnimationInProgress then
+				if playVars.player.pos.x > gameWidth / 2 then
+					playVars.player.pos.x = math.max(gameWidth / 2, playVars.player.pos.x - consts.respawnCentringSpeed * dt)
 				else
-					player.pos.x = math.min(gameWidth / 2, player.pos.x + consts.respawnCentringSpeed * dt)
+					playVars.player.pos.x = math.min(gameWidth / 2, playVars.player.pos.x + consts.respawnCentringSpeed * dt)
 				end
-				if player.pos.x == gameWidth / 2 then
-					respawnCentringAnimationInProgress = false
-					postRespawnCentringTimer = consts.postRespawnCentringTimerLength
-				end
-			end
-			if postRespawnCentringTimer then
-				postRespawnCentringTimer = postRespawnCentringTimer - dt
-				if postRespawnCentringTimer <= 0 then
-					postRespawnCentringTimer = nil
+				if playVars.player.pos.x == gameWidth / 2 then
+					playVars.respawnCentringAnimationInProgress = false
+					playVars.postRespawnCentringTimer = consts.postRespawnCentringTimerLength
 				end
 			end
-			local allCentringFinished = not preRespawnCentringTimer and player.pos.x == gameWidth / 2 and not postRespawnCentringTimer
+			if playVars.postRespawnCentringTimer then
+				playVars.postRespawnCentringTimer = playVars.postRespawnCentringTimer - dt
+				if playVars.postRespawnCentringTimer <= 0 then
+					playVars.postRespawnCentringTimer = nil
+				end
+			end
+			local allCentringFinished = not playVars.preRespawnCentringTimer and playVars.player.pos.x == gameWidth / 2 and not playVars.postRespawnCentringTimer
 
 			local noPlayerParticlesLeft = true
-			for i = 1, particles.size do
-				local particle = particles:get(i)
+			for i = 1, playVars.particles.size do
+				local particle = playVars.particles:get(i)
 				if particle.isPlayer then
 					noPlayerParticlesLeft = false
 					break
 				end
 			end
 
-			if enemyBullets.size == 0 and enemiesToMaterialise.size == 0 and enemies.size == 0 and allCentringFinished and noPlayerParticlesLeft then
+			if playVars.enemyBullets.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemies.size == 0 and allCentringFinished and noPlayerParticlesLeft then
 				generatePlayer()
 			end
 		end
 
 		local deleteThesePlayerBullets = {}
-		for i = 1, playerBullets.size do
-			local playerBullet = playerBullets:get(i)
+		for i = 1, playVars.playerBullets.size do
+			local playerBullet = playVars.playerBullets:get(i)
 			playerBullet.pos = playerBullet.pos + playerBullet.vel * dt
-			if playerBullet.pos.y + playerBullet.trailLength - player.pos.y + cameraYOffset + gameHeight / 2 < 0 then
+			if playerBullet.pos.y + playerBullet.trailLength - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 < 0 then
 				deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
 			else
-				for j = 1, enemies.size do
-					local enemy = enemies:get(j)
+				for j = 1, playVars.enemies.size do
+					local enemy = playVars.enemies:get(j)
 					if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
 						deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
 						enemy.health = enemy.health - playerBullet.damage
@@ -644,19 +642,19 @@ function love.update(dt)
 			end
 		end
 		for _, playerBullet in ipairs(deleteThesePlayerBullets) do
-			playerBullets:remove(playerBullet)
+			playVars.playerBullets:remove(playerBullet)
 		end
 
 		local enemiesToDelete = {}
-		for i = 1, enemies.size do
-			local enemy = enemies:get(i)
+		for i = 1, playVars.enemies.size do
+			local enemy = playVars.enemies:get(i)
 			if enemy.health <= 0 then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				explode(enemy.radius, enemy.pos, enemy.colour)
-				score = score + enemy.defeatScore
+				playVars.score = playVars.score + enemy.defeatScore
 			elseif circleOffScreen(enemy.radius, enemy.pos) then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
-				enemyPool[enemy.type] = enemyPool[enemy.type] + 1 -- Let the enemy come back
+				playVars.enemyPool[enemy.type] = playVars.enemyPool[enemy.type] + 1 -- Let the enemy come back
 			end
 			enemy.vel = marchVectorToTarget(enemy.vel, enemy.targetVel, enemy.accel, dt)
 			enemy.pos = enemy.pos + enemy.vel * dt
@@ -665,11 +663,11 @@ function love.update(dt)
 				if enemy.shootTimer <= 0 then
 					local timerFactor = love.math.random() / 0.5 + 0.75
 					enemy.shootTimer = enemy.shootTimerLength * timerFactor
-					local posDiff = player.pos - enemy.pos
+					local posDiff = playVars.player.pos - enemy.pos
 					if #posDiff > 0 then
 						for i = 0, enemy.bulletCount - 1 do
 							local angleOffset = enemy.bulletCount == 1 and 0 or (i / (enemy.bulletCount - 1) - 0.5) * enemy.bulletSpreadAngle
-							enemyBullets:add({
+							playVars.enemyBullets:add({
 								pos = enemy.pos,
 								vel = enemy.bulletSpeed * vec2.rotate(vec2.normalise(posDiff), angleOffset),
 								radius = enemy.bulletRadius,
@@ -681,30 +679,30 @@ function love.update(dt)
 			end
 		end
 		for _, enemy in ipairs(enemiesToDelete) do
-			enemies:remove(enemy)
+			playVars.enemies:remove(enemy)
 		end
 
 		local enemyBulletsToDelete = {}
-		for i = 1, enemyBullets.size do
-			local enemyBullet = enemyBullets:get(i)
+		for i = 1, playVars.enemyBullets.size do
+			local enemyBullet = playVars.enemyBullets:get(i)
 			enemyBullet.pos = enemyBullet.pos + enemyBullet.vel * dt
 			if circleOffScreen(enemyBullet.radius, enemyBullet.pos) then
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
-			elseif isPlayerPresent() and vec2.distance(enemyBullet.pos, player.pos) <= player.radius then
+			elseif isPlayerPresent() and vec2.distance(enemyBullet.pos, playVars.player.pos) <= playVars.player.radius then
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
-				player.health = player.health - enemyBullet.damage
-				if player.health > 0 then
-					explode(enemyBullet.damage * consts.explosionSourceRadiusPerDamage, enemyBullet.pos, shallowClone(player.colour), -enemyBullet.vel * consts.bulletHitParticleBounceMultiplier, true)
+				playVars.player.health = playVars.player.health - enemyBullet.damage
+				if playVars.player.health > 0 then
+					explode(enemyBullet.damage * consts.explosionSourceRadiusPerDamage, enemyBullet.pos, shallowClone(playVars.player.colour), -enemyBullet.vel * consts.bulletHitParticleBounceMultiplier, true)
 				end
 			end
 		end
 		for _, enemyBullet in ipairs(enemyBulletsToDelete) do
-			enemyBullets:remove(enemyBullet)
+			playVars.enemyBullets:remove(enemyBullet)
 		end
 
 		local particlesToDelete = {}
-		for i = 1, particles.size do
-			local particle = particles:get(i)
+		for i = 1, playVars.particles.size do
+			local particle = playVars.particles:get(i)
 			particle.pos = particle.pos + particle.vel * dt
 			if particle.invisibleTime then
 				particle.invisibleTime = particle.invisibleTime - dt
@@ -718,12 +716,12 @@ function love.update(dt)
 			end
 		end
 		for _, particle in ipairs(particlesToDelete) do
-			particles:remove(particle)
+			playVars.particles:remove(particle)
 		end
 
 		local enemiesToSpawn = {}
-		for i = 1, enemiesToMaterialise.size do
-			local enemy = enemiesToMaterialise:get(i)
+		for i = 1, playVars.enemiesToMaterialise.size do
+			local enemy = playVars.enemiesToMaterialise:get(i)
 			enemy.timeUntilSpawn = enemy.timeUntilSpawn - dt
 			if enemy.timeUntilSpawn <= 0 then
 				enemy.timeUntilSpawn = nil
@@ -731,26 +729,26 @@ function love.update(dt)
 			end
 		end
 		for _, enemy in ipairs(enemiesToSpawn) do
-			enemiesToMaterialise:remove(enemy)
-			enemies:add(enemy)
-			if player.pos ~= enemy.pos then
-				-- enemy.vel = enemy.speed * vec2.normalise(player.pos - enemy.pos)
+			playVars.enemiesToMaterialise:remove(enemy)
+			playVars.enemies:add(enemy)
+			if playVars.player.pos ~= enemy.pos then
+				-- enemy.vel = enemy.speed * vec2.normalise(playVars.player.pos - enemy.pos)
 				-- enemy.vel.y = math.abs(enemy.vel.y)
-				enemy.targetVel = enemy.speed * vec2.normalise(player.pos - enemy.pos)
+				enemy.targetVel = enemy.speed * vec2.normalise(playVars.player.pos - enemy.pos)
 				enemy.targetVel.y = math.abs(enemy.targetVel.y)
 			else
 				enemy.vel = vec2()
 			end
 		end
 
-		spawnAttemptTimer = spawnAttemptTimer - dt
-		if spawnAttemptTimer <= 0 then
+		playVars.spawnAttemptTimer = playVars.spawnAttemptTimer - dt
+		if playVars.spawnAttemptTimer <= 0 then
 			local timerFactor = love.math.random() / 0.5 + 0.75
-			spawnAttemptTimer = spawnAttemptTimerLength * timerFactor
-			local numberToSpawn = not isPlayerPresent() and 0 or math.max(0, math.min(love.math.random(minEnemiesToSpawn, maxEnemiesToSpawn), maxEnemies - enemies.size))
+			playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength * timerFactor
+			local numberToSpawn = not isPlayerPresent() and 0 or math.max(0, math.min(love.math.random(playVars.minEnemiesToSpawn, playVars.maxEnemiesToSpawn), playVars.maxEnemies - playVars.enemies.size))
 			for _=1, numberToSpawn do
 				local options = {}
-				for k, v in pairs(enemyPool) do
+				for k, v in pairs(playVars.enemyPool) do
 					if v > 0 then
 						options[#options+1] = k
 					end
@@ -759,10 +757,10 @@ function love.update(dt)
 					break
 				end
 				local enemyType = options[love.math.random(#options)]
-				enemyPool[enemyType] = enemyPool[enemyType] - 1
+				playVars.enemyPool[enemyType] = playVars.enemyPool[enemyType] - 1
 				local registryEntry = registry.enemies[enemyType]
 				local x = love.math.random() * (gameWidth - consts.borderSize * 2) + consts.borderSize
-				local screenTopInWorldSpace = player.pos.y - gameHeight / 2 - cameraYOffset
+				local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
 				local y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
 				spawnEnemy({
 					pos = vec2(x, y),
@@ -788,21 +786,21 @@ function love.update(dt)
 		end
 
 		local enemyPoolIsEmpty = true
-		for k, v in pairs(enemyPool) do
+		for k, v in pairs(playVars.enemyPool) do
 			if v > 0 then
 				enemyPoolIsEmpty = false
 				break
 			end
 		end
-		if enemies.size == 0 and enemiesToMaterialise.size == 0 and enemyBullets.size == 0 and enemyPoolIsEmpty then
+		if playVars.enemies.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemyBullets.size == 0 and enemyPoolIsEmpty then
 			winWave()
 		end
 
 		if gameState == "play" and isPlayerPresent() then
-			scoreReductionTimer = scoreReductionTimer - dt
-			if scoreReductionTimer <= 0 then
-				scoreReductionTimer = consts.scoreReductionTimerLength
-				score = math.max(0, score - consts.scoreReductionAmount)
+			playVars.scoreReductionTimer = playVars.scoreReductionTimer - dt
+			if playVars.scoreReductionTimer <= 0 then
+				playVars.scoreReductionTimer = consts.scoreReductionTimerLength
+				playVars.score = math.max(0, playVars.score - consts.scoreReductionAmount)
 			end
 		end
 	end
@@ -814,7 +812,7 @@ function love.draw()
 	love.graphics.clear()
 
 	if backgroundParticleBlockLayers then
-		local cameraPos = gameState == "title" and titleCameraPos or consts.playLikeStates[gameState] and player.pos
+		local cameraPos = gameState == "title" and titleVars.titleCameraPos or consts.playLikeStates[gameState] and playVars.player.pos
 		for _, layer in ipairs(backgroundParticleBlockLayers) do
 			love.graphics.push()
 			love.graphics.translate(gameWidth / 2, gameHeight / 2)
@@ -855,15 +853,15 @@ function love.draw()
 			textWidth = math.max(textWidth, font:getWidth(v))
 		end
 		love.graphics.translate(gameWidth / 2 - textWidth / 2, consts.titleOptionsYPos)
-		love.graphics.draw(assets.images.cursor, 0, font:getHeight() * cursorPos + font:getHeight() / 2 - assets.images.cursor:getHeight() / 2)
+		love.graphics.draw(assets.images.cursor, 0, font:getHeight() * titleVars.cursorPos + font:getHeight() / 2 - assets.images.cursor:getHeight() / 2)
 		love.graphics.translate(assets.images.cursor:getWidth(), 0)
 		for i, v in ipairs(texts) do
 			love.graphics.print(v, 0, font:getHeight() * (i-1))
 		end
 	elseif consts.playLikeStates[gameState] then
-		love.graphics.translate(-player.pos.x / 4, -player.pos.y / 2)
+		love.graphics.translate(-playVars.player.pos.x / 4, -playVars.player.pos.y / 2)
 		love.graphics.translate(0, gameHeight/2)
-		love.graphics.translate(0, cameraYOffset / 2)
+		love.graphics.translate(0, playVars.cameraYOffset / 2)
 		for x = -consts.backgroundPointDistanceX * 20, gameWidth + consts.backgroundPointDistanceX * 20, consts.backgroundPointDistanceX do
 			x = x + consts.backgroundPointOffsetX
 			for y = -consts.backgroundPointDistanceY * 5, gameHeight + consts.backgroundPointDistanceY * 5, consts.backgroundPointDistanceY do
@@ -876,11 +874,11 @@ function love.draw()
 			end
 		end
 		love.graphics.origin()
-		love.graphics.translate(0, -player.pos.y)
+		love.graphics.translate(0, -playVars.player.pos.y)
 		love.graphics.translate(0, gameHeight/2)
-		love.graphics.translate(0, cameraYOffset)
-		for i = 1, enemies.size do
-			local enemy = enemies:get(i)
+		love.graphics.translate(0, playVars.cameraYOffset)
+		for i = 1, playVars.enemies.size do
+			local enemy = playVars.enemies:get(i)
 			local asset = assets.images[enemy.type]
 			if asset then
 				love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
@@ -889,17 +887,17 @@ function love.draw()
 			end
 		end
 		love.graphics.setColor(1, 0, 0)
-		for i = 1, playerBullets.size do
-			local playerBullet = playerBullets:get(i)
+		for i = 1, playVars.playerBullets.size do
+			local playerBullet = playVars.playerBullets:get(i)
 			love.graphics.line(playerBullet.pos.x, playerBullet.pos.y + playerBullet.trailLength, playerBullet.pos.x, playerBullet.pos.y)
 		end
 		love.graphics.setColor(1, 1, 1)
-		for i = 1, enemyBullets.size do
-			local enemyBullet = enemyBullets:get(i)
+		for i = 1, playVars.enemyBullets.size do
+			local enemyBullet = playVars.enemyBullets:get(i)
 			love.graphics.circle("fill", enemyBullet.pos.x, enemyBullet.pos.y, enemyBullet.radius)
 		end
-		for i = 1, particles.size do
-			local particle = particles:get(i)
+		for i = 1, playVars.particles.size do
+			local particle = playVars.particles:get(i)
 			if not particle.invisibleTime then
 				love.graphics.setPointSize(particle.size)
 				love.graphics.setColor(particle.colour)
@@ -909,26 +907,26 @@ function love.draw()
 		love.graphics.setPointSize(1)
 		love.graphics.setColor(1, 1, 1)
 		if isPlayerPresent() then
-			local flash = player.contactInvulnerabilityTimer and math.floor(player.contactInvulnerabilityTimer * player.flashAnimationSpeed) % 2 == 0
+			local flash = playVars.player.contactInvulnerabilityTimer and math.floor(playVars.player.contactInvulnerabilityTimer * playVars.player.flashAnimationSpeed) % 2 == 0
 			if flash then
 				love.graphics.setColor(1, 1, 1, consts.flashAlpha)
 			end
-			love.graphics.draw(assets.images.player, player.pos.x - assets.images.player:getWidth() / 2, player.pos.y - assets.images.player:getHeight() / 2)
+			love.graphics.draw(assets.images.player, playVars.player.pos.x - assets.images.player:getWidth() / 2, playVars.player.pos.y - assets.images.player:getHeight() / 2)
 			love.graphics.setColor(1, 1, 1)
 		end
 
 		love.graphics.origin()
 
-		for i = 1, spareLives do
+		for i = 1, playVars.spareLives do
 			love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
 		end
 
-		if gameOverTextPresent then
+		if playVars.gameOverTextPresent then
 			local text = "GAME OVER"
 			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight / 2 - font:getHeight() / 2)
 		end
 
-		love.graphics.print("SCORE: " .. score, 0, 0)
+		love.graphics.print("SCORE: " .. playVars.score, 0, 0)
 	end
 
 	love.graphics.origin()
