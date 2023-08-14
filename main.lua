@@ -98,7 +98,8 @@ local consts = {
 	playLikeStates = {
 		play = true,
 		waveWon = true
-	}
+	},
+	waveWonDelayBeforeResultsScreenTimerLength = 1.5
 }
 
 local controls = {
@@ -156,9 +157,63 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer)
 	end
 end
 
+local function generatePlayer(resetPos)
+	local pos
+	if not resetPos and playVars.player then
+		local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+		pos = vec2(playVars.player.pos.x, screenTopInWorldSpace + gameHeight / 2 + consts.cameraYOffsetMax)
+	else
+		pos = vec2(gameWidth / 2, 0)
+	end
+	playVars.cameraYOffset = consts.cameraYOffsetMax
+	local spawnTime = 0.75
+	playVars.player = {
+		pos = pos,
+		vel = vec2(),
+		maxSpeedX = 100,
+		maxSpeedUp = 200,
+		maxSpeedDown = 150,
+		accelX = 800,
+		accelUp = 1000,
+		accelDown = 750,
+		maxBullets = 5,
+		radius = 6,
+		bulletExitOffset = vec2(0, -5),
+		health = 1,
+		dead = false,
+		colour = {0.6, 0.2, 0.2},
+		contactInvulnerabilityTimerLength = 1,
+		contactInvulnerabilityTimer = nil,
+		flashAnimationSpeed = 30,
+		spawning = true,
+		spawnTimer = spawnTime
+	}
+	implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, spawnTime)
+end
+
+local function initWave()
+	gameState = "play"
+	playVars.waveNumber = (playVars.waveNumber or 0) + 1
+	local num = playVars.waveNumber
+	playVars.resultsScreenVars = nil
+	playVars.onResultsScreen = false
+	playVars.waveScore = 0
+
+	generatePlayer(true)
+	playVars.enemyPool = {
+		fighter1 = 8 + (num-1) * 3,
+		bomber1 = 3 + 2 * (num-1)
+	}
+	playVars.spawnAttemptTimerLength = 0.5
+	playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
+	playVars.maxEnemies = 6
+	playVars.minEnemiesToSpawn = 1
+	playVars.maxEnemiesToSpawn = 3
+end
+
 local function winWave()
 	gameState = "waveWon"
-	playVars.score = playVars.score + playVars.spareLives * playVars.scoreBoostPerLifeAtWaveWon
+	playVars.waveWonDelayBeforeResultsScreenTimer = consts.waveWonDelayBeforeResultsScreenTimerLength
 end
 
 local function circleOffScreen(radius, pos)
@@ -195,40 +250,6 @@ local function isPlayerPresent()
 	return not (playVars.player.dead or playVars.player.spawning)
 end
 
-local function generatePlayer()
-	local pos
-	if playVars.player then
-		local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
-		pos = vec2(playVars.player.pos.x, screenTopInWorldSpace + gameHeight / 2 + consts.cameraYOffsetMax)
-		playVars.cameraYOffset = consts.cameraYOffsetMax
-	else
-		pos = vec2(gameWidth / 2, 0)
-	end
-	local spawnTime = 0.75
-	playVars.player = {
-		pos = pos,
-		vel = vec2(),
-		maxSpeedX = 100,
-		maxSpeedUp = 200,
-		maxSpeedDown = 150,
-		accelX = 800,
-		accelUp = 1000,
-		accelDown = 750,
-		maxBullets = 5,
-		radius = 6,
-		bulletExitOffset = vec2(0, -5),
-		health = 1,
-		dead = false,
-		colour = {0.6, 0.2, 0.2},
-		contactInvulnerabilityTimerLength = 1,
-		contactInvulnerabilityTimer = nil,
-		flashAnimationSpeed = 30,
-		spawning = true,
-		spawnTimer = spawnTime
-	}
-	implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, spawnTime)
-end
-
 local function initPlayState()
 	gameState = "play"
 	backgroundParticleBlockLayers = {}
@@ -244,22 +265,14 @@ local function initPlayState()
 	playVars.particles = list()
 	generatePlayer()
 
-	playVars.enemyPool = {
-		fighter1 = 8,
-		bomber1 = 3
-	}
-	playVars.spawnAttemptTimerLength = 0.5
-	playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
-	playVars.maxEnemies = 6
-	playVars.minEnemiesToSpawn = 1
-	playVars.maxEnemiesToSpawn = 3
 	playVars.gameOverTextPresent = false
 	playVars.gameOverTextWaitTimer = nil
 	playVars.gameOver = false
 	playVars.preRespawnCentringTimer = nil
 	playVars.postRespawnCentringTimer = nil
 	playVars.respawnCentringAnimationInProgress = false
-	playVars.score = 0
+	playVars.waveScore = 0
+	playVars.totalScore = 0
 	playVars.scoreReductionTimerLength = 0.2
 	playVars.scoreReductionTimer = playVars.scoreReductionTimerLength
 	playVars.scoreTimerReductionAmount = 1
@@ -267,7 +280,9 @@ local function initPlayState()
 	playVars.bulletMissedScorePenalty = 5
 	playVars.bulletHitReceivedScoreLossPenalty = 20
 	playVars.contactHitReceivedScoreLossPenalty = 50
-	playVars.scoreBoostPerLifeAtWaveWon = 50
+	playVars.scoreBoostPerLifeAtWaveWon = 10 -- You may go through lots of waves with the same number of lives, which would be an excessive advantage, hence the low value
+
+	initWave()
 end
 
 function love.load()
@@ -311,6 +326,8 @@ function love.keypressed(key)
 				
 			end
 		end
+	elseif gameState == "waveWon" and playVars.onResultsScreen then
+		initWave()
 	end
 end
 
@@ -441,7 +458,7 @@ function love.update(dt)
 				playVars.gameOver = true
 			else
 				playVars.preRespawnCentringTimer = consts.preRespawnCentringTimerLength
-				playVars.score = math.max(0, playVars.score - playVars.lifeLossScorePenalty)
+				playVars.waveScore = math.max(0, playVars.waveScore - playVars.lifeLossScorePenalty)
 			end
 			playVars.spareLives = math.max(0, playVars.spareLives - 1)
 		end
@@ -494,7 +511,7 @@ function love.update(dt)
 						playVars.player.health = playVars.player.health - enemy.contactDamage
 						if playVars.player.health > 0 then
 							explode(enemy.contactDamage * consts.explosionSourceRadiusPerDamage, playVars.player.pos + normaliseOrZero(enemy.pos - playVars.player.pos) * playVars.player.radius, shallowClone(playVars.player.colour))
-							playVars.score = math.max(0, playVars.score - playVars.contactHitReceivedScoreLossPenalty)
+							playVars.waveScore = math.max(0, playVars.waveScore - playVars.contactHitReceivedScoreLossPenalty)
 						end
 						playVars.player.contactInvulnerabilityTimer = playVars.player.contactInvulnerabilityTimerLength
 						break
@@ -535,9 +552,12 @@ function love.update(dt)
 		if playVars.gameOver then
 			if not playVars.gameOverTextPresent then
 				if playVars.gameOverTextWaitTimer then
-					playVars.gameOverTextWaitTimer = playVars.gameOverTextWaitTimer - dt
-					if playVars.gameOverTextWaitTimer <= 0 then
-						playVars.gameOverTextPresent = true
+					if playVars.playerBullets.size == 0 then
+						playVars.gameOverTextWaitTimer = playVars.gameOverTextWaitTimer - dt
+						if playVars.gameOverTextWaitTimer <= 0 then
+							playVars.gameOverTextPresent = true
+							playVars.gameOverTotalScore = playVars.totalScore + playVars.waveScore
+						end
 					end
 				-- elseif playVars.enemyBullets.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemies.size == 0 then
 				else
@@ -636,7 +656,7 @@ function love.update(dt)
 			playerBullet.pos = playerBullet.pos + playerBullet.vel * dt
 			if playerBullet.pos.y + playerBullet.trailLength - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 < 0 then
 				deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
-				playVars.score = math.max(0, playVars.score - playVars.bulletMissedScorePenalty)
+				playVars.waveScore = math.max(0, playVars.waveScore - playVars.bulletMissedScorePenalty)
 			else
 				for j = 1, playVars.enemies.size do
 					local enemy = playVars.enemies:get(j)
@@ -660,7 +680,7 @@ function love.update(dt)
 			if enemy.health <= 0 then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				explode(enemy.radius, enemy.pos, enemy.colour)
-				playVars.score = playVars.score + enemy.defeatScore
+				playVars.waveScore = playVars.waveScore + enemy.defeatScore
 			elseif circleOffScreen(enemy.radius, enemy.pos) then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				playVars.enemyPool[enemy.type] = playVars.enemyPool[enemy.type] + 1 -- Let the enemy come back
@@ -702,7 +722,7 @@ function love.update(dt)
 				playVars.player.health = playVars.player.health - enemyBullet.damage
 				if playVars.player.health > 0 then
 					explode(enemyBullet.damage * consts.explosionSourceRadiusPerDamage, enemyBullet.pos, shallowClone(playVars.player.colour), -enemyBullet.vel * consts.bulletHitParticleBounceMultiplier, true)
-					playVars.score = math.max(0, playVars.score - playVars.bulletHitReceivedScoreLossPenalty)
+					playVars.waveScore = math.max(0, playVars.waveScore - playVars.bulletHitReceivedScoreLossPenalty)
 				end
 			end
 		end
@@ -808,7 +828,8 @@ function love.update(dt)
 			playVars.enemiesToMaterialise.size == 0 and
 			playVars.enemyBullets.size == 0 and
 			enemyPoolIsEmpty and
-			playVars.playerBullets.size == 0 -- Bullets drop your score when they leave the screen
+			playVars.playerBullets.size == 0 and -- Bullets drop your score when they leave the screen
+			isPlayerPresent()
 		then
 			winWave()
 		end
@@ -817,7 +838,22 @@ function love.update(dt)
 			playVars.scoreReductionTimer = playVars.scoreReductionTimer - dt
 			if playVars.scoreReductionTimer <= 0 then
 				playVars.scoreReductionTimer = playVars.scoreReductionTimerLength
-				playVars.score = math.max(0, playVars.score - playVars.scoreTimerReductionAmount)
+				playVars.waveScore = math.max(0, playVars.waveScore - playVars.scoreTimerReductionAmount)
+			end
+		end
+
+		if gameState == "waveWon" then
+			if playVars.waveWonDelayBeforeResultsScreenTimer then
+				playVars.waveWonDelayBeforeResultsScreenTimer = playVars.waveWonDelayBeforeResultsScreenTimer - dt
+				if playVars.waveWonDelayBeforeResultsScreenTimer <= 0 then
+					playVars.waveWonDelayBeforeResultsScreenTimer = nil
+					playVars.onResultsScreen = true
+					playVars.resultsScreenVars = {}
+					playVars.resultsScreenVars.prevTotalScore = playVars.totalScore
+					local lifeBonus = playVars.spareLives * playVars.scoreBoostPerLifeAtWaveWon
+					playVars.resultsScreenVars.lifeBonus = lifeBonus
+					playVars.totalScore = playVars.totalScore + playVars.waveScore + lifeBonus
+				end
 			end
 		end
 	end
@@ -876,74 +912,92 @@ function love.draw()
 			love.graphics.print(v, 0, font:getHeight() * (i-1))
 		end
 	elseif consts.playLikeStates[gameState] then
-		love.graphics.translate(-playVars.player.pos.x / 4, -playVars.player.pos.y / 2)
-		love.graphics.translate(0, gameHeight/2)
-		love.graphics.translate(0, playVars.cameraYOffset / 2)
-		for x = -consts.backgroundPointDistanceX * 20, gameWidth + consts.backgroundPointDistanceX * 20, consts.backgroundPointDistanceX do
-			x = x + consts.backgroundPointOffsetX
-			for y = -consts.backgroundPointDistanceY * 5, gameHeight + consts.backgroundPointDistanceY * 5, consts.backgroundPointDistanceY do
-				y = y + consts.backgroundPointOffsetY
-				love.graphics.points(
-					-- TODO: Add some perspective
-					x,
-					y
-				)
+		if gameState == "waveWon" and playVars.onResultsScreen then
+			love.graphics.origin()
+			local texts = {
+				"PREV. TOTAL: " .. playVars.resultsScreenVars.prevTotalScore,
+				"WAVE SCORE: " .. playVars.waveScore,
+				"LIFE BONUS: " .. playVars.resultsScreenVars.lifeBonus,
+				"TOTAL SCORE: " .. playVars.totalScore
+			}
+			local textHeight = font:getHeight() * #texts
+			love.graphics.translate(0, gameHeight / 2 - textHeight / 2)
+			for i, v in ipairs(texts) do
+				love.graphics.print(v, gameWidth / 2 - font:getWidth(v) / 2, font:getHeight() * (i- 1))
 			end
-		end
-		love.graphics.origin()
-		love.graphics.translate(0, -playVars.player.pos.y)
-		love.graphics.translate(0, gameHeight/2)
-		love.graphics.translate(0, playVars.cameraYOffset)
-		for i = 1, playVars.enemies.size do
-			local enemy = playVars.enemies:get(i)
-			local asset = assets.images[enemy.type]
-			if asset then
-				love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
-			else
-				love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
+		else
+			love.graphics.translate(-playVars.player.pos.x / 4, -playVars.player.pos.y / 2)
+			love.graphics.translate(0, gameHeight/2)
+			love.graphics.translate(0, playVars.cameraYOffset / 2)
+			for x = -consts.backgroundPointDistanceX * 20, gameWidth + consts.backgroundPointDistanceX * 20, consts.backgroundPointDistanceX do
+				x = x + consts.backgroundPointOffsetX
+				for y = -consts.backgroundPointDistanceY * 5, gameHeight + consts.backgroundPointDistanceY * 5, consts.backgroundPointDistanceY do
+					y = y + consts.backgroundPointOffsetY
+					love.graphics.points(
+						-- TODO: Add some perspective
+						x,
+						y
+					)
+				end
 			end
-		end
-		love.graphics.setColor(1, 0, 0)
-		for i = 1, playVars.playerBullets.size do
-			local playerBullet = playVars.playerBullets:get(i)
-			love.graphics.line(playerBullet.pos.x, playerBullet.pos.y + playerBullet.trailLength, playerBullet.pos.x, playerBullet.pos.y)
-		end
-		love.graphics.setColor(1, 1, 1)
-		for i = 1, playVars.enemyBullets.size do
-			local enemyBullet = playVars.enemyBullets:get(i)
-			love.graphics.circle("fill", enemyBullet.pos.x, enemyBullet.pos.y, enemyBullet.radius)
-		end
-		for i = 1, playVars.particles.size do
-			local particle = playVars.particles:get(i)
-			if not particle.invisibleTime then
-				love.graphics.setPointSize(particle.size)
-				love.graphics.setColor(particle.colour)
-				love.graphics.points(particle.pos.x, particle.pos.y)
+			love.graphics.origin()
+			love.graphics.translate(0, -playVars.player.pos.y)
+			love.graphics.translate(0, gameHeight/2)
+			love.graphics.translate(0, playVars.cameraYOffset)
+			for i = 1, playVars.enemies.size do
+				local enemy = playVars.enemies:get(i)
+				local asset = assets.images[enemy.type]
+				if asset then
+					love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
+				else
+					love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
+				end
 			end
-		end
-		love.graphics.setPointSize(1)
-		love.graphics.setColor(1, 1, 1)
-		if isPlayerPresent() then
-			local flash = playVars.player.contactInvulnerabilityTimer and math.floor(playVars.player.contactInvulnerabilityTimer * playVars.player.flashAnimationSpeed) % 2 == 0
-			if flash then
-				love.graphics.setColor(1, 1, 1, consts.flashAlpha)
+			love.graphics.setColor(1, 0, 0)
+			for i = 1, playVars.playerBullets.size do
+				local playerBullet = playVars.playerBullets:get(i)
+				love.graphics.line(playerBullet.pos.x, playerBullet.pos.y + playerBullet.trailLength, playerBullet.pos.x, playerBullet.pos.y)
 			end
-			love.graphics.draw(assets.images.player, playVars.player.pos.x - assets.images.player:getWidth() / 2, playVars.player.pos.y - assets.images.player:getHeight() / 2)
 			love.graphics.setColor(1, 1, 1)
+			for i = 1, playVars.enemyBullets.size do
+				local enemyBullet = playVars.enemyBullets:get(i)
+				love.graphics.circle("fill", enemyBullet.pos.x, enemyBullet.pos.y, enemyBullet.radius)
+			end
+			for i = 1, playVars.particles.size do
+				local particle = playVars.particles:get(i)
+				if not particle.invisibleTime then
+					love.graphics.setPointSize(particle.size)
+					love.graphics.setColor(particle.colour)
+					love.graphics.points(particle.pos.x, particle.pos.y)
+				end
+			end
+			love.graphics.setPointSize(1)
+			love.graphics.setColor(1, 1, 1)
+			if isPlayerPresent() then
+				local flash = playVars.player.contactInvulnerabilityTimer and math.floor(playVars.player.contactInvulnerabilityTimer * playVars.player.flashAnimationSpeed) % 2 == 0
+				if flash then
+					love.graphics.setColor(1, 1, 1, consts.flashAlpha)
+				end
+				love.graphics.draw(assets.images.player, playVars.player.pos.x - assets.images.player:getWidth() / 2, playVars.player.pos.y - assets.images.player:getHeight() / 2)
+				love.graphics.setColor(1, 1, 1)
+			end
+
+			love.graphics.origin()
+
+			for i = 1, playVars.spareLives do
+				love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
+			end
+
+			if playVars.gameOverTextPresent then
+				local gameOverText = "GAME OVER"
+				local totalScoreText = "TOTAL SCORE: " .. playVars.gameOverTotalScore
+				love.graphics.print(gameOverText, gameWidth / 2 - font:getWidth(gameOverText) / 2, gameHeight / 2 - font:getHeight())
+				love.graphics.print(totalScoreText, gameWidth / 2 - font:getWidth(totalScoreText) / 2, gameHeight / 2)
+			end
+
+			love.graphics.print(playVars.totalScore, 0, 0)
+			love.graphics.print(playVars.waveScore, 0, font:getHeight())
 		end
-
-		love.graphics.origin()
-
-		for i = 1, playVars.spareLives do
-			love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
-		end
-
-		if playVars.gameOverTextPresent then
-			local text = "GAME OVER"
-			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight / 2 - font:getHeight() / 2)
-		end
-
-		love.graphics.print("SCORE: " .. playVars.score, 0, 0)
 	end
 
 	love.graphics.origin()
