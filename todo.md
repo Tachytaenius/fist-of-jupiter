@@ -11,4 +11,4 @@
 - Add hacking with blue line effects around hackee, stopping them from shooting
 - Don't change score at all when game over'd
 - Reset all entity lists on initWave
-- Stop player from moving and shooting when waiting for all bullets to go off screen after all enemies defeated and don't reduce score at such times
+- Use interpolation for respawn centring
