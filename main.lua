@@ -207,7 +207,7 @@ local function generatePlayer(resetPos)
 		maxbulletCostBeforeShooting = 5,
 		radius = 6,
 		bulletExitOffset = vec2(0, -4),
-		health = 1,
+		health = 4,
 		dead = false,
 		colour = {0.6, 0.2, 0.2},
 		contactInvulnerabilityTimerLength = 1,
@@ -223,7 +223,6 @@ end
 local function initWave()
 	gameState = "play"
 	playVars.waveNumber = (playVars.waveNumber or 0) + 1
-	local num = playVars.waveNumber
 	playVars.resultsScreenVars = nil
 	playVars.onResultsScreen = false
 	playVars.waveScore = 0
@@ -235,10 +234,10 @@ local function initWave()
 	playVars.particles = list()
 	generatePlayer(true)
 
-	playVars.enemyPool = {
-		fighter1 = 8 + (num-1) * 3,
-		bomber1 = 3 + 2 * (num-1)
-	}
+	playVars.enemyPool = {}
+	for k, v in pairs(registry.enemies) do
+		playVars.enemyPool[k] = math.floor(v.count(playVars.waveNumber))
+	end
 	playVars.spawnAttemptTimerLength = 0.5
 	playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
 	playVars.maxEnemies = 6
@@ -291,7 +290,7 @@ local function initPlayState()
 
 	playVars = {}
 
-	playVars.spareLives = 2
+	playVars.spareLives = 4
 	playVars.cameraYOffset = consts.cameraYOffsetMax
 
 	playVars.gameOverTextPresent = false
