@@ -245,9 +245,9 @@ local function initWave()
 	local lerpFactor = (playVars.waveNumber - 1) / (consts.finalNonBossWave - 1)
 	playVars.spawnAttemptTimerLength = math.lerp(1.5, 0.5, lerpFactor)
 	playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
-	playVars.maxEnemies = math.floor(math.lerp(6, 12, lerpFactor))
+	playVars.maxEnemies = math.floor(math.lerp(4, 10, lerpFactor))
 	playVars.minEnemiesToSpawn = math.floor(math.lerp(1, 3, lerpFactor))
-	playVars.maxEnemiesToSpawn = math.floor(math.lerp(3, 9, lerpFactor))
+	playVars.maxEnemiesToSpawn = math.floor(math.lerp(3, 6, lerpFactor))
 end
 
 local function winWave()
