@@ -8,3 +8,7 @@
 - Maybe don't let the player backtrack off the screen and despawn alll the enemies? What about going forwards, too
 - Add sparkles to title screen logo
 - Balance score so that no factor dominates
+- Add hacking with blue line effects around hackee, stopping them from shooting
+- Don't change score at all when game over'd
+- Reset all entity lists on initWave
+- Stop player from moving and shooting when waiting for all bullets to go off screen after all enemies defeated and don't reduce score at such times
