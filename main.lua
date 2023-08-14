@@ -175,11 +175,12 @@ end
 
 local function givePowerup(name)
 	if name == "hyperBeam" then
+		local timerLength = 7.5
 		playVars.player.powerups.hyperBeam = {
 			shootTimerLength = 0.01,
-			timer = 10,
-			timerLength = 10,
-			hueCycleSpeed = 10
+			timer = timerLength,
+			timerLength = timerLength,
+			hueCycleSpeed = 30
 		}
 	end
 end
@@ -355,8 +356,8 @@ local function shootBullet()
 		local saturation = (freshness ^ 0.5) * 0.75 + 0.25
 		local value = freshness ^ 0.5 * 0.5 + 0.5
 		newBullet.colour = {hsv2rgb(hue, saturation, value)}
-		newBullet.trailLength = 12
-		newBullet.vel = vec2(0, -750)
+		newBullet.trailLength = 16
+		newBullet.vel = vec2(0, -1000)
 		newBullet.damage = 0.25
 		newBullet.missPenalty = 0
 		newBullet.cost = 0
