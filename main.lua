@@ -430,7 +430,7 @@ function love.update(dt)
 		if not titleVars.titleCameraTargetVelocity then
 			-- Just entered state
 			newTargetVel()
-			titleVars.titleCameraVelocity = titleVars.titleCameraTargetVelocity
+			-- titleVars.titleCameraVelocity = titleVars.titleCameraTargetVelocity
 		end
 
 		titleVars.titleScreenVelocityChangeTimer = titleVars.titleScreenVelocityChangeTimer - dt
