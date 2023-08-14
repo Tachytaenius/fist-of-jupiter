@@ -6,3 +6,4 @@
 - Balance score so that no factor dominates
 - Add hacking with blue line effects around hackee, stopping them from shooting
 - Use interpolation for respawn centring
+- Add a boss that constructs itself over time with an animation, with velocity boosted implosions
