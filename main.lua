@@ -158,6 +158,21 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer)
 	end
 end
 
+local function checkAllEnemiesDefeatedAndEnemyBulletsGone()
+	local enemyPoolIsEmpty = true
+	for k, v in pairs(playVars.enemyPool) do
+		if v > 0 then
+			enemyPoolIsEmpty = false
+			break
+		end
+	end
+	return
+		playVars.enemies.size == 0 and
+		playVars.enemiesToMaterialise.size == 0 and
+		playVars.enemyBullets.size == 0 and
+		enemyPoolIsEmpty
+end
+
 local function givePowerup(name)
 	if name == "hyperBeam" then
 		playVars.player.powerups.hyperBeam = {
@@ -322,6 +337,9 @@ local function getPlayerBulletsCostUsed()
 end
 
 local function shootBullet()
+	if checkAllEnemiesDefeatedAndEnemyBulletsGone() then
+		return
+	end
 	local newBullet = {
 		vel = vec2(0, -450),
 		pos = playVars.player.pos + playVars.player.bulletExitOffset,
@@ -515,13 +533,14 @@ function love.update(dt)
 			playVars.spareLives = math.max(0, playVars.spareLives - 1)
 		end
 		if isPlayerPresent() then
+			local allowMovement = not checkAllEnemiesDefeatedAndEnemyBulletsGone() and gameState == "play"
 			-- player movement x
 			local movedX = false
-			if gameState == "play" and love.keyboard.isDown(controls.left) then
+			if allowMovement and love.keyboard.isDown(controls.left) then
 				playVars.player.vel.x = playVars.player.vel.x - playVars.player.accelX * dt
 				movedX = true
 			end
-			if gameState == "play" and love.keyboard.isDown(controls.right) then
+			if allowMovement and love.keyboard.isDown(controls.right) then
 				playVars.player.vel.x = playVars.player.vel.x + playVars.player.accelX * dt
 				if movedX then
 					movedX = false
@@ -535,11 +554,11 @@ function love.update(dt)
 			playVars.player.vel.x = math.max(-playVars.player.maxSpeedX, math.min(playVars.player.maxSpeedX, playVars.player.vel.x))
 			-- player movement y
 			local movedY = false
-			if gameState == "play" and love.keyboard.isDown(controls.up) then
+			if allowMovement and love.keyboard.isDown(controls.up) then
 				playVars.player.vel.y = playVars.player.vel.y - playVars.player.accelUp * dt
 				movedY = true
 			end
-			if gameState == "play" and love.keyboard.isDown(controls.down) then
+			if allowMovement and love.keyboard.isDown(controls.down) then
 				playVars.player.vel.y = playVars.player.vel.y + playVars.player.accelDown * dt
 				if movedY then
 					movedY = false
@@ -898,26 +917,16 @@ function love.update(dt)
 			end
 		end
 
-		local enemyPoolIsEmpty = true
-		for k, v in pairs(playVars.enemyPool) do
-			if v > 0 then
-				enemyPoolIsEmpty = false
-				break
-			end
-		end
 		if
 			gameState == "play" and
-			playVars.enemies.size == 0 and
-			playVars.enemiesToMaterialise.size == 0 and
-			playVars.enemyBullets.size == 0 and
-			enemyPoolIsEmpty and
+			checkAllEnemiesDefeatedAndEnemyBulletsGone() and
 			playVars.playerBullets.size == 0 and
 			isPlayerPresent()
 		then
 			winWave()
 		end
 
-		if gameState == "play" and isPlayerPresent() then
+		if gameState == "play" and isPlayerPresent() and not checkAllEnemiesDefeatedAndEnemyBulletsGone() then
 			playVars.scoreReductionTimer = playVars.scoreReductionTimer - dt
 			if playVars.scoreReductionTimer <= 0 then
 				playVars.scoreReductionTimer = playVars.scoreReductionTimerLength
