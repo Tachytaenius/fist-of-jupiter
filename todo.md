@@ -7,3 +7,4 @@
 - Make font cooler
 - Maybe don't let the player backtrack off the screen and despawn alll the enemies? What about going forwards, too
 - Add sparkles to title screen logo
+- Balance score so that no factor dominates

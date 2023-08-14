@@ -98,9 +98,7 @@ local consts = {
 	playLikeStates = {
 		play = true,
 		waveWon = true
-	},
-	scoreReductionTimerLength = 0.2,
-	scoreReductionAmount = 1
+	}
 }
 
 local controls = {
@@ -160,6 +158,7 @@ end
 
 local function winWave()
 	gameState = "waveWon"
+	playVars.score = playVars.score + playVars.spareLives * playVars.scoreBoostPerLifeAtWaveWon
 end
 
 local function circleOffScreen(radius, pos)
@@ -261,7 +260,14 @@ local function initPlayState()
 	playVars.postRespawnCentringTimer = nil
 	playVars.respawnCentringAnimationInProgress = false
 	playVars.score = 0
-	playVars.scoreReductionTimer = consts.scoreReductionTimerLength
+	playVars.scoreReductionTimerLength = 0.2
+	playVars.scoreReductionTimer = playVars.scoreReductionTimerLength
+	playVars.scoreTimerReductionAmount = 1
+	playVars.lifeLossScorePenalty = 100
+	playVars.bulletMissedScorePenalty = 5
+	playVars.bulletHitReceivedScoreLossPenalty = 20
+	playVars.contactHitReceivedScoreLossPenalty = 50
+	playVars.scoreBoostPerLifeAtWaveWon = 50
 end
 
 function love.load()
@@ -435,6 +441,7 @@ function love.update(dt)
 				playVars.gameOver = true
 			else
 				playVars.preRespawnCentringTimer = consts.preRespawnCentringTimerLength
+				playVars.score = math.max(0, playVars.score - playVars.lifeLossScorePenalty)
 			end
 			playVars.spareLives = math.max(0, playVars.spareLives - 1)
 		end
@@ -487,6 +494,7 @@ function love.update(dt)
 						playVars.player.health = playVars.player.health - enemy.contactDamage
 						if playVars.player.health > 0 then
 							explode(enemy.contactDamage * consts.explosionSourceRadiusPerDamage, playVars.player.pos + normaliseOrZero(enemy.pos - playVars.player.pos) * playVars.player.radius, shallowClone(playVars.player.colour))
+							playVars.score = math.max(0, playVars.score - playVars.contactHitReceivedScoreLossPenalty)
 						end
 						playVars.player.contactInvulnerabilityTimer = playVars.player.contactInvulnerabilityTimerLength
 						break
@@ -628,6 +636,7 @@ function love.update(dt)
 			playerBullet.pos = playerBullet.pos + playerBullet.vel * dt
 			if playerBullet.pos.y + playerBullet.trailLength - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 < 0 then
 				deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
+				playVars.score = math.max(0, playVars.score - playVars.bulletMissedScorePenalty)
 			else
 				for j = 1, playVars.enemies.size do
 					local enemy = playVars.enemies:get(j)
@@ -693,6 +702,7 @@ function love.update(dt)
 				playVars.player.health = playVars.player.health - enemyBullet.damage
 				if playVars.player.health > 0 then
 					explode(enemyBullet.damage * consts.explosionSourceRadiusPerDamage, enemyBullet.pos, shallowClone(playVars.player.colour), -enemyBullet.vel * consts.bulletHitParticleBounceMultiplier, true)
+					playVars.score = math.max(0, playVars.score - playVars.bulletHitReceivedScoreLossPenalty)
 				end
 			end
 		end
@@ -792,15 +802,22 @@ function love.update(dt)
 				break
 			end
 		end
-		if playVars.enemies.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemyBullets.size == 0 and enemyPoolIsEmpty then
+		if
+			gameState == "play" and
+			playVars.enemies.size == 0 and
+			playVars.enemiesToMaterialise.size == 0 and
+			playVars.enemyBullets.size == 0 and
+			enemyPoolIsEmpty and
+			playVars.playerBullets.size == 0 -- Bullets drop your score when they leave the screen
+		then
 			winWave()
 		end
 
 		if gameState == "play" and isPlayerPresent() then
 			playVars.scoreReductionTimer = playVars.scoreReductionTimer - dt
 			if playVars.scoreReductionTimer <= 0 then
-				playVars.scoreReductionTimer = consts.scoreReductionTimerLength
-				playVars.score = math.max(0, playVars.score - consts.scoreReductionAmount)
+				playVars.scoreReductionTimer = playVars.scoreReductionTimerLength
+				playVars.score = math.max(0, playVars.score - playVars.scoreTimerReductionAmount)
 			end
 		end
 	end
