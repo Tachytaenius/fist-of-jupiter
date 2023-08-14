@@ -651,7 +651,7 @@ function love.update(dt)
 		-- 	playVars.player.vel.y = math.min(0, playVars.player.vel.y)
 		-- end
 
-		if playVars.gameOver then
+		if playVars.gameOver and playVars.playerBullets.size == 0 then -- Let the score loss of bullets missing and player dying all accumulate before calculating gameOverTotalScore
 			if not playVars.gameOverTextPresent then
 				if playVars.gameOverTextWaitTimer then
 					if playVars.playerBullets.size == 0 then
