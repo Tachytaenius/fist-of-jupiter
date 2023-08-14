@@ -299,7 +299,6 @@ local function initPlayState()
 	playVars.preRespawnCentringTimer = nil
 	playVars.postRespawnCentringTimer = nil
 	playVars.respawnCentringAnimationInProgress = false
-	playVars.waveScore = 0
 	playVars.totalScore = 0
 	playVars.scoreReductionTimerLength = 0.2
 	playVars.scoreReductionTimer = playVars.scoreReductionTimerLength
