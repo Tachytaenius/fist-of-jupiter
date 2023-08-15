@@ -944,7 +944,8 @@ function love.update(dt)
 					bulletSpreadAngle = registryEntry.bulletSpreadAngle,
 					contactDamage = registryEntry.contactDamage,
 					defeatScore = registryEntry.defeatScore,
-					accel = registryEntry.accel
+					accel = registryEntry.accel,
+					creationTime = love.timer.getTime() -- For consistent draw sorting
 				}, registryEntry.materialisationTime)
 			end
 		end
@@ -1088,8 +1089,13 @@ function love.draw()
 			love.graphics.translate(0, -playVars.player.pos.y)
 			love.graphics.translate(0, gameHeight/2)
 			love.graphics.translate(0, playVars.cameraYOffset)
+			local enemiesToDraw = {}
 			for i = 1, playVars.enemies.size do
 				local enemy = playVars.enemies:get(i)
+				enemiesToDraw[#enemiesToDraw+1] = enemy
+			end
+			table.sort(enemiesToDraw, function(a, b) return a.creationTime < b.creationTime end)
+			for _, enemy in ipairs(enemiesToDraw) do
 				local asset = assets.images[enemy.type]
 				if asset then
 					love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
