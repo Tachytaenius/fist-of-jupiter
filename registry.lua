@@ -31,36 +31,6 @@ registry.enemies.fighter1 = {
 		return math.max(0, currentAmount)
 	end
 }
-registry.enemies.bomber1 = {
-	radius = 10,
-	health = 2,
-	colour = {0.6, 0.5, 0.6},
-	speed = 50,
-	shootTimerLength = 2,
-	bulletSpeed = 150,
-	bulletRadius = 2,
-	bulletDamage = 2,
-	bulletCount = 1,
-	bulletSpreadAngle = 0,
-	contactDamage = 3,
-	accel = 125,
-	defeatScore = 50,
-	materialisationTime = 0.3,
-	count = function(waveNumber)
-		local currentAmount = 3
-		for i = 1, waveNumber do
-			if i == waveNumber then
-				break
-			end
-			if i <= 3 then
-				currentAmount = currentAmount + 1
-			else
-				currentAmount = currentAmount - 3
-			end
-		end
-		return math.max(0, currentAmount)
-	end
-}
 registry.enemies.fighter2 = {
 	radius = 8,
 	health = 2,
@@ -86,6 +56,36 @@ registry.enemies.fighter2 = {
 				currentAmount = currentAmount + 4
 			elseif i > 6 then
 				currentAmount = currentAmount - 8
+			end
+		end
+		return math.max(0, currentAmount)
+	end
+}
+registry.enemies.bomber1 = {
+	radius = 10,
+	health = 2,
+	colour = {0.6, 0.5, 0.6},
+	speed = 50,
+	shootTimerLength = 2,
+	bulletSpeed = 150,
+	bulletRadius = 2,
+	bulletDamage = 2,
+	bulletCount = 1,
+	bulletSpreadAngle = 0,
+	contactDamage = 3,
+	accel = 125,
+	defeatScore = 50,
+	materialisationTime = 0.3,
+	count = function(waveNumber)
+		local currentAmount = 3
+		for i = 1, waveNumber do
+			if i == waveNumber then
+				break
+			end
+			if i <= 3 then
+				currentAmount = currentAmount + 1
+			else
+				currentAmount = currentAmount - 3
 			end
 		end
 		return math.max(0, currentAmount)
