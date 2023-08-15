@@ -517,7 +517,7 @@ function love.update(dt)
 	end
 	if gameState == "title" then
 		local function newTargetVel()
-			local targetSpeed = consts.titleScreenCameraSpeed -- Do I want to randomise this?
+			local targetSpeed = consts.titleScreenCameraSpeed
 			titleVars.titleCameraTargetVelocity = vec2.fromAngle(love.math.random() * math.tau) * targetSpeed * (love.math.random() / 2 + 3/4)
 		end
 		if not titleVars.titleCameraTargetVelocity then
