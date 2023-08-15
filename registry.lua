@@ -1,6 +1,8 @@
 local registry = {}
 
 registry.enemies = {}
+local firstGenPeakWave = 3
+local secondGenPeakWave = 6
 registry.enemies.fighter1 = {
 	radius = 6,
 	health = 1,
@@ -22,40 +24,10 @@ registry.enemies.fighter1 = {
 			if i == waveNumber then
 				break
 			end
-			if i <= 3 then
+			if i <= firstGenPeakWave then
 				currentAmount = currentAmount + 2
 			else
 				currentAmount = currentAmount - 4
-			end
-		end
-		return math.max(0, currentAmount)
-	end
-}
-registry.enemies.bomber2 = {
-	radius = 12,
-	health = 4,
-	colour = {0.6, 0.5, 0.6},
-	speed = 75,
-	shootTimerLength = 1.5,
-	bulletSpeed = 175,
-	bulletRadius = 3,
-	bulletDamage = 4,
-	bulletCount = 1,
-	bulletSpreadAngle = 0,
-	contactDamage = 6,
-	accel = 175,
-	defeatScore = 35,
-	materialisationTime = 0.2,
-	count = function(waveNumber)
-		local currentAmount = 0
-		for i = 1, waveNumber do
-			if i == waveNumber then
-				break
-			end
-			if i > 3 and i <= 6 then
-				currentAmount = currentAmount + 3
-			elseif i > 6 then
-				currentAmount = currentAmount - 6
 			end
 		end
 		return math.max(0, currentAmount)
@@ -82,9 +54,9 @@ registry.enemies.fighter2 = {
 			if i == waveNumber then
 				break
 			end
-			if i > 3 and i <= 6 then
+			if i > firstGenPeakWave and i <= secondGenPeakWave then
 				currentAmount = currentAmount + 4
-			elseif i > 6 then
+			elseif i > secondGenPeakWave then
 				currentAmount = currentAmount - 8
 			end
 		end
@@ -112,10 +84,40 @@ registry.enemies.bomber1 = {
 			if i == waveNumber then
 				break
 			end
-			if i <= 3 then
+			if i <= firstGenPeakWave then
 				currentAmount = currentAmount + 1
 			else
 				currentAmount = currentAmount - 3
+			end
+		end
+		return math.max(0, currentAmount)
+	end
+}
+registry.enemies.bomber2 = {
+	radius = 12,
+	health = 4,
+	colour = {0.6, 0.5, 0.6},
+	speed = 75,
+	shootTimerLength = 1.5,
+	bulletSpeed = 175,
+	bulletRadius = 3,
+	bulletDamage = 4,
+	bulletCount = 1,
+	bulletSpreadAngle = 0,
+	contactDamage = 6,
+	accel = 175,
+	defeatScore = 35,
+	materialisationTime = 0.2,
+	count = function(waveNumber)
+		local currentAmount = 0
+		for i = 1, waveNumber do
+			if i == waveNumber then
+				break
+			end
+			if i > firstGenPeakWave and i <= secondGenPeakWave then
+				currentAmount = currentAmount + 3
+			elseif i > secondGenPeakWave then
+				currentAmount = currentAmount - 6
 			end
 		end
 		return math.max(0, currentAmount)
