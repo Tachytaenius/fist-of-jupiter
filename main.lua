@@ -108,7 +108,10 @@ local consts = {
 	bonusScoreTimerLength = 90,
 	bonusScoreTimerScorePerSecondLeft = 10,
 	killScoreBonusPerCurrentKillStreakOnKill = 3,
-	scoreTextTimerLength = 0.5
+	scoreTextTimerLength = 0.5,
+	playBackgroundParticleAnimationFrequency = 4,
+	playBackgroundParticleAnimationAmplitude = 20,
+	playBackgroundParticleTimeOffsetPerDistance = 10
 }
 
 local controls = {
@@ -317,7 +320,7 @@ local function initPlayState()
 
 	playVars.spareLives = 4
 	playVars.cameraYOffset = consts.cameraYOffsetMax
-
+	playVars.time = 0
 	playVars.gameOverTextPresent = false
 	playVars.gameOverTextWaitTimer = nil
 	playVars.gameOver = false
@@ -543,6 +546,8 @@ function love.update(dt)
 		titleVars.titleCameraVelocity = marchVectorToTarget(titleVars.titleCameraVelocity, titleVars.titleCameraTargetVelocity, consts.titleCameraAccel, dt)
 		titleVars.titleCameraPos = titleVars.titleCameraPos + titleVars.titleCameraVelocity * dt
 	elseif consts.playLikeStates[gameState] then
+		playVars.time = playVars.time + dt
+
 		if playVars.player.spawning then
 			playVars.player.spawnTimer = playVars.player.spawnTimer - dt
 			if playVars.player.spawnTimer <= 0 then
@@ -953,7 +958,7 @@ function love.update(dt)
 					contactDamage = registryEntry.contactDamage,
 					defeatScore = registryEntry.defeatScore,
 					accel = registryEntry.accel,
-					creationTime = love.timer.getTime() -- For consistent draw sorting
+					creationTime = playVars.time -- For consistent draw sorting
 				}, registryEntry.materialisationTime)
 			end
 		end
@@ -1029,7 +1034,15 @@ function love.draw()
 						local particle = block.permanentStationaryParticles:get(j)
 						love.graphics.setPointSize(particle.size)
 						love.graphics.setColor(particle.colour)
-						love.graphics.points(particle.pos.x, particle.pos.y)
+						local offset = 0
+						if consts.playLikeStates[gameState] then
+							offset = math.sin(
+								playVars.time * consts.playBackgroundParticleAnimationFrequency +
+								particle.pos.x * consts.playBackgroundParticleTimeOffsetPerDistance +
+								particle.pos.y * consts.playBackgroundParticleTimeOffsetPerDistance
+							) * consts.playBackgroundParticleAnimationAmplitude
+						end
+						love.graphics.points(particle.pos.x, particle.pos.y + offset)
 					end
 					for j = 1, block.movingParticles.size do
 						local particle = block.movingParticles:get(j)
