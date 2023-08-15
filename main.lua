@@ -107,7 +107,8 @@ local consts = {
 	finalNonBossWave = 19,
 	bonusScoreTimerLength = 30,
 	bonusScoreTimerScorePerSecondLeft = 10,
-	killScoreBonusPerCurrentKillStreakOnKill = 3
+	killScoreBonusPerCurrentKillStreakOnKill = 3,
+	scoreTextTimerLength = 0.5
 }
 
 local controls = {
@@ -241,6 +242,7 @@ local function nextWave()
 	playVars.playerBullets = list()
 	playVars.enemyBullets = list()
 	playVars.particles = list()
+	playVars.floatingTexts = list()
 	generatePlayer(true)
 
 	playVars.enemyPool = {}
@@ -788,6 +790,12 @@ function love.update(dt)
 				if isPlayerPresent() then
 					local scoreAdd = enemy.defeatScore + playVars.player.killStreak * consts.killScoreBonusPerCurrentKillStreakOnKill
 					playVars.waveScore = playVars.waveScore + scoreAdd
+					playVars.floatingTexts:add({
+						value = scoreAdd,
+						pos = vec2.clone(enemy.pos),
+						vel = vec2(0, -20),
+						timer = consts.scoreTextTimerLength
+					})
 					playVars.player.killStreak = playVars.player.killStreak + 1
 				end
 			elseif circleOffScreen(enemy.radius, enemy.pos) then
@@ -921,6 +929,19 @@ function love.update(dt)
 					accel = registryEntry.accel
 				}, registryEntry.materialisationTime)
 			end
+		end
+
+		local textsToDelete = {}
+		for i = 1, playVars.floatingTexts.size do
+			local text = playVars.floatingTexts:get(i)
+			text.pos = text.pos + text.vel * dt
+			text.timer = text.timer - dt
+			if text.timer <= 0 then
+				textsToDelete[#textsToDelete+1] = text
+			end
+		end
+		for _, text in ipairs(textsToDelete) do
+			playVars.floatingTexts:remove(text)
 		end
 
 		if
@@ -1087,6 +1108,14 @@ function love.draw()
 				end
 				love.graphics.draw(assets.images.player, playVars.player.pos.x - assets.images.player:getWidth() / 2, playVars.player.pos.y - assets.images.player:getHeight() / 2)
 				love.graphics.setColor(1, 1, 1)
+			end
+
+			if not playVars.gameOverTextPresent then
+				for i = 1, playVars.floatingTexts.size do
+					local floatingText = playVars.floatingTexts:get(i)
+					local width = font:getWidth(floatingText.value)
+					love.graphics.print(floatingText.value, floatingText.pos.x - width / 2, floatingText.pos.y - font:getHeight() / 2)
+				end
 			end
 
 			love.graphics.origin()
