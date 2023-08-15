@@ -11,3 +11,4 @@
 - Preserve draw order of enemies as list order changes
 - Boss "wave" as wave 20
 - Instead of punishing for missing and for taking a while, add a bonus for time left (don't kill on timer 0) and add score for hit streaks
+- Add animated sprites to enemy bullets
