@@ -109,7 +109,7 @@ local consts = {
 	bonusScoreTimerScorePerSecondLeft = 10,
 	killScoreBonusPerCurrentKillStreakOnKill = 3,
 	scoreTextTimerLength = 0.5,
-	playBackgroundParticleAnimationFrequency = 4,
+	playBackgroundParticleAnimationFrequency = 0.5,
 	playBackgroundParticleAnimationAmplitude = 20,
 	playBackgroundParticleTimeOffsetPerDistance = 10
 }
@@ -1037,7 +1037,7 @@ function love.draw()
 						local offset = 0
 						if consts.playLikeStates[gameState] then
 							offset = math.sin(
-								playVars.time * consts.playBackgroundParticleAnimationFrequency +
+								(playVars.time * consts.playBackgroundParticleAnimationFrequency) * math.tau +
 								particle.pos.x * consts.playBackgroundParticleTimeOffsetPerDistance +
 								particle.pos.y * consts.playBackgroundParticleTimeOffsetPerDistance
 							) * consts.playBackgroundParticleAnimationAmplitude
