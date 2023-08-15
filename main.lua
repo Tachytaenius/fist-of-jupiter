@@ -83,14 +83,14 @@ local consts = {
 	bulletHitParticleBounceMultiplier = 0.1,
 	titleOptionCount = 2,
 	titleOptionsYPos = 256,
-	distanceToGenerateBlocks = 2000,
+	distanceToGenerateBlocksForDistance1 = math.max(gameWidth, gameHeight),
 	particleBlockSize = 500,
 	permanentStationaryParticlesPerBlock = 20,
 	movingParticlesPerBlock = 2,
 	movingBlockParticleMaxSpeed = 100,
 	movingBackgroundParticleDeletionTime = 2,
 	backgroundParticlePointScale = 8,
-	maxParticleBlockDistance = 4000,
+	maxParticleBlockDistanceForDistance1 = math.max(gameWidth, gameHeight) + 100,
 	titleScreenVelocityChangeTimerLength = 3,
 	titleScreenCameraSpeed = 600,
 	titleCameraAccel = 1000,
@@ -244,6 +244,13 @@ local function nextWave()
 	playVars.waveScore = 0
 	playVars.bonusTimer = consts.bonusScoreTimerLength
 
+	backgroundParticleBlockLayers = {
+		{distance = 7, blocks = {}, style = "play"},
+		{distance = 6, blocks = {}, style = "play"},
+		{distance = 5, blocks = {}, style = "play"},
+		{distance = 4, blocks = {}, style = "play"}
+	}
+
 	playVars.enemies = list()
 	playVars.enemiesToMaterialise = list()
 	playVars.playerBullets = list()
@@ -305,7 +312,6 @@ end
 
 local function initPlayState()
 	gameState = "play"
-	backgroundParticleBlockLayers = {}
 
 	playVars = {}
 
@@ -440,10 +446,10 @@ function love.update(dt)
 		local cameraPos = gameState == "title" and titleVars.titleCameraPos or consts.playLikeStates[gameState] and playVars.player.pos
 		for _, layer in ipairs(backgroundParticleBlockLayers) do
 			-- Add needed blocks
-			local minXWorldSpace = cameraPos.x - consts.distanceToGenerateBlocks + gameWidth / 2
-			local maxXWorldSpace = cameraPos.x + consts.distanceToGenerateBlocks + gameWidth / 2
-			local minYWorldSpace = cameraPos.y - consts.distanceToGenerateBlocks + gameHeight / 2
-			local maxYWorldSpace = cameraPos.y + consts.distanceToGenerateBlocks + gameHeight / 2
+			local minXWorldSpace = cameraPos.x - consts.distanceToGenerateBlocksForDistance1 * layer.distance + gameWidth / 2
+			local maxXWorldSpace = cameraPos.x + consts.distanceToGenerateBlocksForDistance1 * layer.distance + gameWidth / 2
+			local minYWorldSpace = cameraPos.y - consts.distanceToGenerateBlocksForDistance1 * layer.distance + gameHeight / 2
+			local maxYWorldSpace = cameraPos.y + consts.distanceToGenerateBlocksForDistance1 * layer.distance + gameHeight / 2
 			for x = math.floor(minXWorldSpace / consts.particleBlockSize), math.ceil(maxXWorldSpace / consts.particleBlockSize) do
 				for y = math.floor(minYWorldSpace / consts.particleBlockSize), math.ceil(maxYWorldSpace / consts.particleBlockSize) do
 					local blocksX = layer.blocks[x]
@@ -457,17 +463,19 @@ function love.update(dt)
 							movingParticles = list()
 						}
 						blocksX[y] = newBlock
-						for i = 1, consts.permanentStationaryParticlesPerBlock do
+						for i = 1, (layer.style == "play" and 0.5 or 1) * consts.permanentStationaryParticlesPerBlock do
 							newBlock.permanentStationaryParticles:add({
 								pos = consts.particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
 								vel = vec2(),
 								size = consts.backgroundParticlePointScale / layer.distance,
 								-- colour = {hsv2rgb(love.math.random() * 360, 1, 0.75 * math.min(1, 3/layer.distance))}
 								-- colour = {0.5 * math.min(1, 3/layer.distance), 0, 0}
-								colour = {hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
+								colour = layer.style == "play" and 
+									{hsv2rgb(((love.math.random() * 2 - 1) * 15 + (playVars.waveNumber - 1) / (consts.finalNonBossWave + 1 - 1) * 360) % 360, 0.5, 0.75 * math.min(1, 3/layer.distance))} or
+									{hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
 							})
 						end
-						for i = 1, consts.movingParticlesPerBlock do
+						for i = 1, (layer.style == "play" and 0.5 or 1) * consts.movingParticlesPerBlock do
 							addMovingParticleToBlock(newBlock, layer, x, y)
 						end
 					end
@@ -475,11 +483,11 @@ function love.update(dt)
 			end
 			-- Prune distant blocks
 			for x, blocksX in pairs(layer.blocks) do
-				if x * consts.particleBlockSize - cameraPos.x > consts.maxParticleBlockDistance then -- maybe the cameraPos.x part technically needs to have gameWidth / 2 added
+				if x * consts.particleBlockSize - cameraPos.x > consts.maxParticleBlockDistanceForDistance1 * layer.distance then -- maybe the cameraPos.x part technically needs to have gameWidth / 2 added
 					layer.blocks[x] = nil
 				else
 					for y, blocksY in pairs(blocksX) do
-						if y * consts.particleBlockSize - cameraPos.y > consts.maxParticleBlockDistance then
+						if y * consts.particleBlockSize - cameraPos.y > consts.maxParticleBlockDistanceForDistance1 * layer.distance then
 							blocksX[y] = nil
 						end
 					end
@@ -508,7 +516,7 @@ function love.update(dt)
 					for _, particle in ipairs(particlesToDelete) do
 						block.movingParticles:remove(particle)
 					end
-					for _=1, consts.movingParticlesPerBlock - block.movingParticles.size do
+					for _=1, (layer.style == "play" and 0.5 or 1) * consts.movingParticlesPerBlock - block.movingParticles.size do
 						addMovingParticleToBlock(block, layer, x, y)
 					end
 				end
@@ -1008,7 +1016,7 @@ function love.draw()
 	love.graphics.setCanvas(gameCanvas)
 	love.graphics.clear()
 
-	if backgroundParticleBlockLayers then
+	if backgroundParticleBlockLayers and not (playVars and playVars.onResultsScreen) then
 		local cameraPos = gameState == "title" and titleVars.titleCameraPos or consts.playLikeStates[gameState] and playVars.player.pos
 		for _, layer in ipairs(backgroundParticleBlockLayers) do
 			love.graphics.push()
@@ -1078,11 +1086,11 @@ function love.draw()
 				x = x + consts.backgroundPointOffsetX
 				for y = -consts.backgroundPointDistanceY * 5, gameHeight + consts.backgroundPointDistanceY * 5, consts.backgroundPointDistanceY do
 					y = y + consts.backgroundPointOffsetY
-					love.graphics.points(
-						-- TODO: Add some perspective
-						x,
-						y
-					)
+					-- love.graphics.points(
+					-- 	-- TODO: Add some perspective
+					-- 	x,
+					-- 	y
+					-- )
 				end
 			end
 			love.graphics.origin()
