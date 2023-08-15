@@ -106,7 +106,8 @@ local consts = {
 	defaultAutoShootTime = 0.5,
 	finalNonBossWave = 19,
 	bonusScoreTimerLength = 30,
-	bonusScoreTimerScorePerSecondLeft = 10
+	bonusScoreTimerScorePerSecondLeft = 10,
+	killScoreBonusPerCurrentKillStreakOnKill = 3
 }
 
 local controls = {
@@ -221,7 +222,8 @@ local function generatePlayer(resetPos)
 		flashAnimationSpeed = 30,
 		spawning = true,
 		spawnTimer = spawnTime,
-		powerups = {}
+		powerups = {},
+		killStreak = 0
 	}
 	implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, spawnTime)
 end
@@ -348,7 +350,8 @@ local function shootBullet()
 		damage = 1,
 		colour = {1, 0, 0},
 		lineSize = 1,
-		cost = 1
+		cost = 1,
+		missingResetsKillStreak = true
 	}
 	if playVars.player.powerups.hyperBeam then
 		local hue = (playVars.player.powerups.hyperBeam.timer / playVars.player.powerups.hyperBeam.timerLength * playVars.player.powerups.hyperBeam.hueCycleSpeed) % 1 * 360
@@ -361,6 +364,7 @@ local function shootBullet()
 		newBullet.damage = 0.25
 		newBullet.cost = 0
 		newBullet.lineSize = 2
+		newBullet.missingResetsKillStreak = false
 	end
 	playVars.playerBullets:add(newBullet)
 end
@@ -755,6 +759,9 @@ function love.update(dt)
 			playerBullet.pos = playerBullet.pos + playerBullet.vel * dt
 			if playerBullet.pos.y + playerBullet.trailLength - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 < 0 then
 				deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
+				if playerBullet.missingResetsKillStreak then
+					playVars.player.killStreak = 0
+				end
 			else
 				for j = 1, playVars.enemies.size do
 					local enemy = playVars.enemies:get(j)
@@ -778,7 +785,11 @@ function love.update(dt)
 			if enemy.health <= 0 then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				explode(enemy.radius, enemy.pos, enemy.colour)
-				playVars.waveScore = playVars.waveScore + enemy.defeatScore
+				if isPlayerPresent() then
+					local scoreAdd = enemy.defeatScore + playVars.player.killStreak * consts.killScoreBonusPerCurrentKillStreakOnKill
+					playVars.waveScore = playVars.waveScore + scoreAdd
+					playVars.player.killStreak = playVars.player.killStreak + 1
+				end
 			elseif circleOffScreen(enemy.radius, enemy.pos) then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				playVars.enemyPool[enemy.type] = playVars.enemyPool[enemy.type] + 1 -- Let the enemy come back
