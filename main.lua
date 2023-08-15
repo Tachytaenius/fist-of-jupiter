@@ -104,7 +104,9 @@ local consts = {
 	},
 	waveWonDelayBeforeResultsScreenTimerLength = 1.5,
 	defaultAutoShootTime = 0.5,
-	finalNonBossWave = 19
+	finalNonBossWave = 19,
+	bonusScoreTimerLength = 30,
+	bonusScoreTimerScorePerSecondLeft = 10
 }
 
 local controls = {
@@ -230,6 +232,7 @@ local function nextWave()
 	playVars.resultsScreenVars = nil
 	playVars.onResultsScreen = false
 	playVars.waveScore = 0
+	playVars.bonusTimer = consts.bonusScoreTimerLength
 
 	playVars.enemies = list()
 	playVars.enemiesToMaterialise = list()
@@ -926,6 +929,10 @@ function love.update(dt)
 		-- 	end
 		-- end
 
+		if gameState == "play" and isPlayerPresent() and not checkAllEnemiesDefeatedAndEnemyBulletsGone() then
+			playVars.bonusTimer = math.max(0, playVars.bonusTimer - dt)
+		end
+
 		if gameState == "waveWon" then
 			if playVars.waveWonDelayBeforeResultsScreenTimer then
 				playVars.waveWonDelayBeforeResultsScreenTimer = playVars.waveWonDelayBeforeResultsScreenTimer - dt
@@ -936,7 +943,9 @@ function love.update(dt)
 					playVars.resultsScreenVars.prevTotalScore = playVars.totalScore
 					local lifeBonus = playVars.spareLives * playVars.scoreBoostPerLifeAtWaveWon
 					playVars.resultsScreenVars.lifeBonus = lifeBonus
-					playVars.totalScore = playVars.totalScore + playVars.waveScore + lifeBonus
+					local timeBonus = math.ceil(playVars.bonusTimer * consts.bonusScoreTimerScorePerSecondLeft)
+					playVars.resultsScreenVars.timeBonus = timeBonus
+					playVars.totalScore = playVars.totalScore + playVars.waveScore + lifeBonus + timeBonus
 				end
 			end
 		end
@@ -1002,6 +1011,7 @@ function love.draw()
 				"PREV. TOTAL: " .. playVars.resultsScreenVars.prevTotalScore,
 				"WAVE SCORE: " .. playVars.waveScore,
 				"LIFE BONUS: " .. playVars.resultsScreenVars.lifeBonus,
+				"TIME BONUS: " .. playVars.resultsScreenVars.timeBonus,
 				"TOTAL SCORE: " .. playVars.totalScore
 			}
 			local textHeight = font:getHeight() * #texts
