@@ -8,7 +8,6 @@
 - Use interpolation for respawn centring
 - Add a boss that constructs itself over time with an animation, with velocity boosted implosions
 - Show health and enemy count
-- Preserve draw order of enemies as list order changes
 - Boss "wave" as wave 20
 - Add animated sprites to enemy bullets
 - Add thruster animations
