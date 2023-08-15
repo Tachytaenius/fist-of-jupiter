@@ -224,7 +224,7 @@ local function generatePlayer(resetPos)
 	implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, spawnTime)
 end
 
-local function initWave()
+local function nextWave()
 	gameState = "play"
 	playVars.waveNumber = (playVars.waveNumber or 0) + 1
 	playVars.resultsScreenVars = nil
@@ -314,7 +314,7 @@ local function initPlayState()
 	playVars.contactHitReceivedScoreLossPenalty = 50
 	playVars.scoreBoostPerLifeAtWaveWon = 10 -- You may go through lots of waves with the same number of lives, which would be an excessive advantage, hence the low value
 
-	initWave()
+	nextWave()
 end
 
 function love.load()
@@ -400,7 +400,7 @@ function love.keypressed(key)
 		end
 	elseif gameState == "waveWon" and playVars.onResultsScreen then
 		if key == controls.shoot then
-			initWave()
+			nextWave()
 		end
 	end
 end
