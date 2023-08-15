@@ -183,12 +183,19 @@ end
 
 local function givePowerup(name)
 	if name == "hyperBeam" then
-		local timerLength = 7.5
+		local timerLength = 10
 		playVars.player.powerups.hyperBeam = {
 			shootTimerLength = 0.01,
 			timer = timerLength,
 			timerLength = timerLength,
 			hueCycleSpeed = 30
+		}
+	elseif name == "doubleBullets" then
+		-- Also stops your bullets from resetting kill streak if they miss
+		local timerLength = 12.5
+		playVars.player.powerups.doubleBullets = {
+			timer = timerLength,
+			timerLength = timerLength
 		}
 	end
 end
@@ -345,30 +352,41 @@ local function shootBullet()
 	if checkAllEnemiesDefeatedAndEnemyBulletsGone() then
 		return
 	end
-	local newBullet = {
-		vel = vec2(0, -450),
-		pos = playVars.player.pos + playVars.player.bulletExitOffset,
-		trailLength = 8,
-		damage = 1,
-		colour = {1, 0, 0},
-		lineSize = 1,
-		cost = 1,
-		missingResetsKillStreak = true
-	}
-	if playVars.player.powerups.hyperBeam then
-		local hue = (playVars.player.powerups.hyperBeam.timer / playVars.player.powerups.hyperBeam.timerLength * playVars.player.powerups.hyperBeam.hueCycleSpeed) % 1 * 360
-		local freshness = playVars.player.powerups.hyperBeam.timer / playVars.player.powerups.hyperBeam.timerLength
-		local saturation = (freshness ^ 0.5) * 0.75 + 0.25
-		local value = freshness ^ 0.5 * 0.5 + 0.5
-		newBullet.colour = {hsv2rgb(hue, saturation, value)}
-		newBullet.trailLength = 16
-		newBullet.vel = vec2(0, -1000)
-		newBullet.damage = 0.25
-		newBullet.cost = 0
-		newBullet.lineSize = 2
-		newBullet.missingResetsKillStreak = false
+	local double = playVars.player.powerups.doubleBullets
+	local num = double and 2 or 1
+	for i = 1, num do
+		local shotWidth = playVars.player.radius - 3
+		local xOffset = num == 1 and 0 or ((i - 1) / (num - 1) - 0.5) * shotWidth
+		local newBullet = {
+			vel = vec2(0, -450),
+				pos = playVars.player.pos + playVars.player.bulletExitOffset + vec2(xOffset, 0),
+			trailLength = 8,
+			damage = 1,
+			colour = {1, 0, 0},
+			lineSize = 1,
+				cost = double and 0.5 or 1,
+				missingResetsKillStreak = not double
+		}
+		if playVars.player.powerups.hyperBeam then
+				local hue = (
+					playVars.player.powerups.hyperBeam.timer /
+					playVars.player.powerups.hyperBeam.timerLength *
+					playVars.player.powerups.hyperBeam.hueCycleSpeed -- +
+					-- (i - 1) / num -- not (num - 1) -- this introduces an optical illusion that ruins the effect, it no longer looks like two rainbows but two solid colours (for two beams at least)
+				) % 1 * 360
+			local freshness = playVars.player.powerups.hyperBeam.timer / playVars.player.powerups.hyperBeam.timerLength
+			local saturation = (freshness ^ 0.5) * 0.75 + 0.25
+			local value = freshness ^ 0.5 * 0.5 + 0.5
+			newBullet.colour = {hsv2rgb(hue, saturation, value)}
+			newBullet.trailLength = 16
+			newBullet.vel = vec2(0, -1000)
+			newBullet.damage = 0.25
+			newBullet.cost = 0
+			newBullet.lineSize = 2
+			newBullet.missingResetsKillStreak = false
+		end
+		playVars.playerBullets:add(newBullet)
 	end
-	playVars.playerBullets:add(newBullet)
 end
 
 local function getPlayerShootingType()
