@@ -1259,8 +1259,8 @@ function love.draw()
 				love.graphics.print(totalScoreText, gameWidth / 2 - font:getWidth(totalScoreText) / 2, gameHeight / 2)
 			end
 
-			love.graphics.print(playVars.totalScore, 0, 0)
-			love.graphics.print(playVars.waveScore, 0, font:getHeight())
+			love.graphics.print(playVars.totalScore, 1, 0)
+			love.graphics.print(playVars.waveScore, 1, font:getHeight())
 		end
 	end
 
