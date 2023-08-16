@@ -600,38 +600,28 @@ function love.update(dt)
 		if isPlayerPresent() then
 			local allowMovement = not checkAllEnemiesDefeatedAndEnemyBulletsGone() and gameState == "play"
 			-- player movement x
-			local movedX = false
+			local dvx = 0
 			if allowMovement and love.keyboard.isDown(controls.left) then
-				playVars.player.vel.x = playVars.player.vel.x - playVars.player.accelX * dt
-				movedX = true
+				dvx = dvx - playVars.player.accelX * dt
 			end
 			if allowMovement and love.keyboard.isDown(controls.right) then
-				playVars.player.vel.x = playVars.player.vel.x + playVars.player.accelX * dt
-				if movedX then
-					movedX = false
-				else
-					movedX = true
-				end
+				dvx = dvx + playVars.player.accelX * dt
 			end
-			if not movedX then
+			playVars.player.vel.x = playVars.player.vel.x + dvx
+			if dvx == 0 then
 				playVars.player.vel.x = math.max(0, math.abs(playVars.player.vel.x) - playVars.player.accelX * dt) * math.sign(playVars.player.vel.x)
 			end
 			playVars.player.vel.x = math.max(-playVars.player.maxSpeedX, math.min(playVars.player.maxSpeedX, playVars.player.vel.x))
 			-- player movement y
-			local movedY = false
+			local dvy = 0
 			if allowMovement and love.keyboard.isDown(controls.up) then
-				playVars.player.vel.y = playVars.player.vel.y - playVars.player.accelUp * dt
-				movedY = true
+				dvy = dvy - playVars.player.accelUp * dt
 			end
 			if allowMovement and love.keyboard.isDown(controls.down) then
-				playVars.player.vel.y = playVars.player.vel.y + playVars.player.accelDown * dt
-				if movedY then
-					movedY = false
-				else
-					movedY = true
-				end
+				dvy = dvy + playVars.player.accelDown * dt
 			end
-			if not movedY then
+			playVars.player.vel.y = playVars.player.vel.y + dvy
+			if dvy == 0 then
 				if playVars.player.vel.y > 0 then
 					playVars.player.vel.y = math.max(0, playVars.player.vel.y - playVars.player.accelUp * dt)
 				else
