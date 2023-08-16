@@ -1095,7 +1095,7 @@ function love.draw()
 	love.graphics.clear()
 
 	if backgroundParticleBlockLayers and not (playVars and playVars.onResultsScreen) then
-		local cameraPos = gameState == "title" and titleVars.titleCameraPos or consts.playLikeStates[gameState] and (playVars.player.pos * vec2(0, 1))
+		local cameraPos = gameState == "title" and titleVars.titleCameraPos or consts.playLikeStates[gameState] and (playVars.player.pos * vec2(0 and 1, 1))
 		for i, layer in ipairs(backgroundParticleBlockLayers) do
 			love.graphics.push()
 			love.graphics.translate(gameWidth / 2, gameHeight / 2)
