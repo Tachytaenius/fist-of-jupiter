@@ -111,7 +111,8 @@ local consts = {
 	scoreTextTimerLength = 0.5,
 	playBackgroundParticleAnimationFrequency = 0.5,
 	playBackgroundParticleAnimationAmplitude = 20,
-	playBackgroundParticleTimeOffsetPerDistance = 10
+	playBackgroundParticleTimeOffsetPerDistance = 10,
+	pauseFlashTimerLength = 1
 }
 
 local controls = {
@@ -119,10 +120,11 @@ local controls = {
 	down = "s",
 	left = "a",
 	right = "d",
-	shoot = "space"
+	shoot = "space",
+	pause = "escape"
 }
 
-local gameState
+local gameState, paused, pauseFlashTimer
 
 -- Variables for all states
 local backgroundParticleBlockLayers
@@ -417,34 +419,51 @@ local function getPlayerShootingType()
 end
 
 function love.keypressed(key)
-	if gameState == "play" then
-		if key == controls.shoot then
-			if isPlayerPresent() and getPlayerBulletsCostUsed() < playVars.player.maxbulletCostBeforeShooting and getPlayerShootingType() == "semiAuto" then
-				shootBullet()
-			elseif playVars.player.dead and playVars.gameOverTextPresent then
-				initTitleState()
-			end
+	if key == controls.pause then
+		paused = not paused
+		if gameState ~= "play" then
+			paused = false
 		end
-	elseif gameState == "title" then
-		if key == controls.up then
-			titleVars.cursorPos = (titleVars.cursorPos - 1) % consts.titleOptionCount
-		elseif key == controls.down then
-			titleVars.cursorPos = (titleVars.cursorPos + 1) % consts.titleOptionCount
-		elseif key == controls.shoot then
-			if titleVars.cursorPos == 0 then
-				initPlayState()
-			elseif titleVars.cursorPos == 1 then
-				
-			end
+		if paused then
+			pauseFlashTimer = 0
 		end
-	elseif gameState == "waveWon" and playVars.onResultsScreen then
-		if key == controls.shoot then
-			nextWave()
+	elseif not paused then
+		if gameState == "play" then
+			if key == controls.shoot then
+				if isPlayerPresent() and getPlayerBulletsCostUsed() < playVars.player.maxbulletCostBeforeShooting and getPlayerShootingType() == "semiAuto" then
+					shootBullet()
+				elseif playVars.player.dead and playVars.gameOverTextPresent then
+					initTitleState()
+				end
+			end
+		elseif gameState == "title" then
+			if key == controls.up then
+				titleVars.cursorPos = (titleVars.cursorPos - 1) % consts.titleOptionCount
+			elseif key == controls.down then
+				titleVars.cursorPos = (titleVars.cursorPos + 1) % consts.titleOptionCount
+			elseif key == controls.shoot then
+				if titleVars.cursorPos == 0 then
+					initPlayState()
+				elseif titleVars.cursorPos == 1 then
+					
+				end
+			end
+		elseif gameState == "waveWon" and playVars.onResultsScreen then
+			if key == controls.shoot then
+				nextWave()
+			end
 		end
 	end
 end
 
 function love.update(dt)
+	if gameState ~= "play" then
+		paused = false
+	end
+	if paused then
+		pauseFlashTimer = (pauseFlashTimer + dt) % consts.pauseFlashTimerLength
+		return
+	end
 	if backgroundParticleBlockLayers then
 		local function addMovingParticleToBlock(block, layer, x, y)
 			block.movingParticles:add({
@@ -1041,6 +1060,17 @@ end
 
 function love.draw()
 	love.graphics.setFont(font)
+
+	if paused then
+		if pauseFlashTimer / consts.pauseFlashTimerLength < 0.5 then
+			love.graphics.setColor(0.5, 0.5, 0.5)
+		else
+			love.graphics.setColor(1, 1, 1)
+		end
+		love.graphics.draw(gameCanvas, 0, 0, 0, canvasScale)
+		return
+	end
+
 	love.graphics.setCanvas(gameCanvas)
 	love.graphics.clear()
 
