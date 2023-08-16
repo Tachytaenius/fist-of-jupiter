@@ -3,6 +3,7 @@ local registry = {}
 registry.enemies = {}
 local firstGenPeakWave = 3
 local secondGenPeakWave = 6
+local thirdGenPeakWave = 12
 registry.enemies.fighter1 = {
 	radius = 6,
 	health = 1,
@@ -38,7 +39,7 @@ registry.enemies.fighter2 = {
 	health = 2,
 	colour = {0.5, 0.5, 0.6},
 	speed = 100,
-	shootTimerLength = 0.75,
+	shootTimerLength = 0.9,
 	bulletSpeed = 225,
 	bulletRadius = 1.5,
 	bulletDamage = 0.5,
@@ -55,9 +56,39 @@ registry.enemies.fighter2 = {
 				break
 			end
 			if i > firstGenPeakWave and i <= secondGenPeakWave then
-				currentAmount = currentAmount + 4
+				currentAmount = currentAmount + 3
 			elseif i > secondGenPeakWave then
-				currentAmount = currentAmount - 8
+				currentAmount = currentAmount - 6
+			end
+		end
+		return math.max(0, currentAmount)
+	end
+}
+registry.enemies.fighter3 = {
+	radius = 8,
+	health = 3,
+	colour = {0.5, 0.5, 0.6},
+	speed = 125,
+	shootTimerLength = 0.8,
+	bulletSpeed = 250,
+	bulletRadius = 2,
+	bulletDamage = 1,
+	bulletCount = 3,
+	bulletSpreadAngle = math.tau / 150,
+	contactDamage = 6,
+	accel = 250,
+	defeatScore = 35,
+	materialisationTime = 0.15,
+	count = function(waveNumber)
+		local currentAmount = 0
+		for i = 1, waveNumber do
+			if i == waveNumber then
+				break
+			end
+			if i > secondGenPeakWave and i <= thirdGenPeakWave then
+				currentAmount = currentAmount + 4
+			elseif i > thirdGenPeakWave then
+				currentAmount = currentAmount - 5
 			end
 		end
 		return math.max(0, currentAmount)
@@ -95,7 +126,7 @@ registry.enemies.bomber1 = {
 }
 registry.enemies.bomber2 = {
 	radius = 12,
-	health = 4,
+	health = 3,
 	colour = {0.6, 0.5, 0.6},
 	speed = 75,
 	shootTimerLength = 1.5,
@@ -115,9 +146,39 @@ registry.enemies.bomber2 = {
 				break
 			end
 			if i > firstGenPeakWave and i <= secondGenPeakWave then
-				currentAmount = currentAmount + 3
+				currentAmount = currentAmount + 2
 			elseif i > secondGenPeakWave then
-				currentAmount = currentAmount - 6
+				currentAmount = currentAmount - 9
+			end
+		end
+		return math.max(0, currentAmount)
+	end
+}
+registry.enemies.bomber3 = {
+	radius = 10,
+	health = 4,
+	colour = {0.6, 0.5, 0.6},
+	speed = 100,
+	shootTimerLength = 1.25,
+	bulletSpeed = 200,
+	bulletRadius = 4,
+	bulletDamage = 6,
+	bulletCount = 2,
+	bulletSpreadAngle = math.tau/120,
+	contactDamage = 10,
+	accel = 200,
+	defeatScore = 40,
+	materialisationTime = 0.15,
+	count = function(waveNumber)
+		local currentAmount = 0
+		for i = 1, waveNumber do
+			if i == waveNumber then
+				break
+			end
+			if i > secondGenPeakWave and i <= thirdGenPeakWave then
+				currentAmount = currentAmount + 3
+			elseif i > thirdGenPeakWave then
+				currentAmount = currentAmount - 12
 			end
 		end
 		return math.max(0, currentAmount)
