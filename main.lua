@@ -167,6 +167,16 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer)
 			isPlayer = isPlayer
 		})
 	end
+	local timerLength = 1.5
+	-- playVars.rippleSources:add({
+	-- 	pos = vec2.clone(pos),
+	-- 	force = radius * 10,
+	-- 	timer = timerLength,
+	-- 	timerLength = timerLength,
+	-- 	amplitude = 10,
+	-- 	frequency = 2,
+	-- 	phasePerDistance = 0.1
+	-- })
 end
 
 local function checkAllEnemiesDefeatedAndEnemyBulletsGone()
@@ -260,6 +270,7 @@ local function nextWave()
 	playVars.enemyBullets = list()
 	playVars.particles = list()
 	playVars.floatingTexts = list()
+	playVars.rippleSources = list()
 	generatePlayer(true)
 
 	playVars.enemyPool = {}
@@ -976,6 +987,18 @@ function love.update(dt)
 			playVars.floatingTexts:remove(text)
 		end
 
+		local ripplesToDelete = {}
+		for i = 1, playVars.rippleSources.size do
+			local ripple = playVars.rippleSources:get(i)
+			ripple.timer = ripple.timer - dt
+			if ripple.timer <= 0 then
+				ripplesToDelete[#ripplesToDelete+1] = ripple
+			end
+		end
+		for _, ripple in ipairs(ripplesToDelete) do
+			playVars.rippleSources:remove(ripple)
+		end
+
 		if
 			gameState == "play" and
 			checkAllEnemiesDefeatedAndEnemyBulletsGone() and
@@ -1022,11 +1045,14 @@ function love.draw()
 	love.graphics.clear()
 
 	if backgroundParticleBlockLayers and not (playVars and playVars.onResultsScreen) then
-		local cameraPos = gameState == "title" and titleVars.titleCameraPos or consts.playLikeStates[gameState] and playVars.player.pos
-		for _, layer in ipairs(backgroundParticleBlockLayers) do
+		local cameraPos = gameState == "title" and titleVars.titleCameraPos or consts.playLikeStates[gameState] and (playVars.player.pos * vec2(0, 1))
+		for i, layer in ipairs(backgroundParticleBlockLayers) do
 			love.graphics.push()
 			love.graphics.translate(gameWidth / 2, gameHeight / 2)
 			love.graphics.scale(1 / layer.distance)
+			if consts.playLikeStates[gameState] then
+				love.graphics.translate(0, playVars.cameraYOffset)
+			end
 			love.graphics.translate(-cameraPos.x, -cameraPos.y)
 			for x, blocksX in pairs(layer.blocks) do
 				for y, block in pairs(blocksX) do
@@ -1034,15 +1060,42 @@ function love.draw()
 						local particle = block.permanentStationaryParticles:get(j)
 						love.graphics.setPointSize(particle.size)
 						love.graphics.setColor(particle.colour)
-						local offset = 0
+						local offset = vec2()
 						if consts.playLikeStates[gameState] then
-							offset = math.sin(
+							for i = 1, playVars.rippleSources.size do
+								local ripple = playVars.rippleSources:get(i)
+
+								local skew = 2
+								local height = 1
+								local powExp = 2
+
+								local timeZeroToOne = 1 - ripple.timer / ripple.timerLength
+								local bent = timeZeroToOne ^ (1 / skew)
+								local properRange = 2 * bent - 1
+								local powOut = properRange ^ powExp
+								
+								local timeFactor = height * (1 - powOut)
+
+								local dist = math.sqrt(
+									(particle.pos.x - ripple.pos.x) ^ 2 +
+									(particle.pos.y - ripple.pos.y) ^ 2 +
+									(50 * (layer.distance - 0)) ^ 2
+								)
+								local distTimeFactor = timeFactor * math.min(1, (dist / 50) ^ -1)
+								local pushFactor = ripple.force * distTimeFactor +
+									distTimeFactor * ripple.amplitude * math.sin(
+										(ripple.timerLength - ripple.timer) * ripple.frequency * math.tau +
+										dist * ripple.phasePerDistance
+									) / 2 + 1
+								offset = offset + pushFactor * normaliseOrZero(particle.pos - ripple.pos)
+							end
+							offset.y = offset.y + math.sin(
 								(playVars.time * consts.playBackgroundParticleAnimationFrequency) * math.tau +
 								particle.pos.x * consts.playBackgroundParticleTimeOffsetPerDistance +
 								particle.pos.y * consts.playBackgroundParticleTimeOffsetPerDistance
 							) * consts.playBackgroundParticleAnimationAmplitude
 						end
-						love.graphics.points(particle.pos.x, particle.pos.y + offset)
+						love.graphics.points(particle.pos.x + offset.x - gameWidth / 2, particle.pos.y + offset.y)
 					end
 					for j = 1, block.movingParticles.size do
 						local particle = block.movingParticles:get(j)
@@ -1092,7 +1145,7 @@ function love.draw()
 				love.graphics.print(v, gameWidth / 2 - font:getWidth(v) / 2, font:getHeight() * (i- 1))
 			end
 		else
-			love.graphics.translate(-playVars.player.pos.x / 4, -playVars.player.pos.y / 2)
+			love.graphics.translate(0, -playVars.player.pos.y / 4)
 			love.graphics.translate(0, gameHeight/2)
 			love.graphics.translate(0, playVars.cameraYOffset / 2)
 			for x = -consts.backgroundPointDistanceX * 20, gameWidth + consts.backgroundPointDistanceX * 20, consts.backgroundPointDistanceX do
