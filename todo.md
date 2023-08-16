@@ -11,3 +11,5 @@
 - Boss "wave" as wave 20
 - Add animated sprites to enemy bullets
 - Add story text on title screem
+- Check if MOVING off screen when off screen before deleting an enemy
+- Chase AI type, circle movement AI type, etc
