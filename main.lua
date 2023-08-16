@@ -724,19 +724,21 @@ function love.update(dt)
 		-- 	playVars.player.vel.y = math.min(0, playVars.player.vel.y)
 		-- end
 
-		if playVars.gameOver and playVars.playerBullets.size == 0 then -- Let the score loss of bullets missing and player dying all accumulate before calculating gameOverTotalScore
-			if not playVars.gameOverTextPresent then
-				if playVars.gameOverTextWaitTimer then
-					if playVars.playerBullets.size == 0 then
-						playVars.gameOverTextWaitTimer = playVars.gameOverTextWaitTimer - dt
-						if playVars.gameOverTextWaitTimer <= 0 then
-							playVars.gameOverTextPresent = true
-							playVars.gameOverTotalScore = playVars.totalScore + playVars.waveScore
+		if playVars.gameOver then
+			if playVars.playerBullets.size == 0 then -- Let the score loss of bullets missing and player dying all accumulate before calculating gameOverTotalScore
+				if not playVars.gameOverTextPresent then
+					if playVars.gameOverTextWaitTimer then
+						if playVars.playerBullets.size == 0 then
+							playVars.gameOverTextWaitTimer = playVars.gameOverTextWaitTimer - dt
+							if playVars.gameOverTextWaitTimer <= 0 then
+								playVars.gameOverTextPresent = true
+								playVars.gameOverTotalScore = playVars.totalScore + playVars.waveScore
+							end
 						end
+					-- elseif playVars.enemyBullets.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemies.size == 0 then
+					else
+						playVars.gameOverTextWaitTimer = consts.gameOverTextWaitTimerLength
 					end
-				-- elseif playVars.enemyBullets.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemies.size == 0 then
-				else
-					playVars.gameOverTextWaitTimer = consts.gameOverTextWaitTimerLength
 				end
 			end
 		elseif playVars.player.dead then
