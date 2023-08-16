@@ -1,5 +1,5 @@
 - Ending where the player goes forwards and (relative to camera, so camera pos changes) moves to a point in the upper middle of the screen and then flies off as the camera stops(?).
-- Add a recorded high score system with names that also records the version of the game
+- Add a recorded high score system with names that also records the version of the game. Allow starting on arbitrary waves. show wave start and end. replace 1 with "START", replace 20 with "BOSS". and replace end with "END" if the game was beaten. star for victory at boss, skull for death, door for quit.
 - Add perspective to the background points
 - Fine tune particle block parameters for performance, and check performance with a full grid of particle blocks
 - Make font cooler
