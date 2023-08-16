@@ -7,6 +7,8 @@ end
 image("title")
 image("cursor")
 image("player")
+image("playerThrustersBack")
+image("playerThrustersFront")
 image("fighter1")
 image("bomber1")
 image("fighter2")

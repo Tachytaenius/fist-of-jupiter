@@ -10,5 +10,4 @@
 - Show health and enemy count
 - Boss "wave" as wave 20
 - Add animated sprites to enemy bullets
-- Add thruster animations
 - Add story text on title screem

@@ -112,7 +112,11 @@ local consts = {
 	playBackgroundParticleAnimationFrequency = 0.5,
 	playBackgroundParticleAnimationAmplitude = 20,
 	playBackgroundParticleTimeOffsetPerDistance = 10,
-	pauseFlashTimerLength = 1
+	pauseFlashTimerLength = 1,
+	backThrusterQuads = nil,
+	frontThrusterQuads = nil,
+	backThrusterAnimationFrequency = 10,
+	frontThrusterAnimationFrequency = 20
 }
 
 local controls = {
@@ -360,6 +364,16 @@ function love.load()
 	assets = require("assets")
 
 	font = love.graphics.newImageFont("assets/images/font.png", " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.!?$,#@~:;-{}&()<>'%/*0123456789")
+	consts.backThrusterQuads = {
+		love.graphics.newQuad(0, 0, 16, 16, 16, 64),
+		love.graphics.newQuad(0, 16, 16, 16, 16, 64),
+		love.graphics.newQuad(0, 32, 16, 16, 16, 64),
+		love.graphics.newQuad(0, 48, 16, 16, 16, 64)
+	}
+	consts.frontThrusterQuads = {
+		love.graphics.newQuad(0, 0, 16, 16, 16, 32),
+		love.graphics.newQuad(0, 16, 16, 16, 16, 32)
+	}
 end
 
 local function getPlayerBulletsCostUsed()
@@ -578,6 +592,9 @@ function love.update(dt)
 	elseif consts.playLikeStates[gameState] then
 		playVars.time = playVars.time + dt
 
+		playVars.player.fireBackThrusters = false
+		playVars.player.fireFrontThrusters = false
+
 		if playVars.player.spawning then
 			playVars.player.spawnTimer = playVars.player.spawnTimer - dt
 			if playVars.player.spawnTimer <= 0 then
@@ -616,9 +633,11 @@ function love.update(dt)
 			local dvy = 0
 			if allowMovement and love.keyboard.isDown(controls.up) then
 				dvy = dvy - playVars.player.accelUp * dt
+				playVars.player.fireBackThrusters = true
 			end
 			if allowMovement and love.keyboard.isDown(controls.down) then
 				dvy = dvy + playVars.player.accelDown * dt
+				playVars.player.fireFrontThrusters = true
 			end
 			playVars.player.vel.y = playVars.player.vel.y + dvy
 			if dvy == 0 then
@@ -1220,6 +1239,14 @@ function love.draw()
 			love.graphics.setPointSize(1)
 			love.graphics.setColor(1, 1, 1)
 			if isPlayerPresent() then
+				if playVars.player.fireBackThrusters then
+					local quad = consts.backThrusterQuads[math.floor((playVars.time * consts.backThrusterAnimationFrequency) % 1 * 4) + 1]
+					love.graphics.draw(assets.images.playerThrustersBack, quad, playVars.player.pos.x - assets.images.player:getWidth() / 2, playVars.player.pos.y + assets.images.player:getHeight() / 2)
+				end
+				if playVars.player.fireFrontThrusters then
+					local quad = consts.frontThrusterQuads[math.floor((playVars.time * consts.frontThrusterAnimationFrequency) % 1 * 2) + 1]
+					love.graphics.draw(assets.images.playerThrustersFront, quad, playVars.player.pos.x - assets.images.player:getWidth() / 2, playVars.player.pos.y - assets.images.player:getHeight() / 2)
+				end
 				local flash = playVars.player.contactInvulnerabilityTimer and math.floor(playVars.player.contactInvulnerabilityTimer * playVars.player.flashAnimationSpeed) % 2 == 0
 				if flash then
 					love.graphics.setColor(1, 1, 1, consts.flashAlpha)
