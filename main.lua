@@ -69,9 +69,10 @@ local assets
 
 local gameWidth, gameHeight = 160*2, 144*3
 
+local borderSize = 32
 local consts = {
-	borderSize = 24,
-	cameraYOffsetMax = 128,
+	borderSize = borderSize,
+	cameraYOffsetMax = gameHeight / 2 - borderSize,
 	backgroundScale = 0.75,
 	backgroundPointDistanceX = gameWidth / 8,
 	backgroundPointDistanceY = gameWidth / 8,
@@ -685,7 +686,7 @@ function love.update(dt)
 				playVars.player.pos.y = playVars.backtrackLimit
 			end
 			local yChange = playVars.player.pos.y - prevPlayerPosY
-			local cameraSlowdownFactorSameDirection = (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax
+			local cameraSlowdownFactorSameDirection = playVars.noBacktracking and 1 or (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax
 			local cameraSlowdownFactorOppositeDirections = (1 - (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax)
 			local cameraSlowdownFactor = math.sign(playVars.player.vel.y) * math.sign(playVars.cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
 			playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, playVars.cameraYOffset + yChange * cameraSlowdownFactor))
@@ -1212,11 +1213,6 @@ function love.draw()
 			love.graphics.translate(0, -playVars.player.pos.y)
 			love.graphics.translate(0, gameHeight/2)
 			love.graphics.translate(0, playVars.cameraYOffset)
-			
-			love.graphics.line(0, playVars.backtrackLimit, gameWidth, playVars.backtrackLimit)
-			love.graphics.setColor(0.5, 0.5, 0.5)
-			love.graphics.line(0, getCurBacktrackLimit(), gameWidth, getCurBacktrackLimit())
-			love.graphics.setColor(1, 1, 1)
 
 			local enemiesToDraw = {}
 			for i = 1, playVars.enemies.size do
