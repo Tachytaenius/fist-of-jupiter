@@ -255,6 +255,11 @@ local function generatePlayer(resetPos)
 	implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, spawnTime)
 end
 
+local function getCurBacktrackLimit()
+	local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+	return screenTopInWorldSpace + gameHeight / 2 + consts.cameraYOffsetMax
+end
+
 local function nextWave()
 	gameState = "play"
 	playVars.waveNumber = (playVars.waveNumber or 0) + 1
@@ -277,7 +282,9 @@ local function nextWave()
 	playVars.particles = list()
 	playVars.floatingTexts = list()
 	playVars.rippleSources = list()
+
 	generatePlayer(true)
+	playVars.backtrackLimit = getCurBacktrackLimit()
 
 	playVars.enemyPool = {}
 	for k, v in pairs(registry.enemies) do
@@ -347,6 +354,7 @@ local function initPlayState()
 	playVars.totalScore = 0
 	playVars.scoreTimerReductionAmount = 1
 	playVars.scoreBoostPerLifeAtWaveWon = 10 -- You may go through lots of waves with the same number of lives, which would be an excessive advantage, hence the low value
+	playVars.noBacktracking = true
 
 	nextWave()
 end
@@ -670,11 +678,27 @@ function love.update(dt)
 		end
 
 		if isPlayerPresent() then
+			local prevPlayerPosY = playVars.player.pos.y
 			playVars.player.pos = playVars.player.pos + playVars.player.vel * dt
+			if playVars.noBacktracking and playVars.player.pos.y > playVars.backtrackLimit then
+				playVars.player.vel.y = 0
+				playVars.player.pos.y = playVars.backtrackLimit
+			end
+			local yChange = playVars.player.pos.y - prevPlayerPosY
 			local cameraSlowdownFactorSameDirection = (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax
 			local cameraSlowdownFactorOppositeDirections = (1 - (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax)
 			local cameraSlowdownFactor = math.sign(playVars.player.vel.y) * math.sign(playVars.cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
-			playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, playVars.cameraYOffset + playVars.player.vel.y * dt * cameraSlowdownFactor))
+			playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, playVars.cameraYOffset + yChange * cameraSlowdownFactor))
+
+			if playVars.player.pos.x < consts.borderSize then
+				playVars.player.pos.x = consts.borderSize
+				playVars.player.vel.x = math.max(0, playVars.player.vel.x)
+			elseif playVars.player.pos.x > gameWidth - consts.borderSize then
+				playVars.player.pos.x = gameWidth - consts.borderSize
+				playVars.player.vel.x = math.min(0, playVars.player.vel.x)
+			end
+
+			playVars.backtrackLimit = math.min(playVars.backtrackLimit, getCurBacktrackLimit()) 
 		end
 
 		if getPlayerShootingType() ~= "auto" then
@@ -707,22 +731,6 @@ function love.update(dt)
 				end
 			end
 		end
-
-		-- player movement limiting
-		if playVars.player.pos.x < consts.borderSize then
-			playVars.player.pos.x = consts.borderSize
-			playVars.player.vel.x = math.max(0, playVars.player.vel.x)
-		elseif playVars.player.pos.x > gameWidth - consts.borderSize then
-			playVars.player.pos.x = gameWidth - consts.borderSize
-			playVars.player.vel.x = math.min(0, playVars.player.vel.x)
-		end
-		-- if playVars.player.pos.y < consts.borderSize then
-		-- 	playVars.player.pos.y = consts.borderSize
-		-- 	playVars.player.vel.y = math.max(0, playVars.player.vel.y)
-		-- elseif playVars.player.pos.y > gameHeight - consts.borderSize then
-		-- 	playVars.player.pos.y = gameHeight - consts.borderSize
-		-- 	playVars.player.vel.y = math.min(0, playVars.player.vel.y)
-		-- end
 
 		if playVars.gameOver then
 			if playVars.playerBullets.size == 0 then -- Let the score loss of bullets missing and player dying all accumulate before calculating gameOverTotalScore
@@ -1204,6 +1212,12 @@ function love.draw()
 			love.graphics.translate(0, -playVars.player.pos.y)
 			love.graphics.translate(0, gameHeight/2)
 			love.graphics.translate(0, playVars.cameraYOffset)
+			
+			love.graphics.line(0, playVars.backtrackLimit, gameWidth, playVars.backtrackLimit)
+			love.graphics.setColor(0.5, 0.5, 0.5)
+			love.graphics.line(0, getCurBacktrackLimit(), gameWidth, getCurBacktrackLimit())
+			love.graphics.setColor(1, 1, 1)
+
 			local enemiesToDraw = {}
 			for i = 1, playVars.enemies.size do
 				local enemy = playVars.enemies:get(i)
