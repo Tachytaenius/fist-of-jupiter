@@ -1319,6 +1319,12 @@ function love.draw()
 
 			local text = playVars.waveNumber
 			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, 0)
+			local enemyCount = playVars.enemies.size + playVars.enemiesToMaterialise.size
+			for _, count in pairs(playVars.enemyPool) do
+				enemyCount = enemyCount + count
+			end
+			local text = enemyCount
+			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, font:getHeight())
 
 			if playVars.gameOverTextPresent then
 				local gameOverText = "GAME OVER"
