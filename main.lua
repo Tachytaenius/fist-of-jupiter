@@ -117,7 +117,9 @@ local consts = {
 	backThrusterQuads = nil,
 	frontThrusterQuads = nil,
 	backThrusterAnimationFrequency = 10,
-	frontThrusterAnimationFrequency = 20
+	frontThrusterAnimationFrequency = 20,
+	explosionImplosionColourNoiseRange = 0.2,
+	explosionImplosionColourAdd = 0.2
 }
 
 local controls = {
@@ -138,6 +140,22 @@ local titleVars, playVars
 
 local gameCanvas, canvasScale, font
 
+local function noiseColour(colour, range)
+	return {
+		math.min(1, math.max(0, colour[1] + (love.math.random() - 0.5) * range)),
+		math.min(1, math.max(0, colour[2] + (love.math.random() - 0.5) * range)),
+		math.min(1, math.max(0, colour[3] + (love.math.random() - 0.5) * range))
+	}
+end
+
+local function addToColour(colour, amount)
+	return {
+		math.min(1, math.max(0, colour[1] + amount)),
+		math.min(1, math.max(0, colour[2] + amount)),
+		math.min(1, math.max(0, colour[3] + amount))
+	}
+end
+
 local function implode(radius, pos, colour, timer, velocityBoost)
 	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
 	for i = 1, newParticleCount do
@@ -149,7 +167,7 @@ local function implode(radius, pos, colour, timer, velocityBoost)
 			invisibleTime = timer - (love.math.random() / 2 + 0.5) * 0.5,
 			lifetime = timer,
 			size = love.math.random() < 0.1 and 2 or 1,
-			colour = shallowClone(colour)
+			colour = addToColour(noiseColour(shallowClone(colour), consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd)
 		})
 	end
 end
@@ -170,7 +188,7 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer)
 			vel = relPos * 15 + velocityBoost,
 			lifetime = (love.math.random() / 2 + 0.5) * 0.5,
 			size = love.math.random() < 0.1 and 2 or 1,
-			colour = shallowClone(colour),
+			colour = addToColour(noiseColour(shallowClone(colour), consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd),
 			isPlayer = isPlayer
 		})
 	end
