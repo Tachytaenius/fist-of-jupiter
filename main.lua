@@ -4,6 +4,9 @@ end
 function math.lerp(a, b, i)
 	return a + (b - a) * i
 end
+function math.round(x)
+	return math.floor(x + 0.5)
+end
 math.tau = math.pi * 2
 
 local vec2 = require("lib.mathsies").vec2
@@ -119,7 +122,10 @@ local consts = {
 	backThrusterAnimationFrequency = 10,
 	frontThrusterAnimationFrequency = 20,
 	explosionImplosionColourNoiseRange = 0.2,
-	explosionImplosionColourAdd = 0.2
+	explosionImplosionColourAdd = 0.2,
+	healthBarLength = 60,
+	healthBarWidth = 4,
+	healthBarPadding = 2
 }
 
 local controls = {
@@ -248,6 +254,7 @@ local function generatePlayer(resetPos)
 	end
 	playVars.cameraYOffset = consts.cameraYOffsetMax
 	local spawnTime = 0.75
+	local maxHealth = 4
 	playVars.player = {
 		pos = pos,
 		vel = vec2(),
@@ -260,7 +267,8 @@ local function generatePlayer(resetPos)
 		maxbulletCostBeforeShooting = 5,
 		radius = 6,
 		bulletExitOffset = vec2(0, -4),
-		health = 4,
+		maxHealth = maxHealth,
+		health = maxHealth,
 		dead = false,
 		colour = {0.6, 0.2, 0.2},
 		contactInvulnerabilityTimerLength = 1,
@@ -1298,6 +1306,16 @@ function love.draw()
 			for i = 1, playVars.spareLives do
 				love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
 			end
+			local hbx = gameWidth - 1 - consts.healthBarPadding * 2 - consts.healthBarWidth
+			local hby = assets.images.player:getHeight() + 1
+			love.graphics.setColor(0.5, 0.5, 0.5)
+			love.graphics.rectangle("fill", hbx, hby, consts.healthBarPadding * 2 + consts.healthBarWidth, consts.healthBarPadding * 2 + consts.healthBarLength)
+			love.graphics.setColor(1, 0.5, 0.5)
+			love.graphics.rectangle("fill", hbx + consts.healthBarPadding, hby + consts.healthBarPadding, consts.healthBarWidth, consts.healthBarLength)
+			love.graphics.setColor(0.5, 1, 0.5)
+			local heightChange = math.round((1 - math.max(0, playVars.player.health) / playVars.player.maxHealth) * consts.healthBarLength)
+			love.graphics.rectangle("fill", hbx + consts.healthBarPadding, hby + consts.healthBarPadding + heightChange, consts.healthBarWidth, consts.healthBarLength - heightChange)
+			love.graphics.setColor(1, 1, 1)
 
 			if playVars.gameOverTextPresent then
 				local gameOverText = "GAME OVER"
