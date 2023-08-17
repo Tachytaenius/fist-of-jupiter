@@ -1317,6 +1317,9 @@ function love.draw()
 			love.graphics.rectangle("fill", hbx + consts.healthBarPadding, hby + consts.healthBarPadding + heightChange, consts.healthBarWidth, consts.healthBarLength - heightChange)
 			love.graphics.setColor(1, 1, 1)
 
+			local text = playVars.waveNumber
+			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, 0)
+
 			if playVars.gameOverTextPresent then
 				local gameOverText = "GAME OVER"
 				local totalScoreText = "TOTAL SCORE: " .. playVars.gameOverTotalScore
