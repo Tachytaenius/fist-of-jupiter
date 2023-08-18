@@ -85,7 +85,7 @@ local consts = {
 	flashAlpha = 0.5,
 	explosionSourceRadiusPerDamage = 1.5,
 	bulletHitParticleBounceMultiplier = 0.1,
-	titleOptionCount = 2,
+	titleOptionCount = 3,
 	titleOptionsYPos = 256,
 	distanceToGenerateBlocksForDistance1 = math.max(gameWidth, gameHeight),
 	particleBlockSize = 500,
@@ -125,7 +125,11 @@ local consts = {
 	explosionImplosionColourAdd = 0.2,
 	healthBarLength = 60,
 	healthBarWidth = 4,
-	healthBarPadding = 2
+	healthBarPadding = 2,
+	storyCanvasPad = 24,
+	storyCanvasY = gameHeight / 2,
+	storyFadeDistance = 8,
+	titleScrollSpeed = 100
 }
 
 local controls = {
@@ -145,7 +149,7 @@ local backgroundParticleBlockLayers
 
 local titleVars, playVars
 
-local gameCanvas, canvasScale, font
+local gameCanvas, canvasScale, font, titleFadeShader
 
 local function noiseColour(colour, range)
 	return {
@@ -359,6 +363,15 @@ local function initTitleState()
 	titleVars.titleCameraVelocity = vec2()
 	titleVars.titleCameraTargetVelocity = nil
 	titleVars.titleScreenVelocityChangeTimer = consts.titleScreenVelocityChangeTimerLength * love.math.random() * 1/2 + 3/4
+	titleVars.storyText = love.filesystem.read("story.txt")
+	titleVars.storyCanvas = love.graphics.newCanvas(gameWidth - consts.storyCanvasPad * 2, gameHeight - consts.storyCanvasY - borderSize)
+	titleVars.storyTextScroll = 0
+	local _, lines = font:getWrap(titleVars.storyText, titleVars.storyCanvas:getWidth())
+	titleVars.storyTextLines = lines
+	titleVars.storyTextScrollMax = #lines * font:getHeight() - titleVars.storyCanvas:getHeight() + consts.storyFadeDistance
+	titleFadeShader = love.graphics.newShader("titleFadeShader.glsl")
+	titleFadeShader:send("canvasSize", {titleVars.storyCanvas:getDimensions()})
+	titleFadeShader:send("fadeDistance", consts.storyFadeDistance)
 end
 
 local function isPlayerPresent()
@@ -388,8 +401,6 @@ local function initPlayState()
 end
 
 function love.load()
-	initTitleState()
-
 	canvasScale = 2
 	love.window.setMode(gameWidth * canvasScale, gameHeight * canvasScale)
 	love.window.setTitle("Fist of Jupiter")
@@ -410,6 +421,8 @@ function love.load()
 		love.graphics.newQuad(0, 0, 16, 16, 16, 32),
 		love.graphics.newQuad(0, 16, 16, 16, 16, 32)
 	}
+
+	initTitleState()
 end
 
 local function getPlayerBulletsCostUsed()
@@ -487,15 +500,24 @@ function love.keypressed(key)
 				end
 			end
 		elseif gameState == "title" then
-			if key == controls.up then
-				titleVars.cursorPos = (titleVars.cursorPos - 1) % consts.titleOptionCount
-			elseif key == controls.down then
-				titleVars.cursorPos = (titleVars.cursorPos + 1) % consts.titleOptionCount
-			elseif key == controls.shoot then
-				if titleVars.cursorPos == 0 then
-					initPlayState()
-				elseif titleVars.cursorPos == 1 then
-					
+			if titleVars.storyView then
+				if key == controls.shoot then
+					titleVars.storyView = false
+				end
+			else
+				if key == controls.up then
+					titleVars.cursorPos = (titleVars.cursorPos - 1) % consts.titleOptionCount
+				elseif key == controls.down then
+					titleVars.cursorPos = (titleVars.cursorPos + 1) % consts.titleOptionCount
+				elseif key == controls.shoot then
+					if titleVars.cursorPos == 0 then
+						initPlayState()
+					elseif titleVars.cursorPos == 1 then
+						
+					elseif titleVars.cursorPos == 2 then
+						titleVars.storyView = true
+						titleVars.storyTextScroll = 0
+					end
 				end
 			end
 		elseif gameState == "waveWon" and playVars.onResultsScreen then
@@ -625,6 +647,16 @@ function love.update(dt)
 
 		titleVars.titleCameraVelocity = marchVectorToTarget(titleVars.titleCameraVelocity, titleVars.titleCameraTargetVelocity, consts.titleCameraAccel, dt)
 		titleVars.titleCameraPos = titleVars.titleCameraPos + titleVars.titleCameraVelocity * dt
+
+		if titleVars.storyView then
+			if love.keyboard.isDown(controls.up) then
+				titleVars.storyTextScroll = titleVars.storyTextScroll - consts.titleScrollSpeed * dt
+			end
+			if love.keyboard.isDown(controls.down) then
+				titleVars.storyTextScroll = titleVars.storyTextScroll + consts.titleScrollSpeed * dt
+			end
+			titleVars.storyTextScroll = math.max(0, math.min(titleVars.storyTextScrollMax, titleVars.storyTextScroll))
+		end
 	elseif consts.playLikeStates[gameState] then
 		playVars.time = playVars.time + dt
 
@@ -1198,19 +1230,39 @@ function love.draw()
 	if gameState == "title" then
 		love.graphics.draw(assets.images.title)
 
-		local texts = {
-			"PLAY",
-			"SCORES"
-		}
-		local textWidth = 0
-		for i, v in ipairs(texts) do
-			textWidth = math.max(textWidth, font:getWidth(v))
-		end
-		love.graphics.translate(gameWidth / 2 - textWidth / 2, consts.titleOptionsYPos)
-		love.graphics.draw(assets.images.cursor, 0, font:getHeight() * titleVars.cursorPos + font:getHeight() / 2 - assets.images.cursor:getHeight() / 2)
-		love.graphics.translate(assets.images.cursor:getWidth(), 0)
-		for i, v in ipairs(texts) do
-			love.graphics.print(v, 0, font:getHeight() * (i-1))
+		if titleVars.storyView then
+			love.graphics.origin()
+			love.graphics.setCanvas(titleVars.storyCanvas)
+			love.graphics.clear()
+			for i, line in ipairs(titleVars.storyTextLines) do
+				love.graphics.printf(
+					line,
+					0,
+					consts.storyFadeDistance + font:getHeight() * (i - 1) - titleVars.storyTextScroll,
+					titleVars.storyCanvas:getWidth(),
+					font:getWidth(line) > 200 and "justify" or "left"
+				)
+			end
+			love.graphics.setCanvas(gameCanvas)
+			love.graphics.setShader(titleFadeShader)
+			love.graphics.draw(titleVars.storyCanvas, consts.storyCanvasPad, consts.storyCanvasY)
+			love.graphics.setShader()
+		else
+			local texts = {
+				"PLAY",
+				"SCORES",
+				"STORY"
+			}
+			local textWidth = 0
+			for i, v in ipairs(texts) do
+				textWidth = math.max(textWidth, font:getWidth(v))
+			end
+			love.graphics.translate(gameWidth / 2 - textWidth / 2, consts.titleOptionsYPos)
+			love.graphics.draw(assets.images.cursor, 0, font:getHeight() * titleVars.cursorPos + font:getHeight() / 2 - assets.images.cursor:getHeight() / 2)
+			love.graphics.translate(assets.images.cursor:getWidth(), 0)
+			for i, v in ipairs(texts) do
+				love.graphics.print(v, 0, font:getHeight() * (i-1))
+			end
 		end
 	elseif consts.playLikeStates[gameState] then
 		if gameState == "waveWon" and playVars.onResultsScreen then
