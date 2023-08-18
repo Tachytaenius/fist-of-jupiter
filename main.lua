@@ -134,7 +134,8 @@ local controls = {
 	left = "a",
 	right = "d",
 	shoot = "space",
-	pause = "escape"
+	pause = "escape",
+	slow = "lshift"
 }
 
 local gameState, paused, pauseFlashTimer
@@ -650,39 +651,43 @@ function love.update(dt)
 			playVars.spareLives = math.max(0, playVars.spareLives - 1)
 		end
 		if isPlayerPresent() then
+			local slow = love.keyboard.isDown(controls.slow)
+			local maxSpeedX = slow and 50 or playVars.player.maxSpeedX
+			local maxSpeedUp = slow and 50 or playVars.player.maxSpeedUp
+			local maxSpeedDown = slow and 50 or playVars.player.maxSpeedDown
 			local allowMovement = not checkAllEnemiesDefeatedAndEnemyBulletsGone() and gameState == "play"
+
+			local function handleAxis(current, target, acceleration, dt)
+				if acceleration > 0 then
+					return math.min(target, current + acceleration * dt)
+				elseif acceleration < 0 then
+					return math.max(target, current + acceleration * dt)
+				end
+			
+				return current
+			end
 			-- player movement x
-			local dvx = 0
+			local targetVelX = 0
 			if allowMovement and love.keyboard.isDown(controls.left) then
-				dvx = dvx - playVars.player.accelX * dt
+				targetVelX = targetVelX - (slow and 50 or playVars.player.maxSpeedX)
 			end
 			if allowMovement and love.keyboard.isDown(controls.right) then
-				dvx = dvx + playVars.player.accelX * dt
+				targetVelX = targetVelX + (slow and 50 or playVars.player.maxSpeedX)
 			end
-			playVars.player.vel.x = playVars.player.vel.x + dvx
-			if dvx == 0 then
-				playVars.player.vel.x = math.max(0, math.abs(playVars.player.vel.x) - playVars.player.accelX * dt) * math.sign(playVars.player.vel.x)
-			end
-			playVars.player.vel.x = math.max(-playVars.player.maxSpeedX, math.min(playVars.player.maxSpeedX, playVars.player.vel.x))
+			local difference = targetVelX - playVars.player.vel.x
+			local accel = math.sign(difference) * playVars.player.accelX
+			playVars.player.vel.x = handleAxis(playVars.player.vel.x, targetVelX, accel, dt)
 			-- player movement y
-			local dvy = 0
+			local targetVelY = 0
 			if allowMovement and love.keyboard.isDown(controls.up) then
-				dvy = dvy - playVars.player.accelUp * dt
-				playVars.player.fireBackThrusters = true
+				targetVelY = targetVelY - (slow and 50 or playVars.player.maxSpeedUp)
 			end
 			if allowMovement and love.keyboard.isDown(controls.down) then
-				dvy = dvy + playVars.player.accelDown * dt
-				playVars.player.fireFrontThrusters = true
+				targetVelY = targetVelY + (slow and 50 or playVars.player.maxSpeedDown)
 			end
-			playVars.player.vel.y = playVars.player.vel.y + dvy
-			if dvy == 0 then
-				if playVars.player.vel.y > 0 then
-					playVars.player.vel.y = math.max(0, playVars.player.vel.y - playVars.player.accelUp * dt)
-				else
-					playVars.player.vel.y = math.min(0, playVars.player.vel.y + playVars.player.accelDown * dt)
-				end
-			end
-			playVars.player.vel.y = math.max(-playVars.player.maxSpeedUp, math.min(playVars.player.maxSpeedDown, playVars.player.vel.y))
+			local difference = targetVelY - playVars.player.vel.y
+			local accel = difference > 0 and playVars.player.accelDown or difference < 0 and -playVars.player.accelUp or 0
+			playVars.player.vel.y = handleAxis(playVars.player.vel.y, targetVelY, accel, dt)
 			
 			if not playVars.player.contactInvulnerabilityTimer then
 				for i = 1, playVars.enemies.size do
