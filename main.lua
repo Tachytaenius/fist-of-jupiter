@@ -681,9 +681,11 @@ function love.update(dt)
 			local targetVelY = 0
 			if allowMovement and love.keyboard.isDown(controls.up) then
 				targetVelY = targetVelY - (slow and 50 or playVars.player.maxSpeedUp)
+				playVars.player.fireBackThrusters = not slow
 			end
 			if allowMovement and love.keyboard.isDown(controls.down) then
 				targetVelY = targetVelY + (slow and 50 or playVars.player.maxSpeedDown)
+				playVars.player.fireFrontThrusters = not slow
 			end
 			local difference = targetVelY - playVars.player.vel.y
 			local accel = difference > 0 and playVars.player.accelDown or difference < 0 and -playVars.player.accelUp or 0
