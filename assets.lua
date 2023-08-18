@@ -6,14 +6,17 @@ end
 
 image("title")
 image("cursor")
+
 image("player")
 image("playerThrustersBack")
 image("playerThrustersFront")
+
 image("fighter1")
-image("bomber1")
 image("fighter2")
-image("bomber2")
 image("fighter3")
+
+image("bomber1")
+image("bomber2")
 image("bomber3")
 
 return assets
