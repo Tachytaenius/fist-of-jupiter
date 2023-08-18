@@ -1,14 +1,20 @@
+# Before release
+
 - Ending where the player goes forwards and (relative to camera, so camera pos changes) moves to a point in the upper middle of the screen and then flies off as the camera stops(?).
 - Add a recorded high score system with names that also records the version of the game. Allow starting on arbitrary waves. show wave start and end. replace 1 with "START", replace 20 with "BOSS". and replace end with "END" if the game was beaten. star for victory at boss, skull for death, door for quit.
-- Make font cooler
 - Balance score so that no factor dominates
-- Add hacking with blue line effects around hackee, stopping them from shooting
-- Use interpolation for respawn centring
 - Add a boss that constructs itself over time with an animation, with velocity boosted implosions
 - Boss "wave" as wave 20
 - Add animated sprites to enemy bullets
-- Add story text on title screem
+- Add story text on title screen
+- Make bullets that travelled less far score you higher
+
+## For more dynamic enemies
 - Increase range at which enemies aren't removed when going offscreen
 - Chase AI type, circle movement AI type, etc
-- Make bullets that travelled less far score you higher
 - Check if MOVING off screen when off screen before deleting an enemy/enemyBullet
+
+# Some other time
+- Add hacking with blue line effects around hackee, stopping them from shooting
+- Make font cooler
+- Use interpolation for respawn centring
