@@ -85,7 +85,7 @@ local consts = {
 	flashAlpha = 0.5,
 	explosionSourceRadiusPerDamage = 1.5,
 	bulletHitParticleBounceMultiplier = 0.1,
-	titleOptionCount = 3,
+	titleOptionCount = 4,
 	titleOptionsYPos = 256,
 	distanceToGenerateBlocksForDistance1 = math.max(gameWidth, gameHeight),
 	particleBlockSize = 500,
@@ -126,9 +126,9 @@ local consts = {
 	healthBarLength = 60,
 	healthBarWidth = 4,
 	healthBarPadding = 2,
-	storyCanvasPad = 24,
-	storyCanvasY = gameHeight / 2,
-	storyFadeDistance = 8,
+	textCanvasPad = 24,
+	textCanvasY = gameHeight / 2,
+	textFadeDistance = 8,
 	titleScrollSpeed = 100,
 	playerSpawnTime = 0.75
 }
@@ -368,15 +368,22 @@ local function initTitleState()
 	titleVars.titleCameraVelocity = vec2()
 	titleVars.titleCameraTargetVelocity = nil
 	titleVars.titleScreenVelocityChangeTimer = consts.titleScreenVelocityChangeTimerLength * love.math.random() * 1/2 + 3/4
+	titleVars.textCanvas = love.graphics.newCanvas(gameWidth - consts.textCanvasPad * 2, gameHeight - consts.textCanvasY - borderSize)
+	titleVars.textScroll = 0
+
 	titleVars.storyText = love.filesystem.read("story.txt")
-	titleVars.storyCanvas = love.graphics.newCanvas(gameWidth - consts.storyCanvasPad * 2, gameHeight - consts.storyCanvasY - borderSize)
-	titleVars.storyTextScroll = 0
-	local _, lines = font:getWrap(titleVars.storyText, titleVars.storyCanvas:getWidth())
+	local _, lines = font:getWrap(titleVars.storyText, titleVars.textCanvas:getWidth())
 	titleVars.storyTextLines = lines
-	titleVars.storyTextScrollMax = #lines * font:getHeight() - titleVars.storyCanvas:getHeight() + consts.storyFadeDistance
+	titleVars.storyTextScrollMax = math.max(0, #lines * font:getHeight() - titleVars.textCanvas:getHeight() + consts.textFadeDistance)
+
+	titleVars.creditsText = love.filesystem.read("credits.txt")
+	local _, lines = font:getWrap(titleVars.creditsText, titleVars.textCanvas:getWidth())
+	titleVars.creditsTextLines = lines
+	titleVars.creditsTextScrollMax = math.max(0, #lines * font:getHeight() - titleVars.textCanvas:getHeight() + consts.textFadeDistance)
+
 	titleFadeShader = love.graphics.newShader("titleFadeShader.glsl")
-	titleFadeShader:send("canvasSize", {titleVars.storyCanvas:getDimensions()})
-	titleFadeShader:send("fadeDistance", consts.storyFadeDistance)
+	titleFadeShader:send("canvasSize", {titleVars.textCanvas:getDimensions()})
+	titleFadeShader:send("fadeDistance", consts.textFadeDistance)
 end
 
 local function isPlayerPresent()
@@ -505,9 +512,9 @@ function love.keypressed(key)
 				end
 			end
 		elseif gameState == "title" then
-			if titleVars.storyView then
+			if titleVars.textView then
 				if key == controls.shoot then
-					titleVars.storyView = false
+					titleVars.textView = false
 				end
 			else
 				if key == controls.up then
@@ -520,8 +527,13 @@ function love.keypressed(key)
 					elseif titleVars.cursorPos == 1 then
 						
 					elseif titleVars.cursorPos == 2 then
-						titleVars.storyView = true
-						titleVars.storyTextScroll = 0
+						titleVars.textView = true
+						titleVars.textScroll = 0
+						titleVars.textMode = "story"
+					elseif titleVars.cursorPos == 3 then
+						titleVars.textView = true
+						titleVars.textScroll = 0
+						titleVars.textMode = "credits"
 					end
 				end
 			end
@@ -653,14 +665,15 @@ function love.update(dt)
 		titleVars.titleCameraVelocity = marchVectorToTarget(titleVars.titleCameraVelocity, titleVars.titleCameraTargetVelocity, consts.titleCameraAccel, dt)
 		titleVars.titleCameraPos = titleVars.titleCameraPos + titleVars.titleCameraVelocity * dt
 
-		if titleVars.storyView then
+		if titleVars.textView then
 			if love.keyboard.isDown(controls.up) then
-				titleVars.storyTextScroll = titleVars.storyTextScroll - consts.titleScrollSpeed * dt
+				titleVars.textScroll = titleVars.textScroll - consts.titleScrollSpeed * dt
 			end
 			if love.keyboard.isDown(controls.down) then
-				titleVars.storyTextScroll = titleVars.storyTextScroll + consts.titleScrollSpeed * dt
+				titleVars.textScroll = titleVars.textScroll + consts.titleScrollSpeed * dt
 			end
-			titleVars.storyTextScroll = math.max(0, math.min(titleVars.storyTextScrollMax, titleVars.storyTextScroll))
+			local maxScroll = titleVars.textMode == "story" and titleVars.storyTextScrollMax or titleVars.textMode == "credits" and titleVars.creditsTextScrollMax
+			titleVars.textScroll = math.max(0, math.min(maxScroll, titleVars.textScroll))
 		end
 	elseif consts.playLikeStates[gameState] then
 		playVars.time = playVars.time + dt
@@ -1239,28 +1252,30 @@ function love.draw()
 	if gameState == "title" then
 		love.graphics.draw(assets.images.title)
 
-		if titleVars.storyView then
+		if titleVars.textView then
 			love.graphics.origin()
-			love.graphics.setCanvas(titleVars.storyCanvas)
+			love.graphics.setCanvas(titleVars.textCanvas)
 			love.graphics.clear()
-			for i, line in ipairs(titleVars.storyTextLines) do
+			local lines = titleVars.textMode == "story" and titleVars.storyTextLines or titleVars.textMode == "credits" and titleVars.creditsTextLines
+			for i, line in ipairs(lines) do
 				love.graphics.printf(
 					line,
 					0,
-					consts.storyFadeDistance + font:getHeight() * (i - 1) - titleVars.storyTextScroll,
-					titleVars.storyCanvas:getWidth(),
+					consts.textFadeDistance + font:getHeight() * (i - 1) - titleVars.textScroll,
+					titleVars.textCanvas:getWidth(),
 					font:getWidth(line) > 200 and "justify" or "left"
 				)
 			end
 			love.graphics.setCanvas(gameCanvas)
 			love.graphics.setShader(titleFadeShader)
-			love.graphics.draw(titleVars.storyCanvas, consts.storyCanvasPad, consts.storyCanvasY)
+			love.graphics.draw(titleVars.textCanvas, consts.textCanvasPad, consts.textCanvasY)
 			love.graphics.setShader()
 		else
 			local texts = {
 				"PLAY",
 				"SCORES",
-				"STORY"
+				"STORY",
+				"CREDITS"
 			}
 			local textWidth = 0
 			for i, v in ipairs(texts) do
