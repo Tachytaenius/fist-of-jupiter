@@ -13,6 +13,7 @@
 - Add green minelayer enemies who you have to chase, maybe make bombers static or circle-moving enemies whose offscreen radius is higher? Or maybe maybe them come in diagonally with an airstrike
 - Stagger introduction of enemy types
 - Check if MOVING off screen when off screen before deleting an enemy/enemyBullet
+- Add difficulty scaling
 
 # Some other time
 - Add hacking with blue line effects around hackee, stopping them from shooting
