@@ -23,6 +23,12 @@ image("bomber1")
 image("bomber2")
 image("bomber3")
 
+image("glow")
+image("normalPowerupContainer")
+image("superPowerupContainer")
+image("doubleBulletsPowerupSymbol")
+image("hyperBeamPowerupSymbol")
+
 audio("gameStart")
 audio("bossEncounter")
 

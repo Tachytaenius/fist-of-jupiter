@@ -130,7 +130,10 @@ local consts = {
 	textCanvasY = gameHeight / 2,
 	textFadeDistance = 8,
 	titleScrollSpeed = 100,
-	playerSpawnTime = 0.75
+	playerSpawnTime = 0.75,
+	firstNormalPowerupWave = 6,
+	firstSuperPowerupWave = 14,
+	revealedPowerupRadius = 4
 }
 
 local controls = {
@@ -294,6 +297,10 @@ local function getCurBacktrackLimit()
 	return screenTopInWorldSpace + gameHeight / 2 + consts.cameraYOffsetMax
 end
 
+local function randomiseTimerLength(length)
+	return length * (love.math.random() * 0.5 + 3/4)
+end
+
 local function nextWave()
 	gameState = "play"
 	playVars.waveNumber = (playVars.waveNumber or 0) + 1
@@ -319,6 +326,7 @@ local function nextWave()
 	playVars.particles = list()
 	playVars.floatingTexts = list()
 	playVars.rippleSources = list()
+	playVars.powerupSources = list()
 
 	generatePlayer(true)
 	playVars.backtrackLimit = getCurBacktrackLimit()
@@ -327,12 +335,32 @@ local function nextWave()
 	for k, v in pairs(registry.enemies) do
 		playVars.enemyPool[k] = math.floor(v.count(playVars.waveNumber))
 	end
-	local lerpFactor = (playVars.waveNumber - 1) / (consts.finalNonBossWave - 1)
+	local lerpFactor = (playVars.waveNumber - 1) / (consts.finalNonBossWave + 1 - 1)
 	playVars.spawnAttemptTimerLength = math.lerp(1, 0.25, lerpFactor)
 	playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
 	playVars.maxEnemies = math.floor(math.lerp(4, 10, lerpFactor))
 	playVars.minEnemiesToSpawn = math.floor(math.lerp(2, 3, lerpFactor))
 	playVars.maxEnemiesToSpawn = math.floor(math.lerp(3, 6, lerpFactor))
+
+	if playVars.waveNumber >= consts.firstNormalPowerupWave then
+		playVars.normalPowerupsLeft = math.floor(math.lerp(1, 5, lerpFactor))
+		playVars.normalPowerupSourceSpawnTimerLength = math.floor(math.lerp(20, 7.5, lerpFactor))
+		playVars.normalPowerupSourceSpawnTimer = randomiseTimerLength(playVars.normalPowerupSourceSpawnTimerLength)
+	else
+		playVars.normalPowerupsLeft = 0
+		playVars.normalPowerupSourceSpawnTimerLength = nil
+		playVars.normalPowerupSourceSpawnTimer = nil
+	end
+
+	if playVars.waveNumber >= consts.firstSuperPowerupWave then
+		playVars.superPowerupsLeft = math.floor(math.lerp(1, 2, lerpFactor))
+		playVars.superPowerupSourceSpawnTimerLength = math.floor(math.lerp(30, 7.5, lerpFactor))
+		playVars.superPowerupSourceSpawnTimer = randomiseTimerLength(playVars.normalPowerupSourceSpawnTimerLength)
+	else
+		playVars.superPowerupsLeft = 0
+		playVars.superPowerupSourceSpawnTimer = nil
+		playVars.superPowerupSourceSpawnTimer = nil
+	end
 end
 
 local function winWave()
@@ -446,7 +474,7 @@ local function getPlayerBulletsCostUsed()
 end
 
 local function shootBullet()
-	if checkAllEnemiesDefeatedAndEnemyBulletsGone() then
+	if checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0 then
 		return
 	end
 	local double = playVars.player.powerups.doubleBullets
@@ -709,7 +737,7 @@ function love.update(dt)
 			local maxSpeedX = slow and 50 or playVars.player.maxSpeedX
 			local maxSpeedUp = slow and 50 or playVars.player.maxSpeedUp
 			local maxSpeedDown = slow and 50 or playVars.player.maxSpeedDown
-			local allowMovement = not checkAllEnemiesDefeatedAndEnemyBulletsGone() and gameState == "play"
+			local allowMovement = not (checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0) and gameState == "play"
 
 			local function handleAxis(current, target, acceleration, dt)
 				if acceleration > 0 then
@@ -933,13 +961,29 @@ function love.update(dt)
 					playVars.player.killStreak = 0
 				end
 			else
+				local hit = false
 				for j = 1, playVars.enemies.size do
 					local enemy = playVars.enemies:get(j)
 					if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
+						hit = true
 						deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
 						enemy.health = enemy.health - playerBullet.damage
 						if enemy.health > 0 then
 							explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
+						end
+					end
+				end
+				if not hit then
+					for j = 1, playVars.powerupSources.size do
+						local source = playVars.powerupSources:get(j)
+						if vec2.distance(source.pos, playerBullet.pos) <= source.radius then
+							if not source.revealed then
+								source.revealed = true
+								source.radius = consts.revealedPowerupRadius
+								explode(20, source.pos, shallowClone(source.colour))
+								hit = true
+								deleteThesePlayerBullets[#deleteThesePlayerBullets+1] = playerBullet
+							end
 						end
 					end
 				end
@@ -1113,6 +1157,21 @@ function love.update(dt)
 			playVars.floatingTexts:remove(text)
 		end
 
+		local powerupSourcesToDelete = {}
+		for i = 1, playVars.powerupSources.size do
+			local source = playVars.powerupSources:get(i)
+			source.pos = source.pos + source.vel * dt
+			if source.revealed and vec2.distance(source.pos, playVars.player.pos) <= source.radius + playVars.player.radius then
+				powerupSourcesToDelete[#powerupSourcesToDelete+1] = source
+				givePowerup(source.powerup)
+			elseif circleOffScreen(source.radius, source.pos) then
+				powerupSourcesToDelete[#powerupSourcesToDelete+1] = source
+			end
+		end
+		for _, source in ipairs(powerupSourcesToDelete) do
+			playVars.powerupSources:remove(source)
+		end
+
 		local ripplesToDelete = {}
 		for i = 1, playVars.rippleSources.size do
 			local ripple = playVars.rippleSources:get(i)
@@ -1128,21 +1187,14 @@ function love.update(dt)
 		if
 			gameState == "play" and
 			checkAllEnemiesDefeatedAndEnemyBulletsGone() and
+			playVars.powerupSources.size == 0 and
 			playVars.playerBullets.size == 0 and
 			isPlayerPresent()
 		then
 			winWave()
 		end
 
-		-- if gameState == "play" and isPlayerPresent() and not checkAllEnemiesDefeatedAndEnemyBulletsGone() then
-		-- 	playVars.scoreReductionTimer = playVars.scoreReductionTimer - dt
-		-- 	if playVars.scoreReductionTimer <= 0 then
-		-- 		playVars.scoreReductionTimer = playVars.scoreReductionTimerLength
-		-- 		playVars.waveScore = math.max(0, playVars.waveScore - playVars.scoreTimerReductionAmount)
-		-- 	end
-		-- end
-
-		if gameState == "play" and isPlayerPresent() and not checkAllEnemiesDefeatedAndEnemyBulletsGone() then
+		if gameState == "play" and isPlayerPresent() and not checkAllEnemiesDefeatedAndEnemyBulletsGone() then -- not checking playVars.powerupSources.size == 0
 			playVars.bonusTimer = math.max(0, playVars.bonusTimer - dt)
 		end
 
@@ -1359,6 +1411,32 @@ function love.draw()
 			end
 			love.graphics.setPointSize(1)
 			love.graphics.setColor(1, 1, 1)
+			for i = 1, playVars.powerupSources.size do
+				local source = playVars.powerupSources:get(i)
+				if source.revealed then
+					if source.super then
+						love.graphics.setColor(1, 0.25, 0.25)
+					else
+						love.graphics.setColor(0.25, 1, 0.25)
+					end
+					local glowRadius = 16
+					love.graphics.draw(
+						assets.images.glow,
+						source.pos.x - glowRadius,
+						source.pos.y - glowRadius,
+						0,
+						2 * glowRadius / assets.images.glow:getWidth(),
+						2 * glowRadius / assets.images.glow:getHeight()
+					)
+					love.graphics.setColor(1, 1, 1)
+					local asset = assets.images[source.powerup .. "PowerupSymbol"]
+					love.graphics.draw(asset, source.pos.x - asset:getWidth() / 2, source.pos.y - asset:getHeight() / 2)
+				elseif source.super then
+					love.graphics.draw(assets.images.superPowerupContainer, source.pos.x - assets.images.superPowerupContainer:getWidth() / 2, source.pos.y - assets.images.superPowerupContainer:getHeight() / 2)
+				else
+					love.graphics.draw(assets.images.normalPowerupContainer, source.pos.x - assets.images.normalPowerupContainer:getWidth() / 2, source.pos.y - assets.images.normalPowerupContainer:getHeight() / 2)
+				end
+			end
 			if isPlayerPresent() then
 				if playVars.player.fireBackThrusters then
 					local quad = consts.backThrusterQuads[math.floor((playVars.time * consts.backThrusterAnimationFrequency) % 1 * 4) + 1]
