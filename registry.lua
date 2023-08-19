@@ -22,13 +22,13 @@ registry.enemies.fighter1 = {
 	count = function(waveNumber)
 		local currentAmount = 5
 		for i = 1, waveNumber do
-			if i == waveNumber then
-				break
-			end
 			if i <= firstGenPeakWave then
 				currentAmount = currentAmount + 2
 			else
 				currentAmount = currentAmount - 4
+			end
+			if i == waveNumber then
+				break
 			end
 		end
 		return math.max(0, currentAmount)
@@ -52,13 +52,13 @@ registry.enemies.fighter2 = {
 	count = function(waveNumber)
 		local currentAmount = 0
 		for i = 1, waveNumber do
-			if i == waveNumber then
-				break
-			end
 			if i > firstGenPeakWave and i <= secondGenPeakWave then
 				currentAmount = currentAmount + 3
 			elseif i > secondGenPeakWave then
 				currentAmount = currentAmount - 6
+			end
+			if i == waveNumber then
+				break
 			end
 		end
 		return math.max(0, currentAmount)
@@ -82,13 +82,13 @@ registry.enemies.fighter3 = {
 	count = function(waveNumber)
 		local currentAmount = 0
 		for i = 1, waveNumber do
-			if i == waveNumber then
-				break
-			end
 			if i > secondGenPeakWave and i <= thirdGenPeakWave then
-				currentAmount = currentAmount + 4
+				currentAmount = currentAmount + 3
 			elseif i > thirdGenPeakWave then
 				currentAmount = currentAmount - 5
+			end
+			if i == waveNumber then
+				break
 			end
 		end
 		return math.max(0, currentAmount)
@@ -112,13 +112,13 @@ registry.enemies.bomber1 = {
 	count = function(waveNumber)
 		local currentAmount = 3
 		for i = 1, waveNumber do
-			if i == waveNumber then
-				break
-			end
 			if i <= firstGenPeakWave then
 				currentAmount = currentAmount + 1
 			else
 				currentAmount = currentAmount - 3
+			end
+			if i == waveNumber then
+				break
 			end
 		end
 		return math.max(0, currentAmount)
@@ -142,13 +142,13 @@ registry.enemies.bomber2 = {
 	count = function(waveNumber)
 		local currentAmount = 0
 		for i = 1, waveNumber do
-			if i == waveNumber then
-				break
-			end
 			if i > firstGenPeakWave and i <= secondGenPeakWave then
 				currentAmount = currentAmount + 2
 			elseif i > secondGenPeakWave then
 				currentAmount = currentAmount - 9
+			end
+			if i == waveNumber then
+				break
 			end
 		end
 		return math.max(0, currentAmount)
@@ -172,13 +172,13 @@ registry.enemies.bomber3 = {
 	count = function(waveNumber)
 		local currentAmount = 0
 		for i = 1, waveNumber do
-			if i == waveNumber then
-				break
-			end
 			if i > secondGenPeakWave and i <= thirdGenPeakWave then
-				currentAmount = currentAmount + 3
+				currentAmount = currentAmount + 2
 			elseif i > thirdGenPeakWave then
 				currentAmount = currentAmount - 12
+			end
+			if i == waveNumber then
+				break
 			end
 		end
 		return math.max(0, currentAmount)
