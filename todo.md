@@ -6,7 +6,6 @@
 - Add a boss that constructs itself over time with an animation, with velocity boosted implosions
 - Boss "wave" as wave 20
 - Add animated sprites to enemy bullets
-- Make bullets that travelled less far score you higher
 - Audio
 
 ## For more dynamic enemies
