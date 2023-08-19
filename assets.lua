@@ -24,5 +24,6 @@ image("bomber2")
 image("bomber3")
 
 audio("gameStart")
+audio("bossEncounter")
 
 return assets
