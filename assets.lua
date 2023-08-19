@@ -1,7 +1,11 @@
-local assets = {images = {}}
+local assets = {images = {}, audio = {}}
 
 local function image(name)
 	assets.images[name] = love.graphics.newImage("assets/images/" .. name .. ".png")
+end
+
+local function audio(name, type)
+	assets.audio[name] = love.audio.newSource("assets/audio/" .. name .. ".wav", type or "static")
 end
 
 image("title")
@@ -18,5 +22,7 @@ image("fighter3")
 image("bomber1")
 image("bomber2")
 image("bomber3")
+
+audio("gameStart")
 
 return assets

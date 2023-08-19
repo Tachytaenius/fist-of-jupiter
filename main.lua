@@ -129,7 +129,8 @@ local consts = {
 	storyCanvasPad = 24,
 	storyCanvasY = gameHeight / 2,
 	storyFadeDistance = 8,
-	titleScrollSpeed = 100
+	titleScrollSpeed = 100,
+	playerSpawnTime = 0.75
 }
 
 local controls = {
@@ -258,7 +259,6 @@ local function generatePlayer(resetPos)
 		pos = vec2(gameWidth / 2, 0)
 	end
 	playVars.cameraYOffset = consts.cameraYOffsetMax
-	local spawnTime = 0.75
 	local maxHealth = 4
 	playVars.player = {
 		pos = pos,
@@ -280,11 +280,13 @@ local function generatePlayer(resetPos)
 		contactInvulnerabilityTimer = nil,
 		flashAnimationSpeed = 30,
 		spawning = true,
-		spawnTimer = spawnTime,
+		spawnTimer = not assets.audio.gameStart:isPlaying() and consts.playerSpawnTime or nil,
 		powerups = {},
 		killStreak = 0
 	}
-	implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, spawnTime)
+	if not assets.audio.gameStart:isPlaying() then
+		implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
+	end
 end
 
 local function getCurBacktrackLimit()
@@ -295,6 +297,9 @@ end
 local function nextWave()
 	gameState = "play"
 	playVars.waveNumber = (playVars.waveNumber or 0) + 1
+	if playVars.waveNumber == 1 then
+		love.audio.play(assets.audio.gameStart)
+	end
 	playVars.resultsScreenVars = nil
 	playVars.onResultsScreen = false
 	playVars.waveScore = 0
@@ -663,7 +668,11 @@ function love.update(dt)
 		playVars.player.fireBackThrusters = false
 		playVars.player.fireFrontThrusters = false
 
-		if playVars.player.spawning then
+		if playVars.player.spawning and not assets.audio.gameStart:isPlaying() then
+			if not playVars.player.spawnTimer then
+				playVars.player.spawnTimer = consts.playerSpawnTime
+				implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
+			end
 			playVars.player.spawnTimer = playVars.player.spawnTimer - dt
 			if playVars.player.spawnTimer <= 0 then
 				playVars.player.spawning = false
