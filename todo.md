@@ -13,10 +13,6 @@
 - Add extra life source, maybe reduce starting extra lives
 - Add green minelayer enemies who you have to chase, maybe make bombers static or circle-moving enemies whose offscreen radius is higher? Or maybe maybe them come in diagonally with an airstrike
 - Stagger introduction of enemy types
-
-## For more dynamic enemies
-- Increase range at which enemies aren't removed when going offscreen
-- Chase AI type, circle movement AI type, etc
 - Check if MOVING off screen when off screen before deleting an enemy/enemyBullet
 
 # Some other time
