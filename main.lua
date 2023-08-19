@@ -301,6 +301,31 @@ local function randomiseTimerLength(length)
 	return length * (love.math.random() * 0.5 + 3/4)
 end
 
+local function spawnPowerup(super)
+	local powerupSource = {
+		-- pos and vel unset
+		radius = 7,
+		super = super,
+		colour = super and {0.36, 0.45, 0.5} or {0.4, 0.4, 0.5},
+		revealed = false,
+		powerup = super and "hyperBeam" or "doubleBullets" -- Should be easy enough to add more powerups
+	}
+	local speed = super and 75 or 50
+	local yMin, yMax = gameHeight / 4, gameHeight / 2
+	local y = love.math.random() * (yMax - yMin) + yMin
+	local x = powerupSource.radius * 0.1
+	if love.math.random() < 0.5 then
+		x = gameWidth - x
+	end
+	local pos = vec2(x, y)
+	local pos2 = vec2(gameWidth - x, gameHeight / 2 - y)
+	powerupSource.vel = normaliseOrZero(pos2 - pos) * speed
+	local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+	pos.y = pos.y + screenTopInWorldSpace
+	powerupSource.pos = pos
+	playVars.powerupSources:add(powerupSource)
+end
+
 local function nextWave()
 	gameState = "play"
 	playVars.waveNumber = (playVars.waveNumber or 0) + 1
