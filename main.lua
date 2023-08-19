@@ -133,7 +133,8 @@ local consts = {
 	playerSpawnTime = 0.75,
 	firstNormalPowerupWave = 6,
 	firstSuperPowerupWave = 14,
-	revealedPowerupRadius = 4
+	revealedPowerupRadius = 4,
+	playBackgroundRushSpeed = 300
 }
 
 local controls = {
@@ -598,6 +599,14 @@ function love.keypressed(key)
 	end
 end
 
+local function getBlockCameraPos()
+	return
+		gameState == "title" and
+		titleVars.titleCameraPos or
+		consts.playLikeStates[gameState] and
+		(playVars.player.pos * vec2(0 and 1, 1) - vec2(0, playVars.time * consts.playBackgroundRushSpeed))
+end
+
 function love.update(dt)
 	if gameState ~= "play" then
 		paused = false
@@ -618,7 +627,7 @@ function love.update(dt)
 				-- colour = {hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
 			})
 		end
-		local cameraPos = gameState == "title" and titleVars.titleCameraPos or consts.playLikeStates[gameState] and playVars.player.pos
+		local cameraPos = getBlockCameraPos()
 		for _, layer in ipairs(backgroundParticleBlockLayers) do
 			-- Add needed blocks
 			local minXWorldSpace = cameraPos.x - consts.distanceToGenerateBlocksForDistance1 * layer.distance + gameWidth / 2
@@ -1259,7 +1268,7 @@ function love.draw()
 	love.graphics.clear()
 
 	if backgroundParticleBlockLayers and not (playVars and playVars.onResultsScreen) then
-		local cameraPos = gameState == "title" and titleVars.titleCameraPos or consts.playLikeStates[gameState] and (playVars.player.pos * vec2(0 and 1, 1))
+		local cameraPos = getBlockCameraPos()
 		for i, layer in ipairs(backgroundParticleBlockLayers) do
 			love.graphics.push()
 			love.graphics.translate(gameWidth / 2, gameHeight / 2)
