@@ -7,7 +7,6 @@
 - Boss "wave" as wave 20. After beating a stage of the boss you have to chase it while other enemies spawn and attack you, and the boss spawns nuisance fighters too.
 - Add animated sprites to enemy bullets
 - Sound effects for: game start, shots from all enemy classes, player shots, player explosion, game over, enemy explosion, boss start, game completed, powerup acquired, hyper beam firing, extra life acquried
-- Add credits to title screen
 - Add controls to title screen
 - Add powerup sources
 - Add extra life source, maybe reduce starting extra lives
@@ -19,3 +18,4 @@
 - Add hacking with blue line effects around hackee, stopping them from shooting
 - Make font cooler
 - Use interpolation for respawn centring
+- Add transitions to the particle background when in or out of a title screen submenu
