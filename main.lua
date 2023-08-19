@@ -1385,7 +1385,7 @@ function love.draw()
 			love.graphics.rectangle("fill", hbx + consts.healthBarPadding, hby + consts.healthBarPadding + heightChange, consts.healthBarWidth, consts.healthBarLength - heightChange)
 			love.graphics.setColor(1, 1, 1)
 
-			local text = playVars.waveNumber
+			local text = playVars.waveNumber .. "/" .. (consts.finalNonBossWave + 1)
 			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, 0)
 			local enemyCount = playVars.enemies.size + playVars.enemiesToMaterialise.size
 			for _, count in pairs(playVars.enemyPool) do
