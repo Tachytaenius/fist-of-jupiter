@@ -134,7 +134,8 @@ local consts = {
 	firstNormalPowerupWave = 6,
 	firstSuperPowerupWave = 14,
 	revealedPowerupRadius = 4,
-	playBackgroundRushSpeed = 100
+	playBackgroundRushSpeed = 100,
+	revealedPowerupSourceGravity = 75
 }
 
 local controls = {
@@ -311,7 +312,7 @@ local function spawnPowerup(super)
 		revealed = false,
 		powerup = super and "hyperBeam" or "doubleBullets" -- Should be easy enough to add more powerups
 	}
-	local speed = super and 75 or 50
+	local speed = (super and 55 or 50) * math.lerp(1, 1.5, (playVars.waveNumber - 1) / (consts.finalNonBossWave + 1 - 1))
 	local yMin, yMax = gameHeight / 4, gameHeight / 2
 	local y = love.math.random() * (yMax - yMin) + yMin
 	local x = powerupSource.radius * 0.1
@@ -370,7 +371,7 @@ local function nextWave()
 
 	if playVars.waveNumber >= consts.firstNormalPowerupWave then
 		playVars.normalPowerupsLeft = math.floor(math.lerp(1, 5, lerpFactor))
-		playVars.normalPowerupSourceSpawnTimerLength = math.floor(math.lerp(20, 7.5, lerpFactor))
+		playVars.normalPowerupSourceSpawnTimerLength = math.floor(math.lerp(30, 5, lerpFactor))
 		playVars.normalPowerupSourceSpawnTimer = randomiseTimerLength(playVars.normalPowerupSourceSpawnTimerLength)
 	else
 		playVars.normalPowerupsLeft = 0
@@ -740,6 +741,41 @@ function love.update(dt)
 	elseif consts.playLikeStates[gameState] then
 		playVars.time = playVars.time + dt
 
+		if isPlayerPresent() and not checkAllEnemiesDefeatedAndEnemyBulletsGone() and gameState == "play" then
+			if playVars.normalPowerupSourceSpawnTimer then
+				playVars.normalPowerupSourceSpawnTimer = playVars.normalPowerupSourceSpawnTimer - dt
+				if playVars.normalPowerupSourceSpawnTimer <= 0 then
+					if playVars.normalPowerupsLeft <= 0 then
+						playVars.normalPowerupSourceSpawnTimer = nil
+					else
+						spawnPowerup(false)
+						playVars.normalPowerupsLeft = playVars.normalPowerupsLeft - 1
+						if playVars.normalPowerupsLeft <= 0 then
+							playVars.normalPowerupSourceSpawnTimer = nil
+						else
+							playVars.normalPowerupSourceSpawnTimer = randomiseTimerLength(playVars.normalPowerupSourceSpawnTimerLength)
+						end
+					end
+				end
+			end
+			if playVars.superPowerupSourceSpawnTimer then
+				playVars.superPowerupSourceSpawnTimer = playVars.superPowerupSourceSpawnTimer - dt
+				if playVars.superPowerupSourceSpawnTimer <= 0 then
+					if playVars.superPowerupsLeft <= 0 then
+						playVars.superPowerupSourceSpawnTimer = nil
+					else
+						spawnPowerup(true)
+						playVars.superPowerupsLeft = playVars.superPowerupsLeft - 1
+						if playVars.superPowerupsLeft <= 0 then
+							playVars.superPowerupSourceSpawnTimer = nil
+						else
+							playVars.superPowerupSourceSpawnTimer = randomiseTimerLength(playVars.superPowerupSourceSpawnTimerLength)
+						end
+					end
+				end
+			end
+		end
+
 		playVars.player.fireBackThrusters = false
 		playVars.player.fireFrontThrusters = false
 
@@ -1013,6 +1049,8 @@ function love.update(dt)
 						if vec2.distance(source.pos, playerBullet.pos) <= source.radius then
 							if not source.revealed then
 								source.revealed = true
+								local towardsCentreDir = math.sign(gameWidth / 2 - source.pos.x)
+								source.vel = vec2(love.math.random() * 50 * towardsCentreDir, -50)
 								source.radius = consts.revealedPowerupRadius
 								explode(20, source.pos, shallowClone(source.colour))
 								hit = true
@@ -1195,7 +1233,10 @@ function love.update(dt)
 		for i = 1, playVars.powerupSources.size do
 			local source = playVars.powerupSources:get(i)
 			source.pos = source.pos + source.vel * dt
-			if source.revealed and vec2.distance(source.pos, playVars.player.pos) <= source.radius + playVars.player.radius then
+			if source.revealed then
+				source.vel.y = source.vel.y + consts.revealedPowerupSourceGravity * dt
+			end
+			if source.revealed and isPlayerPresent() and vec2.distance(source.pos, playVars.player.pos) <= source.radius + playVars.player.radius then
 				powerupSourcesToDelete[#powerupSourcesToDelete+1] = source
 				givePowerup(source.powerup)
 			elseif circleOffScreen(source.radius, source.pos) then
