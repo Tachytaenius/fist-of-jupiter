@@ -14,6 +14,7 @@
 - Stagger introduction of enemy types
 - Check if MOVING off screen when off screen before deleting an enemy/enemyBullet
 - Add difficulty scaling
+- Make player fly off screen when a wave is done
 
 # Some other time
 - Add hacking with blue line effects around hackee, stopping them from shooting
