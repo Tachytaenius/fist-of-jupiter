@@ -24,6 +24,8 @@ image("bomber2")
 image("bomber3")
 
 image("minelayer1")
+image("minelayer2")
+image("minelayer3")
 
 image("glow")
 image("normalPowerupContainer")

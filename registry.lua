@@ -143,6 +143,7 @@ registry.enemies.bomber2 = {
 	count = function(waveNumber)
 		local currentAmount = 0
 		for i = 1, waveNumber do
+			i = i - 1
 			if i > firstGenPeakWave and i <= secondGenPeakWave then
 				currentAmount = currentAmount + 2
 			elseif i > secondGenPeakWave then
@@ -173,6 +174,7 @@ registry.enemies.bomber3 = {
 	count = function(waveNumber)
 		local currentAmount = 0
 		for i = 1, waveNumber do
+			i = i - 1
 			if i > secondGenPeakWave and i <= thirdGenPeakWave then
 				currentAmount = currentAmount + 2
 			elseif i > thirdGenPeakWave then
@@ -211,6 +213,74 @@ registry.enemies.minelayer1 = {
 				currentAmount = currentAmount + 4
 			elseif i > firstGenPeakWave then
 				currentAmount = currentAmount - 5
+			end
+			if i == waveNumber then
+				break
+			end
+		end
+		return math.max(0, currentAmount)
+	end
+}
+registry.enemies.minelayer2 = {
+	radius = 13,
+	health = 4,
+	colour = {0.1, 0.4, 0.2},
+	speed = 225,
+	shootTimerLength = 1.5,
+	bulletSpeed = 40,
+	bulletRadius = 5,
+	bulletDamage = 6,
+	bulletCount = 3,
+	bulletSpreadAngle = math.tau / 60,
+	bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = true,
+	contactDamage = 4,
+	accel = 100,
+	defeatScore = 40,
+	materialisationTime = 0.4,
+	spawnAtTop = true,
+	aiType = "minelayer",
+	count = function(waveNumber)
+		local currentAmount = 0
+		for i = 1, waveNumber do
+			i = i - 2
+			if i > firstGenPeakWave and i <= secondGenPeakWave then
+				currentAmount = currentAmount + 2
+			elseif i > secondGenPeakWave then
+				currentAmount = currentAmount - 6
+			end
+			if i == waveNumber then
+				break
+			end
+		end
+		return math.max(0, currentAmount)
+	end
+}
+registry.enemies.minelayer3 = {
+	radius = 11,
+	health = 5,
+	colour = {0.1, 0.4, 0.2},
+	speed = 250,
+	shootTimerLength = 1,
+	bulletSpeed = 50,
+	bulletRadius = 6,
+	bulletDamage = 8,
+	bulletCount = 5,
+	bulletSpreadAngle = math.tau / 30,
+	bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = true,
+	contactDamage = 6,
+	accel = 125,
+	defeatScore = 50,
+	materialisationTime = 0.3,
+	spawnAtTop = true,
+	aiType = "minelayer",
+	count = function(waveNumber)
+		local currentAmount = 0
+		for i = 1, waveNumber do
+			i = i - 2
+			if i > secondGenPeakWave and i <= thirdGenPeakWave then
+				currentAmount = currentAmount + 1
+			elseif i > thirdGenPeakWave then
+				currentAmount = currentAmount - 3
 			end
 			if i == waveNumber then
 				break
