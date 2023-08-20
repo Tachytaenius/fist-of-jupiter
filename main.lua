@@ -801,6 +801,17 @@ function love.update(dt)
 				playVars.preRespawnCentringTimer = consts.preRespawnCentringTimerLength
 			end
 			playVars.spareLives = math.max(0, playVars.spareLives - 1)
+			local enemyBulletsToDelete = {}
+			for i = 1, playVars.enemyBullets.size do
+				local enemyBullet = playVars.enemyBullets:get(i)
+				if enemyBullet.disappearOnPlayerDeathAndAllEnemiesDefeated then
+					explode(enemyBullet.radius, enemyBullet.pos, enemyBullet.colour)
+					enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
+				end
+			end
+			for _, enemyBullet in ipairs(enemyBulletsToDelete) do
+				playVars.enemyBullets:remove(enemyBullet)
+			end
 		end
 		if isPlayerPresent() then
 			local slow = love.keyboard.isDown(controls.slow)
@@ -1094,14 +1105,16 @@ function love.update(dt)
 					local timerFactor = love.math.random() / 0.5 + 0.75
 					enemy.shootTimer = enemy.shootTimerLength * timerFactor
 					local posDiff = playVars.player.pos - enemy.pos
-					if #posDiff > 0 then
+					if #posDiff > 0 and not (enemy.aiType == "mineLayer" and playVars.player.pos.y < enemy.pos.y) then
 						for i = 0, enemy.bulletCount - 1 do
 							local angleOffset = enemy.bulletCount == 1 and 0 or (i / (enemy.bulletCount - 1) - 0.5) * enemy.bulletSpreadAngle
 							playVars.enemyBullets:add({
 								pos = enemy.pos,
 								vel = enemy.bulletSpeed * vec2.rotate(vec2.normalise(posDiff), angleOffset),
 								radius = enemy.bulletRadius,
-								damage = enemy.bulletDamage
+								damage = enemy.bulletDamage,
+								disappearOnPlayerDeathAndAllEnemiesDefeated = enemy.bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated,
+								colour = shallowClone(enemy.bulletColour or {1, 1, 1})
 							})
 						end
 					end
@@ -1112,11 +1125,21 @@ function love.update(dt)
 			playVars.enemies:remove(enemy)
 		end
 
+		local enemyPoolIsEmpty = true
+		for k, v in pairs(playVars.enemyPool) do
+			if v > 0 then
+				enemyPoolIsEmpty = false
+				break
+			end
+		end
 		local enemyBulletsToDelete = {}
 		for i = 1, playVars.enemyBullets.size do
 			local enemyBullet = playVars.enemyBullets:get(i)
 			enemyBullet.pos = enemyBullet.pos + enemyBullet.vel * dt
 			if circleOffScreen(enemyBullet.radius, enemyBullet.pos) then
+				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
+			elseif playVars.enemies.size == 0 and enemyPoolIsEmpty and playVars.enemiesToMaterialise.size == 0 and enemyBullet.disappearOnPlayerDeathAndAllEnemiesDefeated then
+				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour))
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif isPlayerPresent() and vec2.distance(enemyBullet.pos, playVars.player.pos) <= playVars.player.radius then
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
@@ -1162,10 +1185,12 @@ function love.update(dt)
 			playVars.enemiesToMaterialise:remove(enemy)
 			playVars.enemies:add(enemy)
 			if playVars.player.pos ~= enemy.pos then
-				-- enemy.vel = enemy.speed * vec2.normalise(playVars.player.pos - enemy.pos)
-				-- enemy.vel.y = math.abs(enemy.vel.y)
-				enemy.targetVel = enemy.speed * vec2.normalise(playVars.player.pos - enemy.pos)
-				enemy.targetVel.y = math.abs(enemy.targetVel.y)
+				if enemy.aiType == "minelayer" then
+					enemy.targetVel = vec2(0, -enemy.speed)
+				else
+					enemy.targetVel = enemy.speed * vec2.normalise(playVars.player.pos - enemy.pos)
+					enemy.targetVel.y = math.abs(enemy.targetVel.y)
+				end
 			else
 				enemy.vel = vec2()
 			end
@@ -1191,7 +1216,12 @@ function love.update(dt)
 				local registryEntry = registry.enemies[enemyType]
 				local x = love.math.random() * (gameWidth - consts.borderSize * 2) + consts.borderSize
 				local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
-				local y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
+				local y
+				if registryEntry.spawnAtTop then
+					y = love.math.random() * gameHeight / 16 + screenTopInWorldSpace
+				else
+					y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
+				end
 				spawnEnemy({
 					pos = vec2(x, y),
 					vel = vec2(),
@@ -1211,6 +1241,9 @@ function love.update(dt)
 					contactDamage = registryEntry.contactDamage,
 					defeatScore = registryEntry.defeatScore,
 					accel = registryEntry.accel,
+					aiType = registryEntry.aiType,
+					bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = registryEntry.bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated,
+					bulletColour = registryEntry.bulletColour,
 					creationTime = playVars.time -- For consistent draw sorting
 				}, registryEntry.materialisationTime)
 			end

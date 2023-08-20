@@ -8,10 +8,8 @@
 - Add animated sprites to enemy bullets
 - Sound effects for: game start, shots from all enemy classes, player shots, player explosion, game over, enemy explosion, boss start, game completed, powerup acquired, hyper beam firing, extra life acquried
 - Add controls to title screen
-- Add powerup sources
 - Add extra life source, maybe reduce starting extra lives
-- Add green minelayer enemies who you have to chase, maybe make bombers static or circle-moving enemies whose offscreen radius is higher? Or maybe maybe them come in diagonally with an airstrike
-- Stagger introduction of enemy types
+- Maybe make bombers static or circle-moving enemies whose offscreen radius is higher? Or maybe maybe them come in diagonally with an airstrike
 - Check if MOVING off screen when off screen before deleting an enemy/enemyBullet
 - Add difficulty scaling
 - Make player fly off screen when a wave is done

@@ -22,9 +22,9 @@ registry.enemies.fighter1 = {
 	count = function(waveNumber)
 		local currentAmount = 5
 		for i = 1, waveNumber do
-			if i <= firstGenPeakWave then
+			if i > 0 and i <= firstGenPeakWave then
 				currentAmount = currentAmount + 2
-			else
+			elseif i > firstGenPeakWave then
 				currentAmount = currentAmount - 4
 			end
 			if i == waveNumber then
@@ -110,12 +110,13 @@ registry.enemies.bomber1 = {
 	defeatScore = 25,
 	materialisationTime = 0.3,
 	count = function(waveNumber)
-		local currentAmount = 3
+		local currentAmount = 0
 		for i = 1, waveNumber do
-			if i <= firstGenPeakWave then
-				currentAmount = currentAmount + 1
-			else
-				currentAmount = currentAmount - 3
+			i = i - 1
+			if i > 0 and i <= firstGenPeakWave then
+				currentAmount = currentAmount + 4
+			elseif i > firstGenPeakWave then
+				currentAmount = currentAmount - 5
 			end
 			if i == waveNumber then
 				break
@@ -176,6 +177,40 @@ registry.enemies.bomber3 = {
 				currentAmount = currentAmount + 2
 			elseif i > thirdGenPeakWave then
 				currentAmount = currentAmount - 12
+			end
+			if i == waveNumber then
+				break
+			end
+		end
+		return math.max(0, currentAmount)
+	end
+}
+registry.enemies.minelayer1 = {
+	radius = 12,
+	health = 3,
+	colour = {0.1, 0.4, 0.2},
+	speed = 200,
+	shootTimerLength = 2,
+	bulletSpeed = 25,
+	bulletRadius = 5,
+	bulletDamage = 4,
+	bulletCount = 1,
+	bulletSpreadAngle = 0,
+	bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = true,
+	contactDamage = 3,
+	accel = 75,
+	defeatScore = 25,
+	materialisationTime = 0.5,
+	spawnAtTop = true,
+	aiType = "minelayer",
+	count = function(waveNumber)
+		local currentAmount = 0
+		for i = 1, waveNumber do
+			i = i - 2
+			if i > 0 and i <= firstGenPeakWave then
+				currentAmount = currentAmount + 4
+			elseif i > firstGenPeakWave then
+				currentAmount = currentAmount - 5
 			end
 			if i == waveNumber then
 				break
