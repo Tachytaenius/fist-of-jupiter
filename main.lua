@@ -818,7 +818,7 @@ function love.update(dt)
 			local maxSpeedX = slow and 50 or playVars.player.maxSpeedX
 			local maxSpeedUp = slow and 50 or playVars.player.maxSpeedUp
 			local maxSpeedDown = slow and 50 or playVars.player.maxSpeedDown
-			local allowMovement = not (checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0) and gameState == "play"
+			local notFlyingAway = not (checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0) and gameState == "play"
 
 			local function handleAxis(current, target, acceleration, dt)
 				if acceleration > 0 then
@@ -831,10 +831,10 @@ function love.update(dt)
 			end
 			-- player movement x
 			local targetVelX = 0
-			if allowMovement and love.keyboard.isDown(controls.left) then
+			if notFlyingAway and love.keyboard.isDown(controls.left) then
 				targetVelX = targetVelX - (slow and 50 or playVars.player.maxSpeedX)
 			end
-			if allowMovement and love.keyboard.isDown(controls.right) then
+			if notFlyingAway and love.keyboard.isDown(controls.right) then
 				targetVelX = targetVelX + (slow and 50 or playVars.player.maxSpeedX)
 			end
 			local difference = targetVelX - playVars.player.vel.x
@@ -842,13 +842,18 @@ function love.update(dt)
 			playVars.player.vel.x = handleAxis(playVars.player.vel.x, targetVelX, accel, dt)
 			-- player movement y
 			local targetVelY = 0
-			if allowMovement and love.keyboard.isDown(controls.up) then
+			if notFlyingAway and love.keyboard.isDown(controls.up) then
 				targetVelY = targetVelY - (slow and 50 or playVars.player.maxSpeedUp)
 				playVars.player.fireBackThrusters = not slow
 			end
-			if allowMovement and love.keyboard.isDown(controls.down) then
+			if notFlyingAway and love.keyboard.isDown(controls.down) then
 				targetVelY = targetVelY + (slow and 50 or playVars.player.maxSpeedDown)
 				playVars.player.fireFrontThrusters = not slow
+			end
+			if not notFlyingAway then
+				targetVelY = -playVars.player.maxSpeedUp
+				playVars.player.fireBackThrusters = true
+				playVars.player.fireFrontThrusters = false
 			end
 			local difference = targetVelY - playVars.player.vel.y
 			local accel = difference > 0 and playVars.player.accelDown or difference < 0 and -playVars.player.accelUp or 0
@@ -872,9 +877,7 @@ function love.update(dt)
 					playVars.player.contactInvulnerabilityTimer = nil
 				end
 			end
-		end
 
-		if isPlayerPresent() then
 			local prevPlayerPosY = playVars.player.pos.y
 			playVars.player.pos = playVars.player.pos + playVars.player.vel * dt
 			if playVars.noBacktracking and playVars.player.pos.y > playVars.backtrackLimit then
@@ -885,7 +888,11 @@ function love.update(dt)
 			local cameraSlowdownFactorSameDirection = playVars.noBacktracking and 1 or (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax
 			local cameraSlowdownFactorOppositeDirections = (1 - (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax)
 			local cameraSlowdownFactor = math.sign(playVars.player.vel.y) * math.sign(playVars.cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
-			playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, playVars.cameraYOffset + yChange * cameraSlowdownFactor))
+			if notFlyingAway then
+				playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, playVars.cameraYOffset + yChange * cameraSlowdownFactor))
+			else
+				playVars.cameraYOffset = playVars.cameraYOffset + yChange
+			end
 
 			if playVars.player.pos.x < consts.borderSize then
 				playVars.player.pos.x = consts.borderSize
