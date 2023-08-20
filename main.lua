@@ -134,7 +134,7 @@ local consts = {
 	firstNormalPowerupWave = 6,
 	firstSuperPowerupWave = 14,
 	revealedPowerupRadius = 4,
-	playBackgroundRushSpeed = 300
+	playBackgroundRushSpeed = 100
 }
 
 local controls = {
