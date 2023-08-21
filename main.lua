@@ -1,3 +1,5 @@
+local version = "1.0"
+
 function math.sign(x)
 	return x > 0 and 1 or x == 0 and 0 or -1
 end
@@ -330,8 +332,8 @@ end
 
 local function nextWave()
 	gameState = "play"
-	playVars.waveNumber = (playVars.waveNumber or 0) + 1
-	if playVars.waveNumber == 1 then
+	playVars.waveNumber = playVars.waveNumber and (playVars.waveNumber + 1) or playVars.startWave
+	if playVars.waveNumber == playVars.startWave then
 		love.audio.play(assets.audio.gameStart)
 	end
 	playVars.resultsScreenVars = nil
@@ -463,8 +465,67 @@ local function initPlayState()
 	playVars.scoreTimerReductionAmount = 1
 	playVars.scoreBoostPerLifeAtWaveWon = 10 -- You may go through lots of waves with the same number of lives, which would be an excessive advantage, hence the low value
 	playVars.noBacktracking = true
+	playVars.startWave = 1
 
 	nextWave()
+end
+
+local function recordScore(name)
+	assert(not playVars.scoreRecorded, "Attempted to record score despite it already having been recorded")
+	local scoreToRecord =
+		playVars.resultsScreenVars and playVars.totalScore or
+		playVars.gameOverTextPresent and playVars.gameOverTotalScore or
+		(playVars.totalScore + playVars.waveScore)
+	local scoreString = table.concat({
+		version,
+		os.time(),
+		playVars.startWave,
+		playVars.waveNumber,
+		playVars.player.dead and "died" or checkAllEnemiesDefeatedAndEnemyBulletsGone() and "quitWhileAllOppositionDefeated" or "quitDuringPlay",
+		scoreToRecord,
+		name
+	}, " ") .. "\n"
+	local success, errorMessage = love.filesystem.append("scores.txt", scoreString)
+	if not success then
+		-- TODO
+	end
+	playVars.scoreRecorded = true
+end
+
+local function decodeScoreRecord(line)
+	local words = {}
+	for word in line:gmatch("%S+") do
+		words[#words+1] = word
+	end
+	local record = {
+		version = words[1],
+		timestamp = tonumber(words[2]),
+		startWave = tonumber(words[3]),
+		endWave = tonumber(words[4]),
+		result = words[5],
+		score = tonumber(words[6])
+	}
+	record.name = line:gsub(string.rep("%S+%s", #record), "") -- Handle (double or more) spaces in name
+	record.symbol =
+		(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalNonBossWave + 1) and "star" or
+		record.result == "quitWhileAllOppositionDefeated" and "tick" or
+		record.result == "quitDuringPlay" and "door" or
+		record.rsult == "died" and "skull"
+end
+
+local function victory()
+	-- play victory sfx, centre on screen and fly away, scroll victory text...
+	recordScore("Names are NYI")
+end
+
+function love.quit()
+	recordScore("Names are NYI") -- TEMP
+
+	-- if alreadyAskingForName then
+	-- 	return false
+	-- else
+	-- 	return true
+	-- end
 end
 
 function love.load()
@@ -945,6 +1006,7 @@ function love.update(dt)
 							if playVars.gameOverTextWaitTimer <= 0 then
 								playVars.gameOverTextPresent = true
 								playVars.gameOverTotalScore = playVars.totalScore + playVars.waveScore
+								recordScore("Names are NYI")
 							end
 						end
 					-- elseif playVars.enemyBullets.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemies.size == 0 then
