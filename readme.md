@@ -4,4 +4,4 @@ Classic arcade shoot-'em-up.
 
 ## Releasing
 
-Make `decodeScoreRecord` account for previous method of recording score, if applicable.
+Make `decodeScoreRecord` account for previous format of recorded scores, if applicable.
