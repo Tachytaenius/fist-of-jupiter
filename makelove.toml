@@ -1,0 +1,25 @@
+name = "fist-of-jupiter"
+default_targets = ["win32", "win64", "appimage"]
+build_directory = "makelove-build"
+
+love_files = [
+    "::git-ls-tree::",
+    "./version.txt",
+    "-*/.*",
+    "-./readme.md",
+    "-./love_license.txt",
+    "-./makelove.tml",
+    "-./get-version.sh"
+]
+
+[archive_files]
+"license.txt" = "license.txt"
+"love_license.txt" = "love_license.txt"
+
+[hooks]
+prebuild = [
+    "./get-version.sh > version.txt"
+]
+postbuild = [
+    "rm version.txt"
+]

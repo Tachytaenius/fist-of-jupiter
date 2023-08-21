@@ -1,4 +1,5 @@
-local version = "1.0"
+local versionWithLineBreak = love.filesystem.read("version.txt") -- This file is provided on build
+local version = versionWithLineBreak and versionWithLineBreak:gsub("\n", "") or "unknown"
 
 function math.sign(x)
 	return x > 0 and 1 or x == 0 and 0 or -1
@@ -474,14 +475,14 @@ local function recordScore(name)
 	assert(not playVars.scoreRecorded, "Attempted to record score despite it already having been recorded")
 	local scoreToRecord =
 		playVars.resultsScreenVars and playVars.totalScore or
-		playVars.gameOverTextPresent and playVars.gameOverTotalScore or
+		playVars.gameOver and playVars.gameOverTotalScore or
 		(playVars.totalScore + playVars.waveScore)
 	local scoreString = table.concat({
 		version,
 		os.time(),
 		playVars.startWave,
 		playVars.waveNumber,
-		playVars.player.dead and "died" or checkAllEnemiesDefeatedAndEnemyBulletsGone() and "quitWhileAllOppositionDefeated" or "quitDuringPlay",
+		playVars.gameOver and "gameOver" or checkAllEnemiesDefeatedAndEnemyBulletsGone() and "quitWhileAllOppositionDefeated" or "quitDuringPlay",
 		scoreToRecord,
 		name
 	}, " ") .. "\n"
@@ -510,7 +511,7 @@ local function decodeScoreRecord(line)
 		(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalNonBossWave + 1) and "star" or
 		record.result == "quitWhileAllOppositionDefeated" and "tick" or
 		record.result == "quitDuringPlay" and "door" or
-		record.rsult == "died" and "skull"
+		record.result == "gameOver" and "skull"
 end
 
 local function victory()
@@ -519,7 +520,9 @@ local function victory()
 end
 
 function love.quit()
-	recordScore("Names are NYI") -- TEMP
+	if gameState == "play" and not playVars.gameOver then
+		recordScore("Names are NYI") -- TEMP
+	end
 
 	-- if alreadyAskingForName then
 	-- 	return false
@@ -858,6 +861,7 @@ function love.update(dt)
 			explode(playVars.player.radius, playVars.player.pos, playVars.player.colour, vec2(), true)
 			if playVars.spareLives == 0 then
 				playVars.gameOver = true
+				playVars.gameOverTotalScore = playVars.totalScore + playVars.waveScore
 			else
 				playVars.preRespawnCentringTimer = consts.preRespawnCentringTimerLength
 			end
@@ -1005,7 +1009,6 @@ function love.update(dt)
 							playVars.gameOverTextWaitTimer = playVars.gameOverTextWaitTimer - dt
 							if playVars.gameOverTextWaitTimer <= 0 then
 								playVars.gameOverTextPresent = true
-								playVars.gameOverTotalScore = playVars.totalScore + playVars.waveScore
 								recordScore("Names are NYI")
 							end
 						end
