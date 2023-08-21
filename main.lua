@@ -1543,11 +1543,7 @@ function love.draw()
 				x = x + consts.backgroundPointOffsetX
 				for y = -consts.backgroundPointDistanceY * 5, gameHeight + consts.backgroundPointDistanceY * 5, consts.backgroundPointDistanceY do
 					y = y + consts.backgroundPointOffsetY
-					-- love.graphics.points(
-					-- 	-- TODO: Add some perspective
-					-- 	x,
-					-- 	y
-					-- )
+
 				end
 			end
 			love.graphics.origin()

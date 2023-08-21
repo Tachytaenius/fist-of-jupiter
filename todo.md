@@ -14,7 +14,6 @@
 - Check if MOVING off screen when off screen before deleting an enemy/enemyBullet
 - Add difficulty scaling
 - Add clickable linktree link to author in credits
-- Remove background point TODO from main.lua
 - Add quitting to title from pause (use score recording code from love.quit)
 - Wait for player to reach top of screen to go to results screen instead of a timer (maybe repurpose the timer to start when the player reaches the top of the screen)
 
