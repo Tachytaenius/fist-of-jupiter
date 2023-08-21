@@ -8,8 +8,9 @@ love_files = [
     "-*/.*",
     "-./readme.md",
     "-./love_license.txt",
-    "-./makelove.tml",
-    "-./get-version.sh"
+    "-./makelove.toml",
+    "-./get-version.sh",
+    "-./todo.md"
 ]
 
 [archive_files]
