@@ -406,7 +406,7 @@ end
 
 local function initBackgroundParticles()
 	backgroundParticleBlockLayers = {
-		{distance = 6, blocks = {}},
+		-- {distance = 6, blocks = {}},
 		{distance = 5, blocks = {}},
 		{distance = 4, blocks = {}},
 		{distance = 3, blocks = {}},
