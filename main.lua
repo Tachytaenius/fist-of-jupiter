@@ -1158,7 +1158,7 @@ function love.update(dt)
 					local scoreAdd = enemy.defeatScore + playVars.player.killStreak * consts.killScoreBonusPerCurrentKillStreakOnKill
 					playVars.waveScore = playVars.waveScore + scoreAdd
 					playVars.floatingTexts:add({
-						value = scoreAdd,
+						value = tostring(scoreAdd),
 						pos = vec2.clone(enemy.pos),
 						vel = vec2(0, -20),
 						timer = consts.scoreTextTimerLength
@@ -1660,7 +1660,7 @@ function love.draw()
 			for _, count in pairs(playVars.enemyPool) do
 				enemyCount = enemyCount + count
 			end
-			local text = enemyCount
+			local text = tostring(enemyCount)
 			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, font:getHeight())
 
 			if playVars.gameOverTextPresent then
