@@ -156,7 +156,7 @@ local gameState, paused, pauseFlashTimer
 -- Variables for all states
 local backgroundParticleBlockLayers
 
-local titleVars, playVars
+local titleVars, playVars, scoreScreenVars
 
 local gameCanvas, canvasScale, font, titleFadeShader
 
@@ -512,15 +512,120 @@ local function decodeScoreRecord(line)
 		record.result == "quitWhileAllOppositionDefeated" and "tick" or
 		record.result == "quitDuringPlay" and "door" or
 		record.result == "gameOver" and "skull"
+	record.line = line
+	return record
+end
+
+local function initScoreScreenState()
+	gameState = "scoreScreen"
+
+	scoreScreenVars = {}
+
+	if not love.filesystem.getInfo("scores.txt") then
+		scoreScreenVars.noScores = true
+		return
+	end
+
+	scoreScreenVars.scores = {}
+	scoreScreenVars.startingWaveScoreSets = {}
+	scoreScreenVars.startingWaveScoreSetsFilteredByVersion = {}
+	local highestStartWave = 0
+	local highestStartWaveFilteredByVersion = 0
+	local i = 1
+	for line in love.filesystem.lines("scores.txt") do
+		local record = decodeScoreRecord(line)
+		record.index = i
+		scoreScreenVars.scores[#scoreScreenVars.scores+1] = record
+
+		scoreScreenVars.startingWaveScoreSets[record.startWave] = scoreScreenVars.startingWaveScoreSets[record.startWave] or {startWave = record.startWave}
+		scoreScreenVars.startingWaveScoreSets[record.startWave][#scoreScreenVars.startingWaveScoreSets[record.startWave]+1] = record
+		highestStartWave = math.max(highestStartWave, record.startWave)
+
+		if record.version == version then
+			scoreScreenVars.startingWaveScoreSetsFilteredByVersion[record.startWave] = scoreScreenVars.startingWaveScoreSetsFilteredByVersion[record.startWave] or {startWave = record.startWave}
+			scoreScreenVars.startingWaveScoreSetsFilteredByVersion[record.startWave][#scoreScreenVars.startingWaveScoreSetsFilteredByVersion[record.startWave]+1] = record
+			highestStartWaveFilteredByVersion = math.max(highestStartWaveFilteredByVersion, record.startWave)
+		end
+
+		i = i + 1
+	end
+
+	-- Close gaps in startingWaveScoreSetsFilteredByVersion
+	local count = 0
+	for i = 1, highestStartWaveFilteredByVersion do
+		if scoreScreenVars.startingWaveScoreSetsFilteredByVersion[i] then
+			count = count + 1
+			scoreScreenVars.startingWaveScoreSetsFilteredByVersion[count] = scoreScreenVars.startingWaveScoreSetsFilteredByVersion[i]
+		end
+	end
+	for i = count + 1, highestStartWaveFilteredByVersion do
+		scoreScreenVars.startingWaveScoreSetsFilteredByVersion[i] = nil
+	end
+	-- Close gaps in startingWaveScoreSets
+	local count = 0
+	for i = 1, highestStartWave do
+		if scoreScreenVars.startingWaveScoreSets[i] then
+			count = count + 1
+			scoreScreenVars.startingWaveScoreSets[count] = scoreScreenVars.startingWaveScoreSets[i]
+		end
+	end
+	for i = count + 1, highestStartWave do
+		scoreScreenVars.startingWaveScoreSets[i] = nil
+	end
+
+	local function cloneScoreSets(sets)
+		local ret = {}
+		for i, v in ipairs(sets) do
+			ret[i] = {}
+			for j, v2 in ipairs(v) do
+				ret[i][j] = v2
+			end
+		end
+		return ret
+	end
+
+	local function sortScoreSetsByTimestamp(sets)
+		for i, set in ipairs(sets) do
+			table.sort(set, function(a, b)
+				if a.timestamp == b.timestamp then -- The idea is that timestamp order and index order might not be the same if you concatenated two score.txt files
+					return a.index < b.index
+				end
+				return a.timestamp < b.timestamp
+			end)
+		end
+		return sets
+	end
+	local function sortScoreSetsByScore(sets)
+		for i, set in ipairs(sets) do
+			table.sort(set, function(a, b)
+				if a.score == b.score then
+					return a.index < b.index
+				end
+				return a.score < b.score
+			end)
+		end
+		return sets
+	end
+
+	scoreScreenVars.displayedSets = {
+		filterVersionSortScore = sortScoreSetsByScore(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
+		sortScore = sortScoreSetsByScore(cloneScoreSets(scoreScreenVars.startingWaveScoreSets)),
+		filterVersionSortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
+		sortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSets))
+	}
+	scoreScreenVars.scoreSetIndex = 1
+	scoreScreenVars.filteringByVersion = true
+	scoreScreenVars.sortingBy = "score"
 end
 
 local function victory()
-	-- play victory sfx, centre on screen and fly away, scroll victory text...
+	-- play victory sfx, centre on screen and fly away, scroll victory text, add to score like on results screen...
+	playVars.victory = true
 	recordScore("Names are NYI")
 end
 
 function love.quit()
-	if gameState == "play" and not playVars.gameOver then
+	if gameState == "play" and not playVars.gameOver and not playVars.victory then
 		recordScore("Names are NYI") -- TEMP
 	end
 
@@ -644,7 +749,7 @@ function love.keypressed(key)
 					if titleVars.cursorPos == 0 then
 						initPlayState()
 					elseif titleVars.cursorPos == 1 then
-						
+						initScoreScreenState()
 					elseif titleVars.cursorPos == 2 then
 						titleVars.textView = true
 						titleVars.textScroll = 0
@@ -660,13 +765,17 @@ function love.keypressed(key)
 			if key == controls.shoot then
 				nextWave()
 			end
+		elseif gameState == "scoreScreen" then
+			if key == controls.shoot then
+				gameState = "title"
+			end
 		end
 	end
 end
 
 local function getBlockCameraPos()
 	return
-		gameState == "title" and
+		(gameState == "title" or gameState == "scoreScreen") and
 		titleVars.titleCameraPos or
 		consts.playLikeStates[gameState] and
 		(playVars.player.pos * vec2(0 and 1, 1) - vec2(0, playVars.time * consts.playBackgroundRushSpeed))
@@ -772,7 +881,7 @@ function love.update(dt)
 			end
 		end
 	end
-	if gameState == "title" then
+	if gameState == "title" or gameState == "scoreScreen" then
 		local function newTargetVel()
 			local targetSpeed = consts.titleScreenCameraSpeed
 			titleVars.titleCameraTargetVelocity = vec2.fromAngle(love.math.random() * math.tau) * targetSpeed * (love.math.random() / 2 + 3/4)
@@ -1518,6 +1627,32 @@ function love.draw()
 			love.graphics.translate(assets.images.cursor:getWidth(), 0)
 			for i, v in ipairs(texts) do
 				love.graphics.print(v, 0, font:getHeight() * (i-1))
+			end
+		end
+	elseif gameState == "scoreScreen" then
+		if scoreScreenVars.noScores then
+			-- TODO
+		else
+			local setsToShow
+			if scoreScreenVars.sortingBy == "score" then
+				if scoreScreenVars.filteringByVersion then
+					setsToShow = scoreScreenVars.displayedSets.filterVersionSortScore
+				else
+					setsToShow = scoreScreenVars.displayedSets.sortScore
+				end
+			elseif scoreScreenVars.sortingBy == "timestamp" then
+				if scoreScreenVars.filteringByVersion then
+					setsToShow = scoreScreenVars.displayedSets.filterVersionSortTimestamp
+				else
+					setsToShow = scoreScreenVars.displayedSets.sortTimestamp
+				end
+			end
+			local setToShow = setsToShow[scoreScreenVars.scoreSetIndex]
+
+			local j = 0
+			for i = #setToShow, 1, -1 do
+				love.graphics.print(setToShow[i].line, 0, font:getHeight() * j)
+				j = j + 1
 			end
 		end
 	elseif consts.playLikeStates[gameState] then

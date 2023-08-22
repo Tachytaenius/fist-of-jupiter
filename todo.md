@@ -3,6 +3,7 @@
 - Add a recorded high score system with names that also records the version of the game. Allow starting on arbitrary waves. show wave start and end. replace 1 with "START", replace finalNonBossWave+1 with "BOSS". and replace end with "END" if the game was beaten. star for victory at boss, skull for death, door for quit, door and star for quitting between waves? Default to showing scores starting on 1 but allow changing category to other start waves. Save timestamp for scores in file. Show total number of scores saved in scores menu. add button to prune all but top 10 scores for all starting waves, add button to delete all scores
 - Finish score recording system (prompt player to enter name on first quit attempt and on game over and on victory, warn on score failure to be recorded, add total length of time spent not waiting or in results screen)
 - Add quitting to title from pause (use score recording code from love.quit)
+- Handle without crashing and warn about invalid score records
 - Balance score so that no factor dominates
 
 - Add animated sprites to enemy bullets
