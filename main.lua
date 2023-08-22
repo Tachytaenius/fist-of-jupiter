@@ -506,7 +506,7 @@ local function decodeScoreRecord(line)
 		result = words[5],
 		score = tonumber(words[6])
 	}
-	record.name = line:gsub(string.rep("%S+%s", #record), "") -- Handle (double or more) spaces in name
+	record.name = line:gsub(string.rep("%S+%s", 6), "") -- Handle (double or more) spaces in name
 	record.symbol =
 		(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalNonBossWave + 1) and "star" or
 		record.result == "quitWhileAllOppositionDefeated" and "tick" or
@@ -616,6 +616,7 @@ local function initScoreScreenState()
 	scoreScreenVars.scoreSetIndex = 1
 	scoreScreenVars.filteringByVersion = true
 	scoreScreenVars.sortingBy = "score"
+	scoreScreenVars.configCursor = 1
 end
 
 local function victory()
@@ -624,8 +625,24 @@ local function victory()
 	recordScore("Names are NYI")
 end
 
+local function getScoreScreenSetsToShow()
+	if scoreScreenVars.sortingBy == "score" then
+		if scoreScreenVars.filteringByVersion then
+			return scoreScreenVars.displayedSets.filterVersionSortScore
+		else
+			return scoreScreenVars.displayedSets.sortScore
+		end
+	elseif scoreScreenVars.sortingBy == "timestamp" then
+		if scoreScreenVars.filteringByVersion then
+			return scoreScreenVars.displayedSets.filterVersionSortTimestamp
+		else
+			return scoreScreenVars.displayedSets.sortTimestamp
+		end
+	end
+end
+
 function love.quit()
-	if gameState == "play" and not playVars.gameOver and not playVars.victory then
+	if consts.playLikeStates[gameState] and not playVars.gameOver and not playVars.victory then
 		recordScore("Names are NYI") -- TEMP
 	end
 
@@ -768,6 +785,36 @@ function love.keypressed(key)
 		elseif gameState == "scoreScreen" then
 			if key == controls.shoot then
 				gameState = "title"
+			elseif key == controls.left then
+				if scoreScreenVars.configCursor == 0 then
+					scoreScreenVars.scoreSetIndex = (scoreScreenVars.scoreSetIndex - 1 - 1) % #getScoreScreenSetsToShow() + 1
+				elseif scoreScreenVars.configCursor == 1 then
+					local sb = scoreScreenVars.sortingBy
+					if sb == "score" then
+						sb = "timestamp"
+					elseif sb == "timestamp" then
+						sb = "score"
+					end
+					scoreScreenVars.sortingBy = sb
+				elseif scoreScreenVars.configCursor == 2 then
+					scoreScreenVars.filteringByVersion = not scoreScreenVars.filteringByVersion
+					scoreScreenVars.scoreSetIndex = 1
+				end
+			elseif key == controls.right then
+				if scoreScreenVars.configCursor == 0 then
+					scoreScreenVars.scoreSetIndex = (scoreScreenVars.scoreSetIndex + 1 - 1) % #getScoreScreenSetsToShow() + 1
+				elseif scoreScreenVars.configCursor == 1 then
+					local sb = scoreScreenVars.sortingBy
+					if sb == "score" then
+						sb = "timestamp"
+					elseif sb == "timestamp" then
+						sb = "score"
+					end
+					scoreScreenVars.sortingBy = sb
+				elseif scoreScreenVars.configCursor == 2 then
+					scoreScreenVars.filteringByVersion = not scoreScreenVars.filteringByVersion
+					scoreScreenVars.scoreSetIndex = 1
+				end
 			end
 		end
 	end
@@ -1631,28 +1678,43 @@ function love.draw()
 		end
 	elseif gameState == "scoreScreen" then
 		if scoreScreenVars.noScores then
-			-- TODO
+			local text = "No scores to display"
+			love.graphics.print(text, (gameWidth - font:getWidth(text)) / 2, (gameHeight - font:getHeight()) / 2)
 		else
-			local setsToShow
-			if scoreScreenVars.sortingBy == "score" then
-				if scoreScreenVars.filteringByVersion then
-					setsToShow = scoreScreenVars.displayedSets.filterVersionSortScore
-				else
-					setsToShow = scoreScreenVars.displayedSets.sortScore
-				end
-			elseif scoreScreenVars.sortingBy == "timestamp" then
-				if scoreScreenVars.filteringByVersion then
-					setsToShow = scoreScreenVars.displayedSets.filterVersionSortTimestamp
-				else
-					setsToShow = scoreScreenVars.displayedSets.sortTimestamp
-				end
-			end
+			local setsToShow = getScoreScreenSetsToShow()
 			local setToShow = setsToShow[scoreScreenVars.scoreSetIndex]
 
-			local j = 0
-			for i = #setToShow, 1, -1 do
-				love.graphics.print(setToShow[i].line, 0, font:getHeight() * j)
-				j = j + 1
+			if setToShow then
+				local j = 0
+				for i = #setToShow, #setToShow - 9, -1 do
+					local record = setToShow[i]
+					if not record then
+						break
+					end
+					local linesPerEntry = 3
+					love.graphics.translate(borderSize, borderSize + j * font:getHeight() * (linesPerEntry + 0.5))
+					local timeString = os.date("%Y-%m-%d %H:%M:%S", record.timestamp)
+					if os.date("*t", record.timestamp).isdst then
+						timeString = timeString .. " DST"
+					end
+					timeString = timeString
+					local versionString = record.version == "unknown" and "an unknown version" or ("version " .. record.version)
+					local resultString =
+						record.symbol == "star" and "was victorious" or
+						record.symbol == "tick" and "quit while safe" or
+						record.symbol == "door" and "quit during combat" or
+						record.symbol == "skull" and "died"
+					local text =
+						"\"" .. record.name .. "\" scored " .. record.score .. " points on\n" ..
+						timeString .. " on waves " .. record.startWave .. "-" .. record.endWave .. " and\n" ..
+						resultString .. ", on " .. versionString .. "\n"
+					love.graphics.print(text, 0, 0)
+					love.graphics.origin()
+					j = j + 1
+				end
+			else
+				local text = "No scores with this filter"
+				love.graphics.print(text, (gameWidth - font:getWidth(text)) / 2, (gameHeight - font:getHeight()) / 2)
 			end
 		end
 	elseif consts.playLikeStates[gameState] then
