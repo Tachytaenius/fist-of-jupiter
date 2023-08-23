@@ -529,14 +529,15 @@ local function initScoreScreenState()
 
 	if not love.filesystem.getInfo("scores.txt") then
 		scoreScreenVars.noScores = true
+		scoreScreenVars.scoresRecorded = 0
 		return
 	end
 
 	scoreScreenVars.scores = {}
 	scoreScreenVars.startingWaveScoreSets = {}
 	scoreScreenVars.startingWaveScoreSetsFilteredByVersion = {}
-	local highestStartWave = 0
-	local highestStartWaveFilteredByVersion = 0
+	scoreScreenVars.startingWaveScoreSetsVictoriesOnly = {}
+	scoreScreenVars.startingWaveScoreSetsFilteredByVersionVictoriesOnly = {}
 	local i = 1
 	for line in love.filesystem.lines("scores.txt") do
 		local record = decodeScoreRecord(line)
@@ -545,39 +546,52 @@ local function initScoreScreenState()
 
 		scoreScreenVars.startingWaveScoreSets[record.startWave] = scoreScreenVars.startingWaveScoreSets[record.startWave] or {startWave = record.startWave}
 		scoreScreenVars.startingWaveScoreSets[record.startWave][#scoreScreenVars.startingWaveScoreSets[record.startWave]+1] = record
-		highestStartWave = math.max(highestStartWave, record.startWave)
 
 		if record.version == version then
 			scoreScreenVars.startingWaveScoreSetsFilteredByVersion[record.startWave] = scoreScreenVars.startingWaveScoreSetsFilteredByVersion[record.startWave] or {startWave = record.startWave}
 			scoreScreenVars.startingWaveScoreSetsFilteredByVersion[record.startWave][#scoreScreenVars.startingWaveScoreSetsFilteredByVersion[record.startWave]+1] = record
-			highestStartWaveFilteredByVersion = math.max(highestStartWaveFilteredByVersion, record.startWave)
+		end
+
+		if record.symbol == "star" then
+			scoreScreenVars.startingWaveScoreSetsVictoriesOnly[record.startWave] = scoreScreenVars.startingWaveScoreSetsVictoriesOnly[record.startWave] or {startWave = record.startWave}
+			scoreScreenVars.startingWaveScoreSetsVictoriesOnly[record.startWave][#scoreScreenVars.startingWaveScoreSetsVictoriesOnly[record.startWave]+1] = record
+		end
+
+		if record.version == version and record.symbol == "star" then
+			scoreScreenVars.startingWaveScoreSetsFilteredByVersionVictoriesOnly[record.startWave] = scoreScreenVars.startingWaveScoreSetsFilteredByVersionVictoriesOnly[record.startWave] or {startWave = record.startWave}
+			scoreScreenVars.startingWaveScoreSetsFilteredByVersionVictoriesOnly[record.startWave][#scoreScreenVars.startingWaveScoreSetsFilteredByVersionVictoriesOnly[record.startWave]+1] = record
 		end
 
 		i = i + 1
 	end
+	scoreScreenVars.scoresRecorded = #scoreScreenVars.scores
 
-	-- Close gaps in startingWaveScoreSetsFilteredByVersion
-	local count = 0
-	for i = 1, highestStartWaveFilteredByVersion do
-		if scoreScreenVars.startingWaveScoreSetsFilteredByVersion[i] then
-			count = count + 1
-			scoreScreenVars.startingWaveScoreSetsFilteredByVersion[count] = scoreScreenVars.startingWaveScoreSetsFilteredByVersion[i]
+	local function closeGaps(t)
+		local highest = 0
+		for k, v in pairs(t) do
+			if type(k) == "number" then
+				highest = math.max(highest, k)
+			end
 		end
-	end
-	for i = count + 1, highestStartWaveFilteredByVersion do
-		scoreScreenVars.startingWaveScoreSetsFilteredByVersion[i] = nil
-	end
-	-- Close gaps in startingWaveScoreSets
-	local count = 0
-	for i = 1, highestStartWave do
-		if scoreScreenVars.startingWaveScoreSets[i] then
-			count = count + 1
-			scoreScreenVars.startingWaveScoreSets[count] = scoreScreenVars.startingWaveScoreSets[i]
+
+		local count = 0
+		for i = 1, highest do
+			if t[i] then
+				count = count + 1
+				t[count] = t[i]
+			end
 		end
+		for i = count + 1, highest do
+			t[i] = nil
+		end
+
+		return t
 	end
-	for i = count + 1, highestStartWave do
-		scoreScreenVars.startingWaveScoreSets[i] = nil
-	end
+
+	closeGaps(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)
+	closeGaps(scoreScreenVars.startingWaveScoreSets)
+	closeGaps(scoreScreenVars.startingWaveScoreSetsFilteredByVersionVictoriesOnly)
+	closeGaps(scoreScreenVars.startingWaveScoreSetsVictoriesOnly)
 
 	local function cloneScoreSets(sets)
 		local ret = {}
@@ -625,12 +639,22 @@ local function initScoreScreenState()
 	end
 
 	scoreScreenVars.displayedSets = {
-		filterVersionSortScore = sortScoreSetsByScore(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
-		sortScore = sortScoreSetsByScore(cloneScoreSets(scoreScreenVars.startingWaveScoreSets)),
-		filterVersionSortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
-		sortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSets)),
-		filterVersionSortTimeSpent = sortScoreSetsByTimeSpentInPlay(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
-		sortTimeSpent = sortScoreSetsByTimeSpentInPlay(cloneScoreSets(scoreScreenVars.startingWaveScoreSets))
+		victoriesOnly = {
+			filterVersionSortScore = sortScoreSetsByScore(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersionVictoriesOnly)),
+			sortScore = sortScoreSetsByScore(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsVictoriesOnly)),
+			filterVersionSortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersionVictoriesOnly)),
+			sortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsVictoriesOnly)),
+			filterVersionSortTimeSpent = sortScoreSetsByTimeSpentInPlay(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersionVictoriesOnly)),
+			sortTimeSpent = sortScoreSetsByTimeSpentInPlay(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsVictoriesOnly))
+		},
+		all = {
+			filterVersionSortScore = sortScoreSetsByScore(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
+			sortScore = sortScoreSetsByScore(cloneScoreSets(scoreScreenVars.startingWaveScoreSets)),
+			filterVersionSortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
+			sortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSets)),
+			filterVersionSortTimeSpent = sortScoreSetsByTimeSpentInPlay(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
+			sortTimeSpent = sortScoreSetsByTimeSpentInPlay(cloneScoreSets(scoreScreenVars.startingWaveScoreSets))
+		}
 	}
 	scoreScreenVars.scoreSetIndex = 1
 	scoreScreenVars.filteringByVersion = true
@@ -645,23 +669,24 @@ local function victory()
 end
 
 local function getScoreScreenSetsToShow()
+	local choices = scoreScreenVars.displayedSets[scoreScreenVars.victoriesOnly and "victoriesOnly" or "all"]
 	if scoreScreenVars.sortingBy == "score" then
 		if scoreScreenVars.filteringByVersion then
-			return scoreScreenVars.displayedSets.filterVersionSortScore
+			return choices.filterVersionSortScore
 		else
-			return scoreScreenVars.displayedSets.sortScore
+			return choices.sortScore
 		end
 	elseif scoreScreenVars.sortingBy == "timestamp" then
 		if scoreScreenVars.filteringByVersion then
-			return scoreScreenVars.displayedSets.filterVersionSortTimestamp
+			return choices.filterVersionSortTimestamp
 		else
-			return scoreScreenVars.displayedSets.sortTimestamp
+			return choices.sortTimestamp
 		end
 	elseif scoreScreenVars.sortingBy == "timeSpent" then
 		if scoreScreenVars.filteringByVersion then
-			return scoreScreenVars.displayedSets.filterVersionSortTimeSpent
+			return choices.filterVersionSortTimeSpent
 		else
-			return scoreScreenVars.displayedSets.sortTimeSpent
+			return choices.sortTimeSpent
 		end
 	end
 end
@@ -823,6 +848,9 @@ function love.keypressed(key)
 				elseif scoreScreenVars.configCursor == 2 then
 					scoreScreenVars.filteringByVersion = not scoreScreenVars.filteringByVersion
 					scoreScreenVars.scoreSetIndex = 1
+				elseif scoreScreenVars.configCursor == 3 then
+					scoreScreenVars.victoriesOnly = not scoreScreenVars.victoriesOnly
+					scoreScreenVars.scoreSetIndex = 1
 				end
 			elseif key == controls.right then
 				if scoreScreenVars.configCursor == 0 then
@@ -832,11 +860,14 @@ function love.keypressed(key)
 				elseif scoreScreenVars.configCursor == 2 then
 					scoreScreenVars.filteringByVersion = not scoreScreenVars.filteringByVersion
 					scoreScreenVars.scoreSetIndex = 1
+				elseif scoreScreenVars.configCursor == 3 then
+					scoreScreenVars.victoriesOnly = not scoreScreenVars.victoriesOnly
+					scoreScreenVars.scoreSetIndex = 1
 				end
 			elseif key == controls.up then
-				scoreScreenVars.configCursor = (scoreScreenVars.configCursor - 1) % 3
+				scoreScreenVars.configCursor = (scoreScreenVars.configCursor - 1) % 4
 			elseif key == controls.down then
-				scoreScreenVars.configCursor = (scoreScreenVars.configCursor + 1) % 3
+				scoreScreenVars.configCursor = (scoreScreenVars.configCursor + 1) % 4
 			end
 		end
 	end
@@ -1710,9 +1741,9 @@ function love.draw()
 			local setsToShow = getScoreScreenSetsToShow()
 			local setToShow = setsToShow[scoreScreenVars.scoreSetIndex]
 
+			local linesPerEntry = 4
+			local scoresToDisplay = 4
 			if setToShow then
-				local linesPerEntry = 4
-				local scoresToDisplay = 4
 				local j = 0
 				for i = #setToShow, #setToShow - (scoresToDisplay - 1), -1 do
 					local record = setToShow[i]
@@ -1736,23 +1767,27 @@ function love.draw()
 						"\"" .. record.name .. "\" scored " .. record.score .. " points on\n" ..
 						timeString .. " on waves " .. record.startWave .. "-" .. record.endWave .. " and\n" ..
 						resultString .. " after " .. timeSpentString .. ",\n" ..
-						"on " .. versionString .. "\n"
+						"on " .. versionString .. ".\n"
 					love.graphics.print(text, 0, 0)
 					love.graphics.origin()
 					j = j + 1
 				end
-				love.graphics.translate(borderSize, borderSize + font:getHeight() * (linesPerEntry + 0.5) * scoresToDisplay)
-				love.graphics.draw(assets.images.cursor, 0, font:getHeight() * scoreScreenVars.configCursor + font:getHeight() / 2 - assets.images.cursor:getHeight() / 2)
-				love.graphics.translate(assets.images.cursor:getWidth(), 0)
-				love.graphics.print(
-					"Starting wave: " .. setToShow.startWave .. "\n" ..
-					"Sorting by: " .. (scoreScreenVars.sortingBy == "timeSpent" and "time spent" or scoreScreenVars.sortingBy) .. "\n" ..
-					"Version filtering: " .. (scoreScreenVars.filteringByVersion and "yes" or "no"),
-				0, 0)
 			else
-				local text = "No scores with this filter"
-				love.graphics.print(text, (gameWidth - font:getWidth(text)) / 2, (gameHeight - font:getHeight()) / 2)
+				local text = "No scores with this filter."
+				love.graphics.print(text, borderSize, borderSize)
+				love.graphics.origin()
 			end
+			love.graphics.translate(borderSize, borderSize + font:getHeight() * (linesPerEntry + 0.5) * scoresToDisplay)
+			love.graphics.draw(assets.images.cursor, 0, font:getHeight() * scoreScreenVars.configCursor + font:getHeight() / 2 - assets.images.cursor:getHeight() / 2)
+			love.graphics.translate(assets.images.cursor:getWidth(), 0)
+			love.graphics.print(
+				"Starting wave: " .. (setToShow and setToShow.startWave or "N/A") .. "\n" ..
+				"Sorting by: " .. (scoreScreenVars.sortingBy == "timeSpent" and "time spent" or scoreScreenVars.sortingBy) .. (scoreScreenVars.sortingBy == "timeSpent" and not scoreScreenVars.victoriesOnly and " (showing non-victories)" or "") .. "\n" ..
+				"Version filtering: " .. (scoreScreenVars.filteringByVersion and "yes" or "no") .. "\n" ..
+				"Victories only: " .. (scoreScreenVars.victoriesOnly and "yes" or "no") .. "\n" ..
+				"\n" ..
+				scoreScreenVars.scoresRecorded .. " scores recorded",
+			0, 0)
 		end
 	elseif consts.playLikeStates[gameState] then
 		if gameState == "waveWon" and playVars.onResultsScreen then
