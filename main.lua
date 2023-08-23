@@ -1797,7 +1797,8 @@ function love.draw()
 				"WAVE SCORE: " .. playVars.waveScore,
 				"LIFE BONUS: " .. playVars.resultsScreenVars.lifeBonus,
 				"TIME BONUS: " .. playVars.resultsScreenVars.timeBonus,
-				"TOTAL SCORE: " .. playVars.totalScore
+				"TOTAL SCORE: " .. playVars.totalScore,
+				"TIME: " .. math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60))
 			}
 			local textHeight = font:getHeight() * #texts
 			love.graphics.translate(0, gameHeight / 2 - textHeight / 2)
@@ -1935,8 +1936,10 @@ function love.draw()
 			if playVars.gameOverTextPresent then
 				local gameOverText = "GAME OVER"
 				local totalScoreText = "TOTAL SCORE: " .. playVars.gameOverTotalScore
-				love.graphics.print(gameOverText, gameWidth / 2 - font:getWidth(gameOverText) / 2, gameHeight / 2 - font:getHeight())
-				love.graphics.print(totalScoreText, gameWidth / 2 - font:getWidth(totalScoreText) / 2, gameHeight / 2)
+				local timeText = "TIME: " .. math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60))
+				love.graphics.print(gameOverText, gameWidth / 2 - font:getWidth(gameOverText) / 2, gameHeight / 2 - 1.5 * font:getHeight())
+				love.graphics.print(totalScoreText, gameWidth / 2 - font:getWidth(totalScoreText) / 2, gameHeight / 2 - 0.5 * font:getHeight())
+				love.graphics.print(timeText, gameWidth / 2 - font:getWidth(timeText) / 2, gameHeight / 2 + 0.5 * font:getHeight())
 			end
 
 			love.graphics.print(playVars.totalScore, 1, 0)
