@@ -467,6 +467,7 @@ local function initPlayState()
 	playVars.scoreBoostPerLifeAtWaveWon = 10 -- You may go through lots of waves with the same number of lives, which would be an excessive advantage, hence the low value
 	playVars.noBacktracking = true
 	playVars.startWave = 1
+	playVars.timeSpentInPlay = 0
 
 	nextWave()
 end
@@ -484,6 +485,7 @@ local function recordScore(name)
 		playVars.waveNumber,
 		playVars.gameOver and "gameOver" or checkAllEnemiesDefeatedAndEnemyBulletsGone() and "quitWhileAllOppositionDefeated" or "quitDuringPlay",
 		scoreToRecord,
+		math.floor(playVars.timeSpentInPlay),
 		name
 	}, " ") .. "\n"
 	local success, errorMessage = love.filesystem.append("scores.txt", scoreString)
@@ -504,9 +506,10 @@ local function decodeScoreRecord(line)
 		startWave = tonumber(words[3]),
 		endWave = tonumber(words[4]),
 		result = words[5],
-		score = tonumber(words[6])
+		score = tonumber(words[6]),
+		timeSpentInPlay = tonumber(words[7])
 	}
-	record.name = line:gsub(string.rep("%S+%s", 6), "") -- Handle (double or more) spaces in name
+	record.name = line:gsub(string.rep("%S+%s", 7), "") -- Handle (double or more) spaces in name
 	record.symbol =
 		(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalNonBossWave + 1) and "star" or
 		record.result == "quitWhileAllOppositionDefeated" and "tick" or
@@ -577,8 +580,8 @@ local function initScoreScreenState()
 		local ret = {}
 		for i, v in ipairs(sets) do
 			ret[i] = {}
-			for j, v2 in ipairs(v) do
-				ret[i][j] = v2
+			for k, v2 in pairs(v) do
+				ret[i][k] = v2
 			end
 		end
 		return ret
@@ -606,17 +609,30 @@ local function initScoreScreenState()
 		end
 		return sets
 	end
+	local function sortScoreSetsByTimeSpentInPlay(sets)
+		for i, set in ipairs(sets) do
+			table.sort(set, function(a, b)
+				if a.score == b.score then
+					return a.index < b.index
+				end
+				return a.timeSpentInPlay > b.timeSpentInPlay
+			end)
+		end
+		return sets
+	end
 
 	scoreScreenVars.displayedSets = {
 		filterVersionSortScore = sortScoreSetsByScore(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
 		sortScore = sortScoreSetsByScore(cloneScoreSets(scoreScreenVars.startingWaveScoreSets)),
 		filterVersionSortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
-		sortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSets))
+		sortTimestamp = sortScoreSetsByTimestamp(cloneScoreSets(scoreScreenVars.startingWaveScoreSets)),
+		filterVersionSortTimeSpent = sortScoreSetsByTimeSpentInPlay(cloneScoreSets(scoreScreenVars.startingWaveScoreSetsFilteredByVersion)),
+		sortTimeSpent = sortScoreSetsByTimeSpentInPlay(cloneScoreSets(scoreScreenVars.startingWaveScoreSets))
 	}
 	scoreScreenVars.scoreSetIndex = 1
 	scoreScreenVars.filteringByVersion = true
 	scoreScreenVars.sortingBy = "score"
-	scoreScreenVars.configCursor = 1
+	scoreScreenVars.configCursor = 0
 end
 
 local function victory()
@@ -637,6 +653,12 @@ local function getScoreScreenSetsToShow()
 			return scoreScreenVars.displayedSets.filterVersionSortTimestamp
 		else
 			return scoreScreenVars.displayedSets.sortTimestamp
+		end
+	elseif scoreScreenVars.sortingBy == "timeSpent" then
+		if scoreScreenVars.filteringByVersion then
+			return scoreScreenVars.displayedSets.filterVersionSortTimeSpent
+		else
+			return scoreScreenVars.displayedSets.sortTimeSpent
 		end
 	end
 end
@@ -783,19 +805,18 @@ function love.keypressed(key)
 				nextWave()
 			end
 		elseif gameState == "scoreScreen" then
+			local sortTypes = {
+				"score", score = 1,
+				"timeSpent", timeSpent = 2,
+				"timestamp", timestamp = 3
+			}
 			if key == controls.shoot then
 				gameState = "title"
 			elseif key == controls.left then
 				if scoreScreenVars.configCursor == 0 then
 					scoreScreenVars.scoreSetIndex = (scoreScreenVars.scoreSetIndex - 1 - 1) % #getScoreScreenSetsToShow() + 1
 				elseif scoreScreenVars.configCursor == 1 then
-					local sb = scoreScreenVars.sortingBy
-					if sb == "score" then
-						sb = "timestamp"
-					elseif sb == "timestamp" then
-						sb = "score"
-					end
-					scoreScreenVars.sortingBy = sb
+					scoreScreenVars.sortingBy = sortTypes[(sortTypes[scoreScreenVars.sortingBy] - 1 - 1) % #sortTypes + 1]
 				elseif scoreScreenVars.configCursor == 2 then
 					scoreScreenVars.filteringByVersion = not scoreScreenVars.filteringByVersion
 					scoreScreenVars.scoreSetIndex = 1
@@ -804,17 +825,15 @@ function love.keypressed(key)
 				if scoreScreenVars.configCursor == 0 then
 					scoreScreenVars.scoreSetIndex = (scoreScreenVars.scoreSetIndex + 1 - 1) % #getScoreScreenSetsToShow() + 1
 				elseif scoreScreenVars.configCursor == 1 then
-					local sb = scoreScreenVars.sortingBy
-					if sb == "score" then
-						sb = "timestamp"
-					elseif sb == "timestamp" then
-						sb = "score"
-					end
-					scoreScreenVars.sortingBy = sb
+					scoreScreenVars.sortingBy = sortTypes[(sortTypes[scoreScreenVars.sortingBy] + 1 - 1) % #sortTypes + 1]
 				elseif scoreScreenVars.configCursor == 2 then
 					scoreScreenVars.filteringByVersion = not scoreScreenVars.filteringByVersion
 					scoreScreenVars.scoreSetIndex = 1
 				end
+			elseif key == controls.up then
+				scoreScreenVars.configCursor = (scoreScreenVars.configCursor - 1) % 3
+			elseif key == controls.down then
+				scoreScreenVars.configCursor = (scoreScreenVars.configCursor + 1) % 3
 			end
 		end
 	end
@@ -1035,6 +1054,10 @@ function love.update(dt)
 			end
 		end
 		if isPlayerPresent() then
+			if not (checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0) and gameState == "play" then
+				playVars.timeSpentInPlay = playVars.timeSpentInPlay + dt
+			end
+
 			local slow = love.keyboard.isDown(controls.slow)
 			local maxSpeedX = slow and 50 or playVars.player.maxSpeedX
 			local maxSpeedUp = slow and 50 or playVars.player.maxSpeedUp
@@ -1685,13 +1708,14 @@ function love.draw()
 			local setToShow = setsToShow[scoreScreenVars.scoreSetIndex]
 
 			if setToShow then
+				local linesPerEntry = 4
+				local scoresToDisplay = 4
 				local j = 0
-				for i = #setToShow, #setToShow - 9, -1 do
+				for i = #setToShow, #setToShow - (scoresToDisplay - 1), -1 do
 					local record = setToShow[i]
 					if not record then
 						break
 					end
-					local linesPerEntry = 3
 					love.graphics.translate(borderSize, borderSize + j * font:getHeight() * (linesPerEntry + 0.5))
 					local timeString = os.date("%Y-%m-%d %H:%M:%S", record.timestamp)
 					if os.date("*t", record.timestamp).isdst then
@@ -1704,14 +1728,24 @@ function love.draw()
 						record.symbol == "tick" and "quit while safe" or
 						record.symbol == "door" and "quit during combat" or
 						record.symbol == "skull" and "died"
+					local timeSpentString = math.floor(record.timeSpentInPlay / 60) .. " mins and " .. (record.timeSpentInPlay % 60) .. " secs"
 					local text =
 						"\"" .. record.name .. "\" scored " .. record.score .. " points on\n" ..
 						timeString .. " on waves " .. record.startWave .. "-" .. record.endWave .. " and\n" ..
-						resultString .. ", on " .. versionString .. "\n"
+						resultString .. " after " .. timeSpentString .. ",\n" ..
+						"on " .. versionString .. "\n"
 					love.graphics.print(text, 0, 0)
 					love.graphics.origin()
 					j = j + 1
 				end
+				love.graphics.translate(borderSize, borderSize + font:getHeight() * (linesPerEntry + 0.5) * scoresToDisplay)
+				love.graphics.draw(assets.images.cursor, 0, font:getHeight() * scoreScreenVars.configCursor + font:getHeight() / 2 - assets.images.cursor:getHeight() / 2)
+				love.graphics.translate(assets.images.cursor:getWidth(), 0)
+				love.graphics.print(
+					"Starting wave: " .. setToShow.startWave .. "\n" ..
+					"Sorting by: " .. (scoreScreenVars.sortingBy == "timeSpent" and "time spent" or scoreScreenVars.sortingBy) .. "\n" ..
+					"Version filtering: " .. (scoreScreenVars.filteringByVersion and "yes" or "no"),
+				0, 0)
 			else
 				local text = "No scores with this filter"
 				love.graphics.print(text, (gameWidth - font:getWidth(text)) / 2, (gameHeight - font:getHeight()) / 2)
