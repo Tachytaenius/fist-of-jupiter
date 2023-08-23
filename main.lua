@@ -432,12 +432,12 @@ local function initTitleState()
 	titleVars.storyText = love.filesystem.read("story.txt")
 	local _, lines = font:getWrap(titleVars.storyText, titleVars.textCanvas:getWidth())
 	titleVars.storyTextLines = lines
-	titleVars.storyTextScrollMax = math.max(0, #lines * font:getHeight() - titleVars.textCanvas:getHeight() + consts.textFadeDistance)
+	titleVars.storyTextScrollMax = math.max(0, #lines * font:getHeight() - titleVars.textCanvas:getHeight())
 
 	titleVars.creditsText = love.filesystem.read("credits.txt")
 	local _, lines = font:getWrap(titleVars.creditsText, titleVars.textCanvas:getWidth())
 	titleVars.creditsTextLines = lines
-	titleVars.creditsTextScrollMax = math.max(0, #lines * font:getHeight() - titleVars.textCanvas:getHeight() + consts.textFadeDistance)
+	titleVars.creditsTextScrollMax = math.max(0, #lines * font:getHeight() - titleVars.textCanvas:getHeight())
 
 	titleFadeShader = love.graphics.newShader("titleFadeShader.glsl")
 	titleFadeShader:send("canvasSize", {titleVars.textCanvas:getDimensions()})
