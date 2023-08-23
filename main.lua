@@ -1751,7 +1751,7 @@ function love.draw()
 						break
 					end
 					love.graphics.translate(borderSize, borderSize + j * font:getHeight() * (linesPerEntry + 0.5))
-					local timeString = os.date("%Y-%m-%d %H:%M:%S", record.timestamp)
+					local timeString = os.date("%Y-%m-%d %H:%M", record.timestamp)
 					if os.date("*t", record.timestamp).isdst then
 						timeString = timeString .. " DST"
 					end
