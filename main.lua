@@ -1,6 +1,9 @@
 local versionWithLineBreak = love.filesystem.read("version.txt") -- This file is provided on build
 local version = versionWithLineBreak and versionWithLineBreak:gsub("\n", "") or "unknown"
 
+-- It's known that if you quit while all opposition are defeated but a powerup is on screen (i.e. before results screen),
+-- your score record will say quitWhileAllOppositionDefeated but you won't get the life bonus or time bonus
+
 function math.sign(x)
 	return x > 0 and 1 or x == 0 and 0 or -1
 end
@@ -475,7 +478,7 @@ end
 local function recordScore(name)
 	assert(not playVars.scoreRecorded, "Attempted to record score despite it already having been recorded")
 	local scoreToRecord =
-		playVars.resultsScreenVars and playVars.totalScore or
+		playVars.onResultsScreen and playVars.totalScore or
 		playVars.gameOver and playVars.gameOverTotalScore or
 		(playVars.totalScore + playVars.waveScore)
 	local scoreString = table.concat({
