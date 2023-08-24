@@ -141,7 +141,8 @@ local consts = {
 	firstSuperPowerupWave = 14,
 	revealedPowerupRadius = 4,
 	playBackgroundRushSpeed = 100,
-	revealedPowerupSourceGravity = 75
+	revealedPowerupSourceGravity = 75,
+	newLifePerScore = 2000
 }
 
 local controls = {
@@ -1611,7 +1612,19 @@ function love.update(dt)
 					playVars.resultsScreenVars.lifeBonus = lifeBonus
 					local timeBonus = math.ceil(playVars.bonusTimer * consts.bonusScoreTimerScorePerSecondLeft)
 					playVars.resultsScreenVars.timeBonus = timeBonus
-					playVars.totalScore = playVars.totalScore + playVars.waveScore + lifeBonus + timeBonus
+					local addToTotal = playVars.waveScore + lifeBonus + timeBonus
+					local livesToAward = 0
+					while addToTotal > 0 do
+						local nextMultipleOfNewLifePerScore = playVars.totalScore + (consts.newLifePerScore - playVars.totalScore % consts.newLifePerScore) -- excluding the one total is on if it is one
+						local prevTotal = playVars.totalScore
+						playVars.totalScore = math.min(nextMultipleOfNewLifePerScore, playVars.totalScore + addToTotal)
+						if playVars.totalScore == nextMultipleOfNewLifePerScore then
+							livesToAward = livesToAward + 1
+				end
+						addToTotal = addToTotal - (playVars.totalScore - prevTotal)
+			end
+					playVars.resultsScreenVars.addedLives = livesToAward
+					playVars.spareLives = playVars.spareLives + livesToAward
 				end
 			end
 		end
@@ -1742,6 +1755,8 @@ function love.draw()
 			end
 			love.graphics.origin()
 			local text = "Move: WASD, shoot: Space, pause: Esc"
+			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight - borderSize - font:getHeight() * 2)
+			local text = "Extra life (at end of wave) every " .. consts.newLifePerScore .. " points"
 			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight - borderSize - font:getHeight())
 		end
 	elseif gameState == "scoreScreen" then
@@ -1809,6 +1824,7 @@ function love.draw()
 				"LIFE BONUS: " .. playVars.resultsScreenVars.lifeBonus,
 				"TIME BONUS: " .. playVars.resultsScreenVars.timeBonus,
 				"TOTAL SCORE: " .. playVars.totalScore,
+				"LIVES AWARDED: " .. playVars.resultsScreenVars.addedLives,
 				"TIME: " .. math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60))
 			}
 			local textHeight = font:getHeight() * #texts
@@ -1921,9 +1937,13 @@ function love.draw()
 
 			love.graphics.origin()
 
-			for i = 1, playVars.spareLives do
-				love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
-			end
+			-- for i = 1, playVars.spareLives do
+			-- 	love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
+			-- end
+			love.graphics.draw(assets.images.player, gameWidth - assets.images.player:getWidth(), font:getHeight() / 2 - assets.images.player:getHeight() / 2)
+			local text = tostring(playVars.spareLives)
+			love.graphics.print(text, gameWidth - assets.images.player:getWidth() - font:getWidth(text), 0)
+
 			local hbx = gameWidth - 1 - consts.healthBarPadding * 2 - consts.healthBarWidth
 			local hby = assets.images.player:getHeight() + 1
 			love.graphics.setColor(0.5, 0.5, 0.5)
