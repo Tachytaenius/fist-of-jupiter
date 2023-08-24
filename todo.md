@@ -4,7 +4,6 @@
 - Handle without crashing and warn about invalid score records
 - Balance score so that no factor dominates
 
-- Add quitting to title from pause (use score recording code from love.quit)
 - Add animated sprites to enemy bullets
 - Sound effects for: game start, shots from all enemy classes, player shots, player explosion, game over, enemy explosion, boss start, game completed, powerup acquired, hyper beam firing, extra life acquried
 - Better control total amount of enemies per wave so that it ramps up
@@ -25,3 +24,4 @@
 - Make font cooler
 - Use interpolation for respawn centring
 - Add transitions to the particle background when in or out of a title screen submenu
+- Ensure rainbow beam parts always connect
