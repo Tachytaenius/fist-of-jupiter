@@ -142,7 +142,8 @@ local consts = {
 	revealedPowerupRadius = 4,
 	playBackgroundRushSpeed = 100,
 	revealedPowerupSourceGravity = 75,
-	newLifePerScore = 2000
+	newLifePerScore = 2000,
+	pauseQuitTimerLength = 2
 }
 
 local controls = {
@@ -693,10 +694,14 @@ local function getScoreScreenSetsToShow()
 	end
 end
 
-function love.quit()
+local function tryRecordQuitScore()
 	if consts.playLikeStates[gameState] and not playVars.gameOver and not playVars.victory then
 		recordScore("Names are NYI") -- TEMP
 	end
+end
+
+function love.quit()
+	tryRecordQuitScore()
 
 	-- if alreadyAskingForName then
 	-- 	return false
@@ -794,6 +799,7 @@ function love.keypressed(key)
 		end
 		if paused then
 			pauseFlashTimer = 0
+			playVars.pauseQuitTimer = consts.pauseQuitTimerLength
 		end
 	elseif not paused then
 		if gameState == "play" then
@@ -889,6 +895,16 @@ function love.update(dt)
 	end
 	if paused then
 		pauseFlashTimer = (pauseFlashTimer + dt) % consts.pauseFlashTimerLength
+		if love.keyboard.isDown("space") then
+			playVars.pauseQuitTimer = playVars.pauseQuitTimer - dt
+			if playVars.pauseQuitTimer <= 0 then
+				tryRecordQuitScore()
+				initTitleState()
+				playVars = nil
+			end
+		else
+			playVars.pauseQuitTimer = consts.pauseQuitTimerLength
+		end
 		return
 	end
 	if backgroundParticleBlockLayers then
@@ -1641,6 +1657,13 @@ function love.draw()
 			love.graphics.setColor(1, 1, 1)
 		end
 		love.graphics.draw(gameCanvas, 0, 0, 0, canvasScale)
+		love.graphics.setColor(1, 1, 1)
+		love.graphics.scale(canvasScale) -- The text does remain perfectly aligned
+		local text = "Paused"
+		love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight /2 - font:getHeight())
+		local text = "Hold shoot for 2 seconds to quit"
+		love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight / 2)
+		love.graphics.setCanvas()
 		return
 	end
 
