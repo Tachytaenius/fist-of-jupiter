@@ -1732,6 +1732,9 @@ function love.draw()
 			for i, v in ipairs(texts) do
 				love.graphics.print(v, 0, font:getHeight() * (i-1))
 			end
+			love.graphics.origin()
+			local text = "Move: WASD, shoot: Space, pause: Esc"
+			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight - borderSize - font:getHeight())
 		end
 	elseif gameState == "scoreScreen" then
 		if scoreScreenVars.noScores then
