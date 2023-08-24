@@ -316,7 +316,8 @@ local function spawnPowerup(super)
 		super = super,
 		colour = super and {0.36, 0.45, 0.5} or {0.4, 0.4, 0.5},
 		revealed = false,
-		powerup = super and "hyperBeam" or "doubleBullets" -- Should be easy enough to add more powerups
+		powerup = super and "hyperBeam" or "doubleBullets", -- Should be easy enough to add more powerups
+		scoreToGive = super and 75 or 50
 	}
 	local speed = (super and 55 or 50) * math.lerp(1, 1.5, (playVars.waveNumber - 1) / (consts.finalNonBossWave + 1 - 1))
 	local yMin, yMax = gameHeight / 4, gameHeight / 2
@@ -1555,6 +1556,13 @@ function love.update(dt)
 				source.vel.y = source.vel.y + consts.revealedPowerupSourceGravity * dt
 			end
 			if source.revealed and isPlayerPresent() and vec2.distance(source.pos, playVars.player.pos) <= source.radius + playVars.player.radius then
+				playVars.waveScore = playVars.waveScore + source.scoreToGive
+				playVars.floatingTexts:add({
+					value = tostring(source.scoreToGive),
+					pos = vec2.clone(source.pos),
+					vel = vec2(0, -20),
+					timer = consts.scoreTextTimerLength
+				})
 				powerupSourcesToDelete[#powerupSourcesToDelete+1] = source
 				givePowerup(source.powerup)
 			elseif circleOffScreen(source.radius, source.pos) then
