@@ -367,11 +367,46 @@ local function nextWave()
 	generatePlayer(true)
 	playVars.backtrackLimit = getCurBacktrackLimit()
 
-	playVars.enemyPool = {}
-	for k, v in pairs(registry.enemies) do
-		playVars.enemyPool[k] = math.floor(v.count(playVars.waveNumber))
-	end
 	local lerpFactor = (playVars.waveNumber - 1) / (consts.finalNonBossWave + 1 - 1)
+
+	playVars.enemyPool = {}
+	local presentEnemyTypes = {} -- in case an amount gets scaled to zero
+	local totalEnemyAmount = 0
+	for k, v in pairs(registry.enemies) do
+		local amount = math.floor(v.count(playVars.waveNumber))
+		playVars.enemyPool[k] = amount
+		totalEnemyAmount = totalEnemyAmount + amount
+		if amount > 0 then
+			presentEnemyTypes[k] = true
+		end
+	end
+	local intendedEnemyAmount = math.floor(math.lerp(5, 35, lerpFactor))
+	local newEnemyAmount = 0
+	for name, amount in pairs(playVars.enemyPool) do
+		local newAmount = math.floor(amount * intendedEnemyAmount / totalEnemyAmount)
+		playVars.enemyPool[name] = newAmount
+		newEnemyAmount = newEnemyAmount + newAmount
+	end
+	local id = 0
+	while true do
+		if newEnemyAmount == intendedEnemyAmount then
+			break
+		end
+		local enemyName = registry.enemyNameIdBiMap[id]
+		if presentEnemyTypes[enemyName] then
+			if newEnemyAmount > intendedEnemyAmount then
+				if playVars.enemyPool[enemyName] > 0 then
+					playVars.enemyPool[enemyName] = playVars.enemyPool[enemyName] - 1
+					newEnemyAmount = newEnemyAmount - 1
+				end
+			elseif newEnemyAmount < intendedEnemyAmount then
+				playVars.enemyPool[enemyName] = playVars.enemyPool[enemyName] + 1
+				newEnemyAmount = newEnemyAmount + 1
+			end
+		end
+		id = (id + 1) % registry.numEnemies
+	end
+
 	playVars.spawnAttemptTimerLength = math.lerp(1, 0.25, lerpFactor)
 	playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
 	playVars.maxEnemies = math.floor(math.lerp(4, 10, lerpFactor))
@@ -387,7 +422,6 @@ local function nextWave()
 		playVars.normalPowerupSourceSpawnTimerLength = nil
 		playVars.normalPowerupSourceSpawnTimer = nil
 	end
-
 	if playVars.waveNumber >= consts.firstSuperPowerupWave then
 		playVars.superPowerupsLeft = math.floor(math.lerp(1, 2, lerpFactor))
 		playVars.superPowerupSourceSpawnTimerLength = math.floor(math.lerp(30, 7.5, lerpFactor))

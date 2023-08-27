@@ -1,10 +1,20 @@
 local registry = {}
 
 registry.enemies = {}
+registry.enemyNameIdBiMap = {}
+registry.numEnemies = 0
+local nextId = 0
+local function newEnemy(name, enemy)
+	registry.enemies[name] = enemy
+	registry.enemyNameIdBiMap[name] = nextId
+	registry.enemyNameIdBiMap[nextId] = name
+	nextId = nextId + 1
+	registry.numEnemies = registry.numEnemies + 1
+end
 local firstGenPeakWave = 3
 local secondGenPeakWave = 6
 local thirdGenPeakWave = 12
-registry.enemies.fighter1 = {
+newEnemy("fighter1", {
 	radius = 6,
 	health = 1,
 	colour = {0.5, 0.5, 0.6},
@@ -33,8 +43,8 @@ registry.enemies.fighter1 = {
 		end
 		return math.max(0, currentAmount)
 	end
-}
-registry.enemies.fighter2 = {
+})
+newEnemy("fighter2", {
 	radius = 8,
 	health = 2,
 	colour = {0.5, 0.5, 0.6},
@@ -63,8 +73,8 @@ registry.enemies.fighter2 = {
 		end
 		return math.max(0, currentAmount)
 	end
-}
-registry.enemies.fighter3 = {
+})
+newEnemy("fighter3", {
 	radius = 8,
 	health = 3,
 	colour = {0.5, 0.5, 0.6},
@@ -93,8 +103,8 @@ registry.enemies.fighter3 = {
 		end
 		return math.max(0, currentAmount)
 	end
-}
-registry.enemies.bomber1 = {
+})
+newEnemy("bomber1", {
 	radius = 10,
 	health = 2,
 	colour = {0.6, 0.5, 0.6},
@@ -124,8 +134,8 @@ registry.enemies.bomber1 = {
 		end
 		return math.max(0, currentAmount)
 	end
-}
-registry.enemies.bomber2 = {
+})
+newEnemy("bomber2", {
 	radius = 12,
 	health = 3,
 	colour = {0.6, 0.5, 0.6},
@@ -155,8 +165,8 @@ registry.enemies.bomber2 = {
 		end
 		return math.max(0, currentAmount)
 	end
-}
-registry.enemies.bomber3 = {
+})
+newEnemy("bomber3", {
 	radius = 10,
 	health = 4,
 	colour = {0.6, 0.5, 0.6},
@@ -186,8 +196,8 @@ registry.enemies.bomber3 = {
 		end
 		return math.max(0, currentAmount)
 	end
-}
-registry.enemies.minelayer1 = {
+})
+newEnemy("minelayer1", {
 	radius = 12,
 	health = 3,
 	colour = {0.1, 0.4, 0.2},
@@ -220,8 +230,8 @@ registry.enemies.minelayer1 = {
 		end
 		return math.max(0, currentAmount)
 	end
-}
-registry.enemies.minelayer2 = {
+})
+newEnemy("minelayer2", {
 	radius = 13,
 	health = 4,
 	colour = {0.1, 0.4, 0.2},
@@ -254,8 +264,8 @@ registry.enemies.minelayer2 = {
 		end
 		return math.max(0, currentAmount)
 	end
-}
-registry.enemies.minelayer3 = {
+})
+newEnemy("minelayer3", {
 	radius = 11,
 	health = 5,
 	colour = {0.1, 0.4, 0.2},
@@ -288,6 +298,6 @@ registry.enemies.minelayer3 = {
 		end
 		return math.max(0, currentAmount)
 	end
-}
+})
 
 return registry

@@ -6,7 +6,6 @@
 
 - Add animated sprites to enemy bullets
 - Sound effects for: game start, shots from all enemy classes, player shots, player explosion, game over, enemy explosion, boss start, game completed, powerup acquired, hyper beam firing, extra life acquried
-- Better control total amount of enemies per wave so that it ramps up
 
 - Maybe make bombers static or circle-moving enemies whose offscreen radius is higher? Or maybe maybe them come in diagonally with an airstrike
 - Check if MOVING off screen when off screen before deleting an enemy/enemyBullet
