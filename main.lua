@@ -1834,7 +1834,7 @@ function love.draw()
 						break
 					end
 					love.graphics.translate(borderSize, borderSize + j * font:getHeight() * (linesPerEntry + 0.5))
-					local timeString = os.date("%Y-%m-%d %H:%M", record.timestamp)
+					local timeString = os.date("at %H:%M on %Y-%m-%d", record.timestamp)
 					local versionString = record.version == "unknown" and "an unknown version" or ("version " .. record.version)
 					local resultString =
 						record.symbol == "star" and "was victorious" or
@@ -1843,7 +1843,7 @@ function love.draw()
 						record.symbol == "skull" and "died"
 					local timeSpentString = math.floor(record.timeSpentInPlay / 60) .. " mins and " .. (record.timeSpentInPlay % 60) .. " secs"
 					local text =
-						"\"" .. record.name .. "\" scored " .. record.score .. " points at\n" ..
+						"\"" .. record.name .. "\" scored " .. record.score .. " points\n" ..
 						timeString .. " on waves " .. record.startWave .. "-" .. record.endWave .. " and\n" ..
 						resultString .. " after " .. timeSpentString .. ",\n" ..
 						"on " .. versionString .. ".\n"
