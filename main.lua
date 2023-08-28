@@ -520,6 +520,14 @@ local function initBackgroundParticles()
 end
 
 local function initTitleState()
+	-- Stop all audio from the play state if quitting
+	pausedSourcesThatWerePlaying = {}
+	for _, list in pairs(soundSourceList) do
+		for _, source in ipairs(list) do
+			source:stop()
+		end
+	end
+
 	gameState = "title"
 	titleVars = {}
 	initBackgroundParticles()
@@ -1189,7 +1197,6 @@ function love.update(dt)
 		if playVars.player.health <= 0 and not playVars.player.dead then
 			playVars.player.dead = true
 			explode(playVars.player.radius, playVars.player.pos, playVars.player.colour, vec2(), true)
-			playSound(assets.audio.explosion)
 			if playVars.spareLives == 0 then
 				playVars.gameOver = true
 				playVars.gameOverTotalScore = playVars.totalScore + playVars.waveScore
@@ -1489,7 +1496,7 @@ function love.update(dt)
 			if enemy.health <= 0 then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				explode(enemy.radius, enemy.pos, enemy.colour)
-				playSound(assets.audio.explosion)
+				playSound(assets.audio.enemyExplosion)
 				if isPlayerPresent() then
 					local scoreAdd = enemy.defeatScore + playVars.player.killStreak * consts.killScoreBonusPerCurrentKillStreakOnKill
 					playVars.waveScore = playVars.waveScore + scoreAdd

@@ -5,7 +5,7 @@
 - Balance score so that no factor dominates
 
 - Add animated sprites to enemy bullets
-- Sound effects for: game start, shots from all enemy classes, player shots, player explosion, game over, enemy explosion, boss start, game completed, powerup acquired, hyper beam firing, extra life acquried
+- Sound effects for: shots from all enemy classes, player shots, player explosion, game over, boss start, game completed, powerup acquired, hyper beam firing, extra life(s) acquried
 
 - Add a boss that constructs itself over time with an animation, with velocity boosted implosions
 - Boss "wave" as wave 20. After beating a stage of the boss you have to chase it while other enemies spawn and attack you, and the boss spawns nuisance fighters too.
