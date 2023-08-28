@@ -203,6 +203,69 @@ local function spawnEnemy(enemy, timer)
 	implode(enemy.radius, enemy.pos, enemy.colour, timer)
 end
 
+local soundSourceList = {}
+
+local function playSound(source)
+	local list = soundSourceList[source] or {}
+	soundSourceList[source] = list
+
+	for _, v in ipairs(list) do
+		if not v:isPlaying() then
+			v:play()
+			return
+		end
+	end
+
+	local new = source:clone()
+	table.insert(list, new)
+	new:play()
+end
+
+local function isSoundPlaying(source)
+	local list = soundSourceList[source]
+	if not list then
+		return
+	end
+
+	for _, v in ipairs(list) do
+		if v:isPlaying() then
+			return true
+		end
+	end
+	return false
+end
+
+local pausedSourcesThatWerePlaying
+
+local function pause()
+	if paused then
+		return
+	end
+	paused = true
+	pauseFlashTimer = 0
+	playVars.pauseQuitTimer = consts.pauseQuitTimerLength
+	pausedSourcesThatWerePlaying = {}
+	for _, list in pairs(soundSourceList) do
+		for _, source in ipairs(list) do
+			if source:isPlaying() then
+				pausedSourcesThatWerePlaying[source] = true
+				source:pause()
+			end
+		end
+	end
+end
+
+local function play()
+	if not paused then
+		return
+	end
+	paused = false
+	for source in pairs(pausedSourcesThatWerePlaying) do
+		source:play()
+	end
+	pausedSourcesThatWerePlaying = nil
+end
+
 local function explode(radius, pos, colour, velocityBoost, isPlayer)
 	velocityBoost = velocityBoost or vec2()
 	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
@@ -293,11 +356,11 @@ local function generatePlayer(resetPos)
 		contactInvulnerabilityTimer = nil,
 		flashAnimationSpeed = 30,
 		spawning = true,
-		spawnTimer = not assets.audio.gameStart:isPlaying() and consts.playerSpawnTime or nil,
+		spawnTimer = not isSoundPlaying(assets.audio.gameStart) and consts.playerSpawnTime or nil,
 		powerups = {},
 		killStreak = 0
 	}
-	if not assets.audio.gameStart:isPlaying() then
+	if not isSoundPlaying(assets.audio.gameStart) then
 		implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
 	end
 end
@@ -341,7 +404,7 @@ local function nextWave()
 	gameState = "play"
 	playVars.waveNumber = playVars.waveNumber and (playVars.waveNumber + 1) or playVars.startWave
 	if playVars.waveNumber == playVars.startWave then
-		love.audio.play(assets.audio.gameStart)
+		playSound(assets.audio.gameStart)
 	end
 	playVars.resultsScreenVars = nil
 	playVars.onResultsScreen = false
@@ -827,13 +890,19 @@ end
 
 function love.keypressed(key)
 	if key == controls.pause then
-		paused = not paused
-		if gameState ~= "play" then
-			paused = false
-		end
+		local nextPauseState
 		if paused then
-			pauseFlashTimer = 0
-			playVars.pauseQuitTimer = consts.pauseQuitTimerLength
+			nextPauseState = false
+		else
+			nextPauseState = true
+		end
+		if gameState ~= "play" then
+			nextPauseState = false
+		end
+		if nextPauseState then
+			pause()
+		else
+			play()
 		end
 	elseif not paused then
 		if gameState == "play" then
@@ -925,7 +994,7 @@ end
 
 function love.update(dt)
 	if gameState ~= "play" then
-		paused = false
+		play()
 	end
 	if paused then
 		pauseFlashTimer = (pauseFlashTimer + dt) % consts.pauseFlashTimerLength
@@ -1104,7 +1173,7 @@ function love.update(dt)
 		playVars.player.fireBackThrusters = false
 		playVars.player.fireFrontThrusters = false
 
-		if playVars.player.spawning and not assets.audio.gameStart:isPlaying() then
+		if playVars.player.spawning and not isSoundPlaying(assets.audio.gameStart) then
 			if not playVars.player.spawnTimer then
 				playVars.player.spawnTimer = consts.playerSpawnTime
 				implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
@@ -1120,6 +1189,7 @@ function love.update(dt)
 		if playVars.player.health <= 0 and not playVars.player.dead then
 			playVars.player.dead = true
 			explode(playVars.player.radius, playVars.player.pos, playVars.player.colour, vec2(), true)
+			playSound(assets.audio.explosion)
 			if playVars.spareLives == 0 then
 				playVars.gameOver = true
 				playVars.gameOverTotalScore = playVars.totalScore + playVars.waveScore
@@ -1419,6 +1489,7 @@ function love.update(dt)
 			if enemy.health <= 0 then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				explode(enemy.radius, enemy.pos, enemy.colour)
+				playSound(assets.audio.explosion)
 				if isPlayerPresent() then
 					local scoreAdd = enemy.defeatScore + playVars.player.killStreak * consts.killScoreBonusPerCurrentKillStreakOnKill
 					playVars.waveScore = playVars.waveScore + scoreAdd
