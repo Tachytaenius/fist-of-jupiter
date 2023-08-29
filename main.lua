@@ -112,7 +112,7 @@ local consts = {
 		play = true,
 		waveWon = true
 	},
-	waveWonDelayBeforeResultsScreenTimerLength = 1.5,
+	waveWonDelayBeforeResultsScreenTimerLength = 0, -- was 1.5, replaced to make it so that the results screen appears when you go offscreen
 	defaultAutoShootTime = 0.5,
 	finalNonBossWave = 19,
 	bonusScoreTimerLength = 90,
@@ -1731,7 +1731,10 @@ function love.update(dt)
 		if gameState == "waveWon" then
 			if playVars.waveWonDelayBeforeResultsScreenTimer then
 				playVars.waveWonDelayBeforeResultsScreenTimer = playVars.waveWonDelayBeforeResultsScreenTimer - dt
-				if playVars.waveWonDelayBeforeResultsScreenTimer <= 0 then
+				local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+				local extra = 10
+				local thrusters = 16
+				if playVars.waveWonDelayBeforeResultsScreenTimer <= 0 and playVars.player.pos.y + assets.images.player:getHeight () / 2 + thrusters + extra < screenTopInWorldSpace then
 					playVars.waveWonDelayBeforeResultsScreenTimer = nil
 					playVars.onResultsScreen = true
 					playVars.resultsScreenVars = {}

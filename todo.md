@@ -15,7 +15,6 @@
 
 - Add difficulty scaling
 - Add clickable linktree link to author in credits
-- Wait for player to reach top of screen to go to results screen instead of a timer (maybe repurpose the timer to start when the player reaches the top of the screen)
 - Add hacking with blue line effects around hackee, stopping them from shooting
 - Make font cooler
 - Use interpolation for respawn centring
