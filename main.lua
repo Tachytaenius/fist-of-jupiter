@@ -1197,6 +1197,7 @@ function love.update(dt)
 		if playVars.player.health <= 0 and not playVars.player.dead then
 			playVars.player.dead = true
 			explode(playVars.player.radius, playVars.player.pos, playVars.player.colour, vec2(), true)
+			playSound(assets.audio.playerExplosion)
 			if playVars.spareLives == 0 then
 				playVars.gameOver = true
 				playVars.gameOverTotalScore = playVars.totalScore + playVars.waveScore
@@ -1441,7 +1442,7 @@ function love.update(dt)
 				end
 			end
 
-			if playVars.enemyBullets.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemies.size == 0 and allCentringFinished and noPlayerParticlesLeft then
+			if playVars.enemyBullets.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemies.size == 0 and allCentringFinished and noPlayerParticlesLeft and not isSoundPlaying(assets.audio.playerExplosion) then
 				generatePlayer()
 			end
 		end

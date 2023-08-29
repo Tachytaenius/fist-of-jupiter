@@ -36,5 +36,6 @@ image("hyperBeamPowerupSymbol")
 audio("gameStart")
 audio("bossEncounter")
 audio("enemyExplosion")
+audio("playerExplosion")
 
 return assets
