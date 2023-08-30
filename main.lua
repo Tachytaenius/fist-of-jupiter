@@ -1540,6 +1540,9 @@ function love.update(dt)
 						end
 					end
 				end
+				if hit then
+					break
+				end
 			end
 		end
 		for _, playerBullet in ipairs(deleteThesePlayerBullets) do
