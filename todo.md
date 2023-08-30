@@ -13,6 +13,7 @@
 
 # Some other time
 
+- Add different window sizes and fullscreen
 - Add difficulty scaling
 - Add clickable linktree link to author in credits
 - Add hacking with blue line effects around hackee, stopping them from shooting
