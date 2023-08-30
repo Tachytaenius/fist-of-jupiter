@@ -116,7 +116,7 @@ local consts = {
 	},
 	waveWonDelayBeforeResultsScreenTimerLength = 0, -- was 1.5, replaced to make it so that the results screen appears when you go offscreen
 	defaultAutoShootTime = 0.5,
-	finalNonBossWave = 19,
+	finalNonBossWave = 14,
 	bonusScoreTimerLength = 90,
 	bonusScoreTimerScorePerSecondLeft = 2,
 	killScoreBonusPerCurrentKillStreakOnKill = 3,
@@ -483,7 +483,7 @@ local function nextWave()
 			presentEnemyTypes[k] = true
 		end
 	end
-	local intendedEnemyAmount = math.floor(math.lerp(5, 35, lerpFactor))
+	local intendedEnemyAmount = math.floor(math.lerp(7, 30, lerpFactor))
 	local newEnemyAmount = 0
 	for name, amount in pairs(playVars.enemyPool) do
 		local newAmount = math.floor(amount * intendedEnemyAmount / totalEnemyAmount)
@@ -510,9 +510,9 @@ local function nextWave()
 		id = (id + 1) % registry.numEnemies
 	end
 
-	playVars.spawnAttemptTimerLength = math.lerp(1, 0.25, lerpFactor)
+	playVars.spawnAttemptTimerLength = math.lerp(0.75, 0.25, lerpFactor)
 	playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
-	playVars.maxEnemies = math.floor(math.lerp(4, 10, lerpFactor))
+	playVars.maxEnemies = math.floor(math.lerp(5, 10, lerpFactor))
 	playVars.minEnemiesToSpawn = math.floor(math.lerp(2, 3, lerpFactor))
 	playVars.maxEnemiesToSpawn = math.floor(math.lerp(3, 6, lerpFactor))
 
