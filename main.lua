@@ -4,6 +4,8 @@ local version = versionWithLineBreak and versionWithLineBreak:gsub("\n", "") or 
 -- It's known that if you quit while all opposition are defeated but a powerup is on screen (i.e. before results screen),
 -- your score record will say quitWhileAllOppositionDefeated but you won't get the life bonus or time bonus
 
+-- There are background particle ripples from explosions that were cut in the code
+
 function math.sign(x)
 	return x > 0 and 1 or x == 0 and 0 or -1
 end
@@ -266,21 +268,21 @@ local function play()
 	pausedSourcesThatWerePlaying = nil
 end
 
-local function explode(radius, pos, colour, velocityBoost, isPlayer)
+local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbles, spectacular)
 	velocityBoost = velocityBoost or vec2()
 	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
 	for i = 1, newParticleCount do
 		local relPos = randCircle(radius)
 		playVars.particles:add({
 			pos = relPos + pos,
-			vel = relPos * 15 + velocityBoost,
+			vel = relPos * (isPlayer and 45 or 15) + velocityBoost,
 			lifetime = (love.math.random() / 2 + 0.5) * 0.5,
 			size = love.math.random() < 0.1 and 2 or 1,
 			colour = addToColour(noiseColour(shallowClone(colour), consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd),
 			isPlayer = isPlayer
 		})
 	end
-	local timerLength = 1.5
+	-- local timerLength = 1.5
 	-- playVars.rippleSources:add({
 	-- 	pos = vec2.clone(pos),
 	-- 	force = radius * 10,
@@ -290,6 +292,42 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer)
 	-- 	frequency = 2,
 	-- 	phasePerDistance = 0.1
 	-- })
+	if spectacular then
+		local newParticleCount = 150
+		for i = 1, newParticleCount do
+			local invisibleTime = love.math.random() * 0.75
+			playVars.particles:add({
+				pos = vec2.clone(pos),
+				vel = randCircle(120) + velocityBoost,
+				lifetime = (love.math.random() / 2 + 0.5) * 1.25 + invisibleTime,
+				size = love.math.random() < 0.1 and 2 or 1,
+				colour = {love.math.random(), love.math.random(), love.math.random()},
+				invisibleTime = invisibleTime,
+				dontMoveIfUnrevealed = true,
+				isPlayer = isPlayer
+			})
+		end
+	end
+	if bubbles then
+		local numWaves = 3
+		local growthRate = 120
+		local lifetime = 0.25
+		local scale = 0.25
+		local finalRadiusForFirstWave = growthRate * lifetime
+		for i = 0, numWaves - 1 do
+			local radius = -i * growthRate * scale
+			playVars.bubbles[#playVars.bubbles+1] = {
+				position = vec2.clone(pos),
+				velocity = 0,
+				radius = radius,
+				timer = lifetime + (finalRadiusForFirstWave - radius) / growthRate,
+				colour = {1, 1, 1},
+				isPlayer = isPlayer,
+				growthRate = growthRate,
+				fadeTime = lifetime * 0.5
+			}
+		end
+	end
 end
 
 local function checkAllEnemiesDefeatedAndEnemyBulletsGone()
@@ -426,6 +464,8 @@ local function nextWave()
 	playVars.floatingTexts = list()
 	playVars.rippleSources = list()
 	playVars.powerupSources = list()
+	-- not using lists anymore lol
+	playVars.bubbles = {}
 
 	generatePlayer(true)
 	playVars.backtrackLimit = getCurBacktrackLimit()
@@ -1196,7 +1236,7 @@ function love.update(dt)
 
 		if playVars.player.health <= 0 and not playVars.player.dead then
 			playVars.player.dead = true
-			explode(playVars.player.radius, playVars.player.pos, playVars.player.colour, vec2(), true)
+			explode(playVars.player.radius, playVars.player.pos, playVars.player.colour, vec2(), true, true, true)
 			playSound(assets.audio.playerExplosion)
 			if playVars.spareLives == 0 then
 				playVars.gameOver = true
@@ -1441,8 +1481,23 @@ function love.update(dt)
 					break
 				end
 			end
+			local noPlayerBubblesLeft = true
+			for _, bubble in ipairs(playVars.bubbles) do
+				if bubble.isPlayer then
+					noPlayerBubblesLeft = true
+					break
+				end
+			end
 
-			if playVars.enemyBullets.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemies.size == 0 and allCentringFinished and noPlayerParticlesLeft and not isSoundPlaying(assets.audio.playerExplosion) then
+			if
+				playVars.enemyBullets.size == 0 and
+				playVars.enemiesToMaterialise.size == 0 and
+				playVars.enemies.size == 0 and
+				allCentringFinished and
+				noPlayerParticlesLeft and
+				noPlayerBubblesLeft and
+				not isSoundPlaying(assets.audio.playerExplosion)
+			then
 				generatePlayer()
 			end
 		end
@@ -1572,7 +1627,9 @@ function love.update(dt)
 		local particlesToDelete = {}
 		for i = 1, playVars.particles.size do
 			local particle = playVars.particles:get(i)
-			particle.pos = particle.pos + particle.vel * dt
+			if not (particle.invisibleTime and particle.dontMoveIfUnrevealed) then
+				particle.pos = particle.pos + particle.vel * dt
+			end
 			if particle.invisibleTime then
 				particle.invisibleTime = particle.invisibleTime - dt
 				if particle.invisibleTime <= 0 then
@@ -1713,6 +1770,23 @@ function love.update(dt)
 		end
 		for _, ripple in ipairs(ripplesToDelete) do
 			playVars.rippleSources:remove(ripple)
+		end
+
+		local i = 1
+		while i <= #playVars.bubbles do
+			local bubble = playVars.bubbles[i]
+			local delete = false
+			bubble.radius = bubble.radius + bubble.growthRate * dt
+			bubble.position = bubble.position + bubble.velocity * dt
+			bubble.timer = bubble.timer - dt
+			if bubble.timer <= 0 then
+				delete = true
+			end
+			if delete then
+				table.remove(playVars.bubbles, i)
+			else
+				i = i + 1
+			end
 		end
 
 		if
@@ -2045,6 +2119,11 @@ function love.draw()
 					love.graphics.draw(assets.images.normalPowerupContainer, source.pos.x - assets.images.normalPowerupContainer:getWidth() / 2, source.pos.y - assets.images.normalPowerupContainer:getHeight() / 2)
 				end
 			end
+			for _, bubble in ipairs(playVars.bubbles) do
+				love.graphics.setColor(bubble.colour[1], bubble.colour[2], bubble.colour[3], math.min(1, bubble.timer / bubble.fadeTime))
+				love.graphics.circle("line", bubble.position.x, bubble.position.y, math.max(bubble.radius, 0))
+			end
+			love.graphics.setColor(1, 1, 1, 1)
 			if isPlayerPresent() then
 				if playVars.player.fireBackThrusters then
 					local quad = consts.backThrusterQuads[math.floor((playVars.time * consts.backThrusterAnimationFrequency) % 1 * 4) + 1]
