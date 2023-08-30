@@ -1970,7 +1970,7 @@ function love.draw()
 				love.graphics.print(v, 0, font:getHeight() * (i-1))
 			end
 			love.graphics.origin()
-			local text = "Move: WASD, shoot: Space, pause: Esc"
+			local text = "Move: WASD, slow: Shift, shoot: Space, pause: Esc"
 			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight - borderSize - font:getHeight() * 2)
 			local text = "Extra life (at end of wave) every " .. consts.newLifePerScore .. " points"
 			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight - borderSize - font:getHeight())
