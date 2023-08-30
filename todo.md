@@ -8,7 +8,7 @@
 - Sound effects for: shots from all enemy classes, player shots, game over, boss start, game completed, powerup acquired, hyper beam firing, extra life(s) acquried
 
 - Add a boss that constructs itself over time with an animation, with velocity boosted implosions
-- Boss "wave" as wave 20. After beating a stage of the boss you have to chase it while other enemies spawn and attack you, and the boss spawns nuisance fighters too.
+- Boss "wave" as wave 15. After beating a stage of the boss you have to chase it while other enemies spawn and attack you, and the boss spawns nuisance fighters too.
 - Ending where the player goes forwards and (relative to camera, so camera pos changes) moves to a point in the upper middle of the screen and then flies off as the camera stops(?). Don't forget to record score.
 
 # Some other time
