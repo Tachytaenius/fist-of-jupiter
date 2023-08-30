@@ -1519,6 +1519,7 @@ function love.update(dt)
 						hit = true
 						deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
 						enemy.health = enemy.health - playerBullet.damage
+						playSound(assets.audio.enemyHit)
 						if enemy.health > 0 then
 							explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
 						end
@@ -1555,7 +1556,6 @@ function love.update(dt)
 			if enemy.health <= 0 then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				explode(enemy.radius, enemy.pos, enemy.colour)
-				playSound(assets.audio.enemyExplosion)
 				if isPlayerPresent() then
 					local scoreAdd = enemy.defeatScore + playVars.player.killStreak * consts.killScoreBonusPerCurrentKillStreakOnKill
 					playVars.waveScore = playVars.waveScore + scoreAdd
