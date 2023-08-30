@@ -840,7 +840,7 @@ local function getScoreScreenSetsToShow()
 end
 
 local function tryRecordQuitScore()
-	if consts.playLikeStates[gameState] and not playVars.gameOver and not playVars.victory then
+	if consts.playLikeStates[gameState] and not playVars.gameOverTextPresent and not playVars.victory then
 		recordScore("Names are NYI") -- TEMP
 	end
 end
