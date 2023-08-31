@@ -1266,7 +1266,9 @@ function love.update(dt)
 			local maxSpeedX = slow and 50 or playVars.player.maxSpeedX
 			local maxSpeedUp = slow and 50 or playVars.player.maxSpeedUp
 			local maxSpeedDown = slow and 50 or playVars.player.maxSpeedDown
+
 			local notFlyingAway = not (checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0) and gameState == "play"
+			local confined = playVars.waveNumber >= consts.finalNonBossWave + 1
 
 			local function handleAxis(current, target, acceleration, dt)
 				if acceleration > 0 then
@@ -1328,15 +1330,21 @@ function love.update(dt)
 
 			local prevPlayerPosY = playVars.player.pos.y
 			playVars.player.pos = playVars.player.pos + playVars.player.vel * dt
-			if playVars.noBacktracking and playVars.player.pos.y > playVars.backtrackLimit then
+			if (playVars.noBacktracking or confined) and playVars.player.pos.y > playVars.backtrackLimit then
 				playVars.player.vel.y = 0
 				playVars.player.pos.y = playVars.backtrackLimit
 			end
+			local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+			if confined and playVars.player.pos.y < screenTopInWorldSpace + consts.borderSize then
+				playVars.player.vel.y = 0
+				playVars.player.pos.y = screenTopInWorldSpace + consts.borderSize
+			end
+
 			local yChange = playVars.player.pos.y - prevPlayerPosY
 			local cameraSlowdownFactorSameDirection = playVars.noBacktracking and 1 or (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax
 			local cameraSlowdownFactorOppositeDirections = (1 - (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax)
 			local cameraSlowdownFactor = math.sign(playVars.player.vel.y) * math.sign(playVars.cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
-			if notFlyingAway then
+			if notFlyingAway and not confined then
 				playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, playVars.cameraYOffset + yChange * cameraSlowdownFactor))
 			else
 				playVars.cameraYOffset = playVars.cameraYOffset + yChange
@@ -1350,7 +1358,9 @@ function love.update(dt)
 				playVars.player.vel.x = math.min(0, playVars.player.vel.x)
 			end
 
+			if not confined then
 			playVars.backtrackLimit = math.min(playVars.backtrackLimit, getCurBacktrackLimit()) 
+		end
 		end
 
 		if getPlayerShootingType() ~= "auto" then
