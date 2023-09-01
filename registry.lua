@@ -14,6 +14,7 @@ end
 local firstGenPeakWave = 3
 local secondGenPeakWave = 6
 local thirdGenPeakWave = 12
+local firstBossWave = 15
 newEnemy("fighter1", {
 	radius = 6,
 	health = 1,
@@ -29,7 +30,10 @@ newEnemy("fighter1", {
 	accel = 150,
 	defeatScore = 20,
 	materialisationTime = 0.2,
-	count = function(waveNumber)
+		count = function(waveNumber)
+		if waveNumber >= firstBossWave then
+			return 0
+		end
 		local currentAmount = 5
 		for i = 1, waveNumber do
 			if i > 0 and i <= firstGenPeakWave then
@@ -59,7 +63,10 @@ newEnemy("fighter2", {
 	accel = 225,
 	defeatScore = 30,
 	materialisationTime = 0.35,
-	count = function(waveNumber)
+		count = function(waveNumber)
+		if waveNumber >= firstBossWave then
+			return 0
+		end
 		local currentAmount = 0
 		for i = 1, waveNumber do
 			if i > firstGenPeakWave and i <= secondGenPeakWave then
@@ -89,7 +96,10 @@ newEnemy("fighter3", {
 	accel = 250,
 	defeatScore = 35,
 	materialisationTime = 0.5,
-	count = function(waveNumber)
+		count = function(waveNumber)
+		if waveNumber >= firstBossWave then
+			return 0
+		end
 		local currentAmount = 0
 		for i = 1, waveNumber do
 			if i > secondGenPeakWave and i <= thirdGenPeakWave then
@@ -119,7 +129,10 @@ newEnemy("bomber1", {
 	accel = 125,
 	defeatScore = 25,
 	materialisationTime = 0.3,
-	count = function(waveNumber)
+		count = function(waveNumber)
+		if waveNumber >= firstBossWave then
+			return 0
+		end
 		local currentAmount = 0
 		for i = 1, waveNumber do
 			i = i - 1
@@ -150,7 +163,10 @@ newEnemy("bomber2", {
 	accel = 175,
 	defeatScore = 35,
 	materialisationTime = 0.5,
-	count = function(waveNumber)
+		count = function(waveNumber)
+		if waveNumber >= firstBossWave then
+			return 0
+		end
 		local currentAmount = 0
 		for i = 1, waveNumber do
 			i = i - 1
@@ -181,7 +197,10 @@ newEnemy("bomber3", {
 	accel = 200,
 	defeatScore = 40,
 	materialisationTime = 0.7,
-	count = function(waveNumber)
+		count = function(waveNumber)
+		if waveNumber >= firstBossWave then
+			return 0
+		end
 		local currentAmount = 0
 		for i = 1, waveNumber do
 			i = i - 1
@@ -215,7 +234,10 @@ newEnemy("minelayer1", {
 	materialisationTime = 0.5,
 	spawnAtTop = true,
 	aiType = "minelayer",
-	count = function(waveNumber)
+		count = function(waveNumber)
+		if waveNumber >= firstBossWave then
+			return 0
+		end
 		local currentAmount = 0
 		for i = 1, waveNumber do
 			i = i - 2
@@ -249,7 +271,10 @@ newEnemy("minelayer2", {
 	materialisationTime = 0.4,
 	spawnAtTop = true,
 	aiType = "minelayer",
-	count = function(waveNumber)
+		count = function(waveNumber)
+		if waveNumber >= firstBossWave then
+			return 0
+		end
 		local currentAmount = 0
 		for i = 1, waveNumber do
 			i = i - 2
@@ -283,7 +308,10 @@ newEnemy("minelayer3", {
 	materialisationTime = 0.3,
 	spawnAtTop = true,
 	aiType = "minelayer",
-	count = function(waveNumber)
+		count = function(waveNumber)
+		if waveNumber >= firstBossWave then
+			return 0
+		end
 		local currentAmount = 0
 		for i = 1, waveNumber do
 			i = i - 2
@@ -297,6 +325,28 @@ newEnemy("minelayer3", {
 			end
 		end
 		return math.max(0, currentAmount)
+	end
+})
+newEnemy("commander1", {
+	radius = 30,
+	health = 100,
+	colour = {1, 1, 1},
+	speed = 200,
+	deliberateSpeed = 10,
+	shootTimerLength = 1,
+	bulletSpeed = 150,
+	bulletRadius = 2,
+	bulletDamage = 2,
+	bulletCount = 21,
+	bulletSpreadAngle = math.tau / 2,
+	contactDamage = 10,
+	accel = 400,
+	defeatScore = 100,
+	materialisationTime = 1.5,
+	boss = true,
+	aiType = "commander1",
+		count = function(waveNumber)
+		return waveNumber == firstBossWave and 1 or 0
 	end
 })
 

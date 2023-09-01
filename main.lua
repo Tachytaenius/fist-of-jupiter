@@ -1444,6 +1444,7 @@ function love.update(dt)
 			for i = 1, playVars.enemies.size do
 				-- There are nicer ways to do this, I'm sure, and I had one in mind but didn't bother to execute it for some reason
 				local enemy = playVars.enemies:get(i)
+				if not enemy.boss then
 				local topDist = math.abs(screenTopInWorldSpace - enemy.pos.y)
 				local bottomDist = math.abs(screenTopInWorldSpace + gameHeight - enemy.pos.y)
 				-- local leftDist = math.abs(0 - enemy.pos.x)
@@ -1482,6 +1483,7 @@ function love.update(dt)
 					end
 				end
 				enemy.targetVel = dir * enemy.speed
+			end
 			end
 
 			if playVars.preRespawnCentringTimer then
@@ -1526,10 +1528,19 @@ function love.update(dt)
 				end
 			end
 
+			local noEnemiesExceptBosses = true
+			for i = 1, playVars.enemies.size do
+				local enemy = playVars.enemies:get(i)
+				if not enemy.boss then
+					noEnemiesExceptBosses = false
+					break
+				end
+			end
+
 			if
 				playVars.enemyBullets.size == 0 and
 				playVars.enemiesToMaterialise.size == 0 and
-				playVars.enemies.size == 0 and
+				noEnemiesExceptBosses and
 				allCentringFinished and
 				noPlayerParticlesLeft and
 				noPlayerBubblesLeft and
@@ -1757,6 +1768,7 @@ function love.update(dt)
 					aiType = registryEntry.aiType,
 					bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = registryEntry.bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated,
 					bulletColour = registryEntry.bulletColour,
+					boss = registryEntry.boss,
 					creationTime = playVars.time -- For consistent draw sorting
 				}, registryEntry.materialisationTime)
 			end
