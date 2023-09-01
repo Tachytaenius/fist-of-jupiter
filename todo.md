@@ -7,8 +7,11 @@
 - Add animated sprites to enemy bullets
 - Sound effects for: shots from all enemy classes, player shots, game over, boss start, game completed, powerup acquired, hyper beam firing, extra life(s) acquried
 
-- Add a boss that constructs itself over time with an animation, with velocity boosted implosions
-- Boss "wave" as wave 15. After beating a stage of the boss you have to chase it while other enemies spawn and attack you, and the boss spawns nuisance fighters too.
+- Add bosses that construct themselves over time with an animation, with velocity boosted implosions
+- Boss waves start at wave 15.
+- Boss 1, wave 15: Ship made from two ships, shield goes from left side to right side, you hit the vulnerable side and when you've blown up either side you win.
+- Boss 2, wave 16: Two ships, ship 1 moves slowly and ship 2 moves erratically, ship 1 has a shield which is fed by ship 2, and shoots balls of energy at you. Every time you hit the energy ball it moves the ball's velocity closer to the velocity that would hit ship 2 (so aim prediction). If you can get a large volley in fast enough the ball should be able to hit ship 2. When ship 2 is downed, ship 1 loses its shield and switches to *only* shooting touhou-style volleys at you.
+- Boss 3, wave 17: Large flagship. After beating a stage of the boss you have to chase it while other enemies spawn and attack you, and the boss spawns nuisance fighters too.
 - Ending where the player goes forwards and (relative to camera, so camera pos changes) moves to a point in the upper middle of the screen and then flies off as the camera stops(?). Don't forget to record score.
 
 # Some other time
