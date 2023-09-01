@@ -471,7 +471,6 @@ local function nextWave()
 	playVars.backtrackLimit = getCurBacktrackLimit()
 
 	local lerpFactor = (playVars.waveNumber - 1) / (consts.finalNonBossWave + 1 - 1)
-
 	playVars.enemyPool = {}
 	local presentEnemyTypes = {} -- in case an amount gets scaled to zero
 	local totalEnemyAmount = 0
@@ -483,7 +482,7 @@ local function nextWave()
 			presentEnemyTypes[k] = true
 		end
 	end
-	local intendedEnemyAmount = math.floor(math.lerp(7, 30, lerpFactor))
+	local intendedEnemyAmount = playVars.waveNumber <= consts.finalNonBossWave and math.floor(math.lerp(7, 30, lerpFactor)) or 1
 	local newEnemyAmount = 0
 	for name, amount in pairs(playVars.enemyPool) do
 		local newAmount = math.floor(amount * intendedEnemyAmount / totalEnemyAmount)
@@ -510,11 +509,19 @@ local function nextWave()
 		id = (id + 1) % registry.numEnemies
 	end
 
-	playVars.spawnAttemptTimerLength = math.lerp(0.75, 0.25, lerpFactor)
-	playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
-	playVars.maxEnemies = math.floor(math.lerp(5, 10, lerpFactor))
-	playVars.minEnemiesToSpawn = math.floor(math.lerp(2, 3, lerpFactor))
-	playVars.maxEnemiesToSpawn = math.floor(math.lerp(3, 6, lerpFactor))
+	if playVars.waveNumber <= consts.finalNonBossWave then
+		playVars.spawnAttemptTimerLength = math.lerp(0.75, 0.25, lerpFactor)
+		playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
+		playVars.maxEnemies = math.floor(math.lerp(5, 10, lerpFactor))
+		playVars.minEnemiesToSpawn = math.floor(math.lerp(2, 3, lerpFactor))
+		playVars.maxEnemiesToSpawn = math.floor(math.lerp(3, 6, lerpFactor))
+	else
+		playVars.spawnAttemptTimerLength = 0
+		playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength
+		playVars.maxEnemies = 3
+		playVars.minEnemiesToSpawn = 1
+		playVars.maxEnemiesToSpawn = 2
+	end
 
 	if playVars.waveNumber >= consts.firstNormalPowerupWave then
 		playVars.normalPowerupsLeft = math.floor(math.lerp(1, 5, lerpFactor))
@@ -617,7 +624,7 @@ local function initPlayState()
 	playVars.scoreTimerReductionAmount = 1
 	playVars.scoreBoostPerLifeAtWaveWon = 10 -- You may go through lots of waves with the same number of lives, which would be an excessive advantage, hence the low value
 	playVars.noBacktracking = true
-	playVars.startWave = 1
+	playVars.startWave = 15
 	playVars.timeSpentInPlay = 0
 
 	nextWave()
@@ -1359,8 +1366,8 @@ function love.update(dt)
 			end
 
 			if not confined then
-			playVars.backtrackLimit = math.min(playVars.backtrackLimit, getCurBacktrackLimit()) 
-		end
+				playVars.backtrackLimit = math.min(playVars.backtrackLimit, getCurBacktrackLimit()) 
+			end
 		end
 
 		if getPlayerShootingType() ~= "auto" then
