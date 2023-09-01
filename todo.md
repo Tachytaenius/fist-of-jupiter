@@ -11,9 +11,10 @@
 - Boss waves start at wave 15.
 - Boss 1, wave 15: Ship made from two ships, shield goes from left side to right side, you hit the vulnerable side and when you've blown up either side you win.
 - Boss 2, wave 16: Two ships, ship 1 moves slowly and ship 2 moves erratically, ship 1 has a shield which is fed by ship 2, and shoots balls of energy at you. Every time you hit the energy ball it moves the ball's velocity closer to the velocity that would hit ship 2 (so aim prediction). If you can get a large volley in fast enough the ball should be able to hit ship 2. When ship 2 is downed, ship 1 loses its shield and switches to *only* shooting touhou-style volleys at you.
-- Boss 3, wave 17: Large flagship. After beating a stage of the boss you have to chase it while other enemies spawn and attack you, and the boss spawns nuisance fighters too.
+- Boss 3, wave 17: Large flagship. So large that you fly above its hull and are blowing up towers and stuff. Shields appear that block your progress unless you shoot all the towers (with turrets) that support them. Eventually you reach a valley in the ship's surface and are faced with large amounts of minelayer enemies that block your progress, and have to fly through the valley to release your payload (nuclear bomb) into the reactor ventilation shaft. Adjust story accordingly.
 - Ending where the player goes forwards and (relative to camera, so camera pos changes) moves to a point in the upper middle of the screen and then flies off as the camera stops(?). Don't forget to record score.
 - Fix finalNonBossWave + 1 being used as final wave, causing runs to be classified as victories when they weren't
+- Possibly have Jovian command giving you information. When powerups are available, or what to do with the boss.
 
 # Some other time
 
