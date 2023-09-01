@@ -1405,7 +1405,11 @@ function love.update(dt)
 		if isPlayerPresent() then
 			if consts.autoLikeShootTypes[getPlayerShootingType()] then
 				playVars.player.autoShootTimer = math.max(0, playVars.player.autoShootTimer - dt)
-				if playVars.player.autoShootTimer <= 0 and love.keyboard.isDown(controls.shoot) then
+				if
+					playVars.player.autoShootTimer <= 0 and
+					love.keyboard.isDown(controls.shoot) and
+					getPlayerBulletsCostUsed() < playVars.player.maxbulletCostBeforeShooting
+				then
 					resetAutoShootTimer()
 					shootBullet()
 				end
