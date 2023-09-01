@@ -1368,7 +1368,7 @@ function love.update(dt)
 				playVars.player.pos.y = playVars.backtrackLimit
 			end
 			local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
-			if confined and playVars.player.pos.y < screenTopInWorldSpace + consts.borderSize then
+			if confined and notFlyingAway and playVars.player.pos.y < screenTopInWorldSpace + consts.borderSize then
 				playVars.player.vel.y = 0
 				playVars.player.pos.y = screenTopInWorldSpace + consts.borderSize
 			end
