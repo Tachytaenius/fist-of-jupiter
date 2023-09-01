@@ -115,7 +115,7 @@ local consts = {
 		waveWon = true
 	},
 	waveWonDelayBeforeResultsScreenTimerLength = 0, -- was 1.5, replaced to make it so that the results screen appears when you go offscreen
-	defaultAutoShootTime = 0.2,
+	defaultAutoShootTime = 0.15,
 	autoLikeShootTypes = {
 		auto = true,
 		autoWithSemiAutoExtra = true
@@ -1449,45 +1449,45 @@ function love.update(dt)
 				-- There are nicer ways to do this, I'm sure, and I had one in mind but didn't bother to execute it for some reason
 				local enemy = playVars.enemies:get(i)
 				if not enemy.boss then
-				local topDist = math.abs(screenTopInWorldSpace - enemy.pos.y)
-				local bottomDist = math.abs(screenTopInWorldSpace + gameHeight - enemy.pos.y)
-				-- local leftDist = math.abs(0 - enemy.pos.x)
-				local leftDist = enemy.pos.x
-				local rightDist = math.abs(gameWidth - enemy.pos.x)
-				local topOverBottom = topDist < bottomDist
-				local leftOverRight = leftDist < rightDist
-				local dir
-				if topOverBottom then
-					if leftOverRight then
-						if topDist < leftDist then
-							dir = vec2(0, -1)
+					local topDist = math.abs(screenTopInWorldSpace - enemy.pos.y)
+					local bottomDist = math.abs(screenTopInWorldSpace + gameHeight - enemy.pos.y)
+					-- local leftDist = math.abs(0 - enemy.pos.x)
+					local leftDist = enemy.pos.x
+					local rightDist = math.abs(gameWidth - enemy.pos.x)
+					local topOverBottom = topDist < bottomDist
+					local leftOverRight = leftDist < rightDist
+					local dir
+					if topOverBottom then
+						if leftOverRight then
+							if topDist < leftDist then
+								dir = vec2(0, -1)
+							else
+								dir = vec2(-1, 0)
+							end
 						else
-							dir = vec2(-1, 0)
+							if topDist < rightDist then
+								dir = vec2(0, -1)
+							else
+								dir = vec2(1, 0)
+							end
 						end
 					else
-						if topDist < rightDist then
-							dir = vec2(0, -1)
+						if leftOverRight then
+							if bottomDist < leftDist then
+								dir = vec2(0, 1)
+							else
+								dir = vec2(-1, 0)
+							end
 						else
-							dir = vec2(1, 0)
+							if bottomDist < rightDist then
+								dir = vec2(0, 1)
+							else
+								dir = vec2(1, 0)
+							end
 						end
 					end
-				else
-					if leftOverRight then
-						if bottomDist < leftDist then
-							dir = vec2(0, 1)
-						else
-							dir = vec2(-1, 0)
-						end
-					else
-						if bottomDist < rightDist then
-							dir = vec2(0, 1)
-						else
-							dir = vec2(1, 0)
-						end
-					end
+					enemy.targetVel = dir * enemy.speed
 				end
-				enemy.targetVel = dir * enemy.speed
-			end
 			end
 
 			if playVars.preRespawnCentringTimer then
