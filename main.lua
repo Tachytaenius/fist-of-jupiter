@@ -624,7 +624,7 @@ local function initPlayState()
 	playVars.scoreTimerReductionAmount = 1
 	playVars.scoreBoostPerLifeAtWaveWon = 10 -- You may go through lots of waves with the same number of lives, which would be an excessive advantage, hence the low value
 	playVars.noBacktracking = true
-	playVars.startWave = 15
+	playVars.startWave = 1
 	playVars.timeSpentInPlay = 0
 
 	nextWave()
