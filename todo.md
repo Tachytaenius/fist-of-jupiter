@@ -13,6 +13,7 @@
 - Boss 2, wave 16: Two ships, ship 1 moves slowly and ship 2 moves erratically, ship 1 has a shield which is fed by ship 2, and shoots balls of energy at you. Every time you hit the energy ball it moves the ball's velocity closer to the velocity that would hit ship 2 (so aim prediction). If you can get a large volley in fast enough the ball should be able to hit ship 2. When ship 2 is downed, ship 1 loses its shield and switches to *only* shooting touhou-style volleys at you.
 - Boss 3, wave 17: Large flagship. After beating a stage of the boss you have to chase it while other enemies spawn and attack you, and the boss spawns nuisance fighters too.
 - Ending where the player goes forwards and (relative to camera, so camera pos changes) moves to a point in the upper middle of the screen and then flies off as the camera stops(?). Don't forget to record score.
+- Fix finalNonBossWave + 1 being used as final wave, causing runs to be classified as victories when they weren't
 
 # Some other time
 
