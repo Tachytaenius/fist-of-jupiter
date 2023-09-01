@@ -115,7 +115,15 @@ local consts = {
 		waveWon = true
 	},
 	waveWonDelayBeforeResultsScreenTimerLength = 0, -- was 1.5, replaced to make it so that the results screen appears when you go offscreen
-	defaultAutoShootTime = 0.5,
+	defaultAutoShootTime = 0.2,
+	autoLikeShootTypes = {
+		auto = true,
+		autoWithSemiAutoExtra = true
+	},
+	semiAutoLikeShootTypes = {
+		semiAuto = true,
+		autoWithSemiAutoExtra = true
+	},
 	finalNonBossWave = 14,
 	bonusScoreTimerLength = 90,
 	bonusScoreTimerScorePerSecondLeft = 2,
@@ -906,21 +914,21 @@ local function shootBullet()
 		local xOffset = num == 1 and 0 or ((i - 1) / (num - 1) - 0.5) * shotWidth
 		local newBullet = {
 			vel = vec2(0, -450),
-				pos = playVars.player.pos + playVars.player.bulletExitOffset + vec2(xOffset, 0),
+			pos = playVars.player.pos + playVars.player.bulletExitOffset + vec2(xOffset, 0),
 			trailLength = 8,
 			damage = 1,
 			colour = {1, 0, 0},
 			lineSize = 1,
-				cost = double and 0.5 or 1,
-				missingResetsKillStreak = not double
+			cost = double and 0.5 or 1,
+			missingResetsKillStreak = not double
 		}
 		if playVars.player.powerups.hyperBeam then
-				local hue = (
-					playVars.player.powerups.hyperBeam.timer /
-					playVars.player.powerups.hyperBeam.timerLength *
-					playVars.player.powerups.hyperBeam.hueCycleSpeed -- +
-					-- (i - 1) / num -- not (num - 1) -- this introduces an optical illusion that ruins the effect, it no longer looks like two rainbows but two solid colours (for two beams at least)
-				) % 1 * 360
+			local hue = (
+				playVars.player.powerups.hyperBeam.timer /
+				playVars.player.powerups.hyperBeam.timerLength *
+				playVars.player.powerups.hyperBeam.hueCycleSpeed -- +
+				-- (i - 1) / num -- not (num - 1) -- this introduces an optical illusion that ruins the effect, it no longer looks like two rainbows but two solid colours (for two beams at least)
+			) % 1 * 360
 			local freshness = playVars.player.powerups.hyperBeam.timer / playVars.player.powerups.hyperBeam.timerLength
 			local saturation = (freshness ^ 0.5) * 0.75 + 0.25
 			local value = freshness ^ 0.5 * 0.5 + 0.5
@@ -936,11 +944,22 @@ local function shootBullet()
 	end
 end
 
+local function resetAutoShootTimer()
+	local minShootTime = math.huge
+	for _, v in pairs(playVars.player.powerups) do
+		if v.shootTimerLength then
+			minShootTime = math.min(minShootTime, v.shootTimerLength)
+		end
+	end
+	playVars.player.autoShootTimer = minShootTime ~= math.huge and minShootTime or consts.defaultAutoShootTime
+end
+
 local function getPlayerShootingType()
 	if playVars.player.powerups.hyperBeam then
 		return "auto"
 	end
-	return "semiAuto"
+	-- return "semiAuto"
+	return "autoWithSemiAutoExtra"
 end
 
 function love.keypressed(key)
@@ -962,8 +981,15 @@ function love.keypressed(key)
 	elseif not paused then
 		if gameState == "play" then
 			if key == controls.shoot then
-				if isPlayerPresent() and getPlayerBulletsCostUsed() < playVars.player.maxbulletCostBeforeShooting and getPlayerShootingType() == "semiAuto" then
+				if
+					isPlayerPresent() and
+					getPlayerBulletsCostUsed() < playVars.player.maxbulletCostBeforeShooting and
+					consts.semiAutoLikeShootTypes[getPlayerShootingType()]
+				then
 					shootBullet()
+					if getPlayerShootingType() == "autoWithSemiAutoExtra" then
+						resetAutoShootTimer()
+					end
 				elseif playVars.player.dead and playVars.gameOverTextPresent then
 					initTitleState()
 				end
@@ -1370,23 +1396,17 @@ function love.update(dt)
 			end
 		end
 
-		if getPlayerShootingType() ~= "auto" then
+		if not consts.autoLikeShootTypes[getPlayerShootingType()] then
 			playVars.player.autoShootTimer = nil
 		end
-		if not playVars.player.autoShootTimer and getPlayerShootingType() == "auto" then
+		if not playVars.player.autoShootTimer and consts.autoLikeShootTypes[getPlayerShootingType()] then
 			playVars.player.autoShootTimer = 0
 		end
 		if isPlayerPresent() then
-			if getPlayerShootingType() == "auto" then
+			if consts.autoLikeShootTypes[getPlayerShootingType()] then
 				playVars.player.autoShootTimer = math.max(0, playVars.player.autoShootTimer - dt)
 				if playVars.player.autoShootTimer <= 0 and love.keyboard.isDown(controls.shoot) then
-					local minShootTime = math.huge
-					for k, v in pairs(playVars.player.powerups) do
-						if v.shootTimerLength then
-							minShootTime = math.min(minShootTime, v.shootTimerLength)
-						end
-					end
-					playVars.player.autoShootTimer = minShootTime ~= math.huge and minShootTime or consts.defaultAutoShootTime
+					resetAutoShootTimer()
 					shootBullet()
 				end
 			end
