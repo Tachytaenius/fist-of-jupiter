@@ -1,3 +1,5 @@
+local vec2 = require("lib.mathsies").vec2
+
 local registry = {}
 
 registry.enemies = {}
@@ -332,7 +334,7 @@ newEnemy("commander1", {
 	health = 100,
 	colour = {1, 1, 1},
 	speed = 200,
-	deliberateSpeed = 10,
+	deliberateSpeed = 100,
 	shootTimerLength = 1,
 	bulletSpeed = 150,
 	bulletRadius = 2,
@@ -344,7 +346,10 @@ newEnemy("commander1", {
 	defeatScore = 100,
 	materialisationTime = 1.5,
 	boss = true,
-	aiType = "commander1",
+	movementTimerLength = 2,
+	slowdownRate = 50,
+	implosionVelocityBoost = vec2(0, -750),
+	aiType = "boss",
 		count = function(waveNumber)
 		return waveNumber == firstBossWave and 1 or 0
 	end

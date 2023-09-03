@@ -210,7 +210,7 @@ end
 local function spawnEnemy(enemy, timer)
 	enemy.timeUntilSpawn = timer
 	playVars.enemiesToMaterialise:add(enemy)
-	implode(enemy.radius, enemy.pos, enemy.colour, timer)
+	implode(enemy.radius, enemy.pos, enemy.colour, timer, enemy.implosionVelocityBoost)
 end
 
 local soundSourceList = {}
@@ -372,10 +372,14 @@ local function givePowerup(name)
 	end
 end
 
+local function getScreenTopInWorldSpace()
+	return playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+end
+
 local function generatePlayer(resetPos)
 	local pos
 	if not resetPos and playVars.player then
-		local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+		local screenTopInWorldSpace = getScreenTopInWorldSpace()
 		pos = vec2(playVars.player.pos.x, screenTopInWorldSpace + gameHeight / 2 + consts.cameraYOffsetMax)
 	else
 		pos = vec2(gameWidth / 2, 0)
@@ -412,8 +416,14 @@ local function generatePlayer(resetPos)
 end
 
 local function getCurBacktrackLimit()
-	local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+	local screenTopInWorldSpace = getScreenTopInWorldSpace()
 	return screenTopInWorldSpace + gameHeight / 2 + consts.cameraYOffsetMax
+end
+
+local function getBossRestPos()
+	return
+		gameWidth / 2,
+		getScreenTopInWorldSpace() + gameHeight / 4
 end
 
 local function randomiseTimerLength(length)
@@ -440,7 +450,7 @@ local function spawnPowerup(super)
 	local pos = vec2(x, y)
 	local pos2 = vec2(gameWidth - x, gameHeight / 2 - y)
 	powerupSource.vel = normaliseOrZero(pos2 - pos) * speed
-	local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+	local screenTopInWorldSpace = getScreenTopInWorldSpace()
 	pos.y = pos.y + screenTopInWorldSpace
 	powerupSource.pos = pos
 	playVars.powerupSources:add(powerupSource)
@@ -1367,7 +1377,7 @@ function love.update(dt)
 				playVars.player.vel.y = 0
 				playVars.player.pos.y = playVars.backtrackLimit
 			end
-			local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+			local screenTopInWorldSpace = getScreenTopInWorldSpace()
 			if confined and notFlyingAway and playVars.player.pos.y < screenTopInWorldSpace + consts.borderSize then
 				playVars.player.vel.y = 0
 				playVars.player.pos.y = screenTopInWorldSpace + consts.borderSize
@@ -1444,7 +1454,7 @@ function love.update(dt)
 			end
 		elseif playVars.player.dead then
 			-- Not game over but we're dead, make playVars.enemies go away quickly for another round
-			local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+			local screenTopInWorldSpace = getScreenTopInWorldSpace()
 			for i = 1, playVars.enemies.size do
 				-- There are nicer ways to do this, I'm sure, and I had one in mind but didn't bother to execute it for some reason
 				local enemy = playVars.enemies:get(i)
@@ -1623,6 +1633,26 @@ function love.update(dt)
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				playVars.enemyPool[enemy.type] = playVars.enemyPool[enemy.type] + 1 -- Let the enemy come back
 			end
+			if enemy.aiType == "boss" then
+				enemy.newMovementTimer = (enemy.newMovementTimer or 0) - dt
+				if enemy.newMovementTimer <= 0 then
+					enemy.targetVel = enemy.deliberateSpeed * vec2.fromAngle(love.math.random() * math.tau)
+					enemy.newMovementTimer = enemy.movementTimerLength
+				end
+				if enemy.pos.x - enemy.radius < consts.borderSize then
+					enemy.targetVel.x = math.abs(enemy.targetVel.x)
+				end
+				if enemy.pos.x + enemy.radius > gameWidth - consts.borderSize then
+					enemy.targetVel.x = -math.abs(enemy.targetVel.x)
+				end
+				if enemy.pos.y - enemy.radius < getScreenTopInWorldSpace() + consts.borderSize then
+					enemy.targetVel.y = math.abs(enemy.targetVel.y)
+				end
+				if enemy.pos.y + enemy.radius > getScreenTopInWorldSpace() + gameHeight / 2 then
+					enemy.targetVel.y = -math.abs(enemy.targetVel.y)
+				end
+				enemy.targetVel = marchVectorToTarget(enemy.targetVel, vec2(), enemy.slowdownRate, dt)
+			end
 			enemy.vel = marchVectorToTarget(enemy.vel, enemy.targetVel, enemy.accel, dt)
 			enemy.pos = enemy.pos + enemy.vel * dt
 			if isPlayerPresent() then
@@ -1715,7 +1745,9 @@ function love.update(dt)
 			if playVars.player.pos ~= enemy.pos then
 				if enemy.aiType == "minelayer" then
 					enemy.targetVel = vec2(0, -enemy.speed)
-				else
+				elseif enemy.aiType == "boss" then
+					-- Set continually
+				elseif not enemy.aiType then
 					enemy.targetVel = enemy.speed * vec2.normalise(playVars.player.pos - enemy.pos)
 					enemy.targetVel.y = math.abs(enemy.targetVel.y)
 				end
@@ -1742,13 +1774,17 @@ function love.update(dt)
 				local enemyType = options[love.math.random(#options)]
 				playVars.enemyPool[enemyType] = playVars.enemyPool[enemyType] - 1
 				local registryEntry = registry.enemies[enemyType]
-				local x = love.math.random() * (gameWidth - consts.borderSize * 2) + consts.borderSize
-				local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
-				local y
-				if registryEntry.spawnAtTop then
-					y = love.math.random() * gameHeight / 16 + screenTopInWorldSpace
+				local x, y
+				if registryEntry.boss then
+					x, y = getBossRestPos()
 				else
-					y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
+					x = love.math.random() * (gameWidth - consts.borderSize * 2) + consts.borderSize
+					local screenTopInWorldSpace = getScreenTopInWorldSpace()
+					if registryEntry.spawnAtTop then
+						y = love.math.random() * gameHeight / 16 + screenTopInWorldSpace
+					else
+						y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
+					end
 				end
 				spawnEnemy({
 					pos = vec2(x, y),
@@ -1773,6 +1809,10 @@ function love.update(dt)
 					bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = registryEntry.bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated,
 					bulletColour = registryEntry.bulletColour,
 					boss = registryEntry.boss,
+					movementTimerLength = registryEntry.movementTimerLength,
+					deliberateSpeed = registryEntry.deliberateSpeed,
+					slowdownRate = registryEntry.slowdownRate,
+					implosionVelocityBoost = registryEntry.implosionVelocityBoost,
 					creationTime = playVars.time -- For consistent draw sorting
 				}, registryEntry.materialisationTime)
 			end
@@ -1862,7 +1902,7 @@ function love.update(dt)
 		if gameState == "waveWon" then
 			if playVars.waveWonDelayBeforeResultsScreenTimer then
 				playVars.waveWonDelayBeforeResultsScreenTimer = playVars.waveWonDelayBeforeResultsScreenTimer - dt
-				local screenTopInWorldSpace = playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
+				local screenTopInWorldSpace = getScreenTopInWorldSpace()
 				local extra = 10
 				local thrusters = 16
 				if playVars.waveWonDelayBeforeResultsScreenTimer <= 0 and playVars.player.pos.y + assets.images.player:getHeight () / 2 + thrusters + extra < screenTopInWorldSpace then
