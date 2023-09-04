@@ -972,6 +972,38 @@ local function getPlayerShootingType()
 	return "autoWithSemiAutoExtra"
 end
 
+local function isEnemyAliveBecauseOfSubEnemies(enemy)
+	if not enemy.subEnemies then
+		return false
+	end
+	for _, subEnemy in ipairs(enemy.subEnemies) do
+		if not subEnemy.dead then
+			return true
+		end
+	end
+	return false
+end
+
+local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset)
+	local timerFactor = love.math.random() / 0.5 + 0.75
+	local enemyPos = isSubEnemy and (offset + enemy.offset) or enemy.pos
+	enemy.shootTimer = enemy.shootTimerLength * timerFactor
+	local posDiff = playVars.player.pos - enemyPos
+	if #posDiff > 0 and not (enemy.aiType == "mineLayer" and playVars.player.pos.y < enemyPos.y) then
+		for i = 0, enemy.bulletCount - 1 do
+			local angleOffset = enemy.bulletCount == 1 and 0 or (i / (enemy.bulletCount - 1) - 0.5) * enemy.bulletSpreadAngle
+			playVars.enemyBullets:add({
+				pos = enemyPos,
+				vel = enemy.bulletSpeed * vec2.rotate(vec2.normalise(posDiff), angleOffset),
+				radius = enemy.bulletRadius,
+				damage = enemy.bulletDamage,
+				disappearOnPlayerDeathAndAllEnemiesDefeated = enemy.bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated,
+				colour = shallowClone(enemy.bulletColour or {1, 1, 1})
+			})
+		end
+	end
+end
+
 function love.keypressed(key)
 	if key == controls.pause then
 		local nextPauseState
@@ -1577,14 +1609,28 @@ function love.update(dt)
 				local hit = false
 				for j = 1, playVars.enemies.size do
 					local enemy = playVars.enemies:get(j)
-					if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
-						hit = true
-						enemy.health = enemy.health - playerBullet.damage
-						playSound(assets.audio.enemyHit)
-						if enemy.health > 0 then
-							explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
+					if enemy.subEnemies then
+						for _, subEnemy in ipairs(enemy.subEnemies) do
+							if not subEnemy.dead and vec2.distance(enemy.pos + subEnemy.offset, playerBullet.pos) <= subEnemy.radius then
+								hit = true
+								subEnemy.health = math.max(0, subEnemy.health - playerBullet.damage)
+								playSound(assets.audio.enemyHit)
+								if subEnemy.health > 0 then
+									explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(subEnemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
+								end
+								break
+							end
 						end
-						break
+					else
+						if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
+							hit = true
+							enemy.health = enemy.health - playerBullet.damage
+							playSound(assets.audio.enemyHit)
+							if enemy.health > 0 then
+								explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
+							end
+							break
+						end
 					end
 				end
 				if not hit then
@@ -1615,7 +1661,15 @@ function love.update(dt)
 		local enemiesToDelete = {}
 		for i = 1, playVars.enemies.size do
 			local enemy = playVars.enemies:get(i)
-			if enemy.health <= 0 then
+			if enemy.subEnemies then
+				for _, subEnemy in ipairs(enemy.subEnemies) do
+					if subEnemy.health <= 0 and not subEnemy.dead then
+						explode(subEnemy.radius, enemy.pos + subEnemy.offset, subEnemy.colour)
+						subEnemy.dead = true
+					end
+				end
+			end
+			if enemy.health <= 0 and not isEnemyAliveBecauseOfSubEnemies(enemy) then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				explode(enemy.radius, enemy.pos, enemy.colour)
 				if isPlayerPresent() then
@@ -1656,22 +1710,19 @@ function love.update(dt)
 			enemy.vel = marchVectorToTarget(enemy.vel, enemy.targetVel, enemy.accel, dt)
 			enemy.pos = enemy.pos + enemy.vel * dt
 			if isPlayerPresent() then
-				enemy.shootTimer = enemy.shootTimer - dt
-				if enemy.shootTimer <= 0 then
-					local timerFactor = love.math.random() / 0.5 + 0.75
-					enemy.shootTimer = enemy.shootTimerLength * timerFactor
-					local posDiff = playVars.player.pos - enemy.pos
-					if #posDiff > 0 and not (enemy.aiType == "mineLayer" and playVars.player.pos.y < enemy.pos.y) then
-						for i = 0, enemy.bulletCount - 1 do
-							local angleOffset = enemy.bulletCount == 1 and 0 or (i / (enemy.bulletCount - 1) - 0.5) * enemy.bulletSpreadAngle
-							playVars.enemyBullets:add({
-								pos = enemy.pos,
-								vel = enemy.bulletSpeed * vec2.rotate(vec2.normalise(posDiff), angleOffset),
-								radius = enemy.bulletRadius,
-								damage = enemy.bulletDamage,
-								disappearOnPlayerDeathAndAllEnemiesDefeated = enemy.bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated,
-								colour = shallowClone(enemy.bulletColour or {1, 1, 1})
-							})
+				if not enemy.doesntShoot then
+					enemy.shootTimer = enemy.shootTimer - dt
+					if enemy.shootTimer <= 0 then
+						shootWithEnemyOrSubEnemy(enemy, false)
+					end
+				end
+				if enemy.subEnemies then
+					for _, subEnemy in ipairs(enemy.subEnemies) do
+						if not subEnemy.doesntShoot and not subEnemy.dead then
+							subEnemy.shootTimer = subEnemy.shootTimer - dt
+							if subEnemy.shootTimer <= 0 then
+								shootWithEnemyOrSubEnemy(subEnemy, true, enemy.pos)
+							end
 						end
 					end
 				end
@@ -1788,8 +1839,14 @@ function love.update(dt)
 				end
 				local propertiesToNotCopy = {
 					colour = true, -- Copied, but with special handling
+					subEnemies = true, -- Ditto
 					materialisationTime = true
 				}
+				local subEnemies = shallowClone(registryEntry.subEnemies)
+				for _, subEnemy in ipairs(subEnemies) do
+					subEnemy.shootTimer = love.math.random() * 0.5
+					subEnemy.colour = subEnemy.colour and shallowClone(subEnemy.colour) or {1, 1, 1}
+				end
 				local newEnemy = {
 					pos = vec2(x, y),
 					vel = vec2(),
@@ -1797,6 +1854,7 @@ function love.update(dt)
 					type = enemyType,
 					shootTimer = love.math.random() * 0.5,
 					creationTime = playVars.time, -- For consistent draw sorting
+					subEnemies = subEnemies,
 
 					colour = shallowClone(registryEntry.colour)
 				}

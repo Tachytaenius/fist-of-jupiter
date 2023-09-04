@@ -331,16 +331,35 @@ newEnemy("minelayer3", {
 })
 newEnemy("commander1", {
 	radius = 30,
-	health = 100,
+	health = 0,
+	subEnemies = {
+		{
+			radius = 16,
+			health = 35,
+			offset = vec2(-15, 0),
+			shootTimerLength = 1,
+			bulletSpeed = 150,
+			bulletRadius = 2,
+			bulletDamage = 2,
+			bulletCount = 21, -- needs to be odd or else you can stand still and never get hit
+			bulletSpreadAngle = math.tau / 2
+		},
+		{
+			radius = 16,
+			health = 35,
+			offset = vec2(15, 0),
+			shootTimerLength = 2,
+			bulletSpeed = 175,
+			bulletRadius = 3,
+			bulletDamage = 4,
+			bulletCount = 11, -- needs to be odd or else you can stand still and never get hit
+			bulletSpreadAngle = math.tau / 2
+		}
+	},
 	colour = {1, 1, 1},
+	doesntShoot = true,
 	speed = 200,
 	deliberateSpeed = 100,
-	shootTimerLength = 1,
-	bulletSpeed = 150,
-	bulletRadius = 2,
-	bulletDamage = 2,
-	bulletCount = 21,
-	bulletSpreadAngle = math.tau / 2,
 	contactDamage = 10,
 	accel = 400,
 	defeatScore = 100,
