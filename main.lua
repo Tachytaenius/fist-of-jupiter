@@ -1786,35 +1786,26 @@ function love.update(dt)
 						y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
 					end
 				end
-				spawnEnemy({
+				local propertiesToNotCopy = {
+					colour = true, -- Copied, but with special handling
+					materialisationTime = true
+				}
+				local newEnemy = {
 					pos = vec2(x, y),
 					vel = vec2(),
 					targetVel = vec2(),
-					radius = registryEntry.radius,
-					health = registryEntry.health,
 					type = enemyType,
-					colour = shallowClone(registryEntry.colour),
-					speed = registryEntry.speed,
-					shootTimerLength = registryEntry.shootTimerLength,
 					shootTimer = love.math.random() * 0.5,
-					bulletSpeed = registryEntry.bulletSpeed,
-					bulletRadius = registryEntry.bulletRadius,
-					bulletDamage = registryEntry.bulletDamage,
-					bulletCount = registryEntry.bulletCount,
-					bulletSpreadAngle = registryEntry.bulletSpreadAngle,
-					contactDamage = registryEntry.contactDamage,
-					defeatScore = registryEntry.defeatScore,
-					accel = registryEntry.accel,
-					aiType = registryEntry.aiType,
-					bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = registryEntry.bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated,
-					bulletColour = registryEntry.bulletColour,
-					boss = registryEntry.boss,
-					movementTimerLength = registryEntry.movementTimerLength,
-					deliberateSpeed = registryEntry.deliberateSpeed,
-					slowdownRate = registryEntry.slowdownRate,
-					implosionVelocityBoost = registryEntry.implosionVelocityBoost,
-					creationTime = playVars.time -- For consistent draw sorting
-				}, registryEntry.materialisationTime)
+					creationTime = playVars.time, -- For consistent draw sorting
+
+					colour = shallowClone(registryEntry.colour)
+				}
+				for k, v in pairs(registryEntry) do
+					if not propertiesToNotCopy[k] then
+						newEnemy[k] = v
+					end
+				end
+				spawnEnemy(newEnemy, registryEntry.materialisationTime)
 			end
 		end
 
