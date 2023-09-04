@@ -1579,12 +1579,12 @@ function love.update(dt)
 					local enemy = playVars.enemies:get(j)
 					if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
 						hit = true
-						deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
 						enemy.health = enemy.health - playerBullet.damage
 						playSound(assets.audio.enemyHit)
 						if enemy.health > 0 then
 							explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
 						end
+						break
 					end
 				end
 				if not hit then
@@ -1598,13 +1598,13 @@ function love.update(dt)
 								source.radius = consts.revealedPowerupRadius
 								explode(20, source.pos, shallowClone(source.colour))
 								hit = true
-								deleteThesePlayerBullets[#deleteThesePlayerBullets+1] = playerBullet
 							end
+							break
 						end
 					end
 				end
 				if hit then
-					break
+					deleteThesePlayerBullets[#deleteThesePlayerBullets+1] = playerBullet
 				end
 			end
 		end
