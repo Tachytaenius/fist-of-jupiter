@@ -32,7 +32,7 @@ newEnemy("fighter1", {
 	accel = 150,
 	defeatScore = 20,
 	materialisationTime = 0.2,
-		count = function(waveNumber)
+	count = function(waveNumber)
 		if waveNumber >= firstBossWave then
 			return 0
 		end
@@ -65,7 +65,7 @@ newEnemy("fighter2", {
 	accel = 225,
 	defeatScore = 30,
 	materialisationTime = 0.35,
-		count = function(waveNumber)
+	count = function(waveNumber)
 		if waveNumber >= firstBossWave then
 			return 0
 		end
@@ -98,7 +98,7 @@ newEnemy("fighter3", {
 	accel = 250,
 	defeatScore = 35,
 	materialisationTime = 0.5,
-		count = function(waveNumber)
+	count = function(waveNumber)
 		if waveNumber >= firstBossWave then
 			return 0
 		end
@@ -131,7 +131,7 @@ newEnemy("bomber1", {
 	accel = 125,
 	defeatScore = 25,
 	materialisationTime = 0.3,
-		count = function(waveNumber)
+	count = function(waveNumber)
 		if waveNumber >= firstBossWave then
 			return 0
 		end
@@ -165,7 +165,7 @@ newEnemy("bomber2", {
 	accel = 175,
 	defeatScore = 35,
 	materialisationTime = 0.5,
-		count = function(waveNumber)
+	count = function(waveNumber)
 		if waveNumber >= firstBossWave then
 			return 0
 		end
@@ -199,7 +199,7 @@ newEnemy("bomber3", {
 	accel = 200,
 	defeatScore = 40,
 	materialisationTime = 0.7,
-		count = function(waveNumber)
+	count = function(waveNumber)
 		if waveNumber >= firstBossWave then
 			return 0
 		end
@@ -236,7 +236,7 @@ newEnemy("minelayer1", {
 	materialisationTime = 0.5,
 	spawnAtTop = true,
 	aiType = "minelayer",
-		count = function(waveNumber)
+	count = function(waveNumber)
 		if waveNumber >= firstBossWave then
 			return 0
 		end
@@ -273,7 +273,7 @@ newEnemy("minelayer2", {
 	materialisationTime = 0.4,
 	spawnAtTop = true,
 	aiType = "minelayer",
-		count = function(waveNumber)
+	count = function(waveNumber)
 		if waveNumber >= firstBossWave then
 			return 0
 		end
@@ -310,7 +310,7 @@ newEnemy("minelayer3", {
 	materialisationTime = 0.3,
 	spawnAtTop = true,
 	aiType = "minelayer",
-		count = function(waveNumber)
+	count = function(waveNumber)
 		if waveNumber >= firstBossWave then
 			return 0
 		end
@@ -350,7 +350,7 @@ newEnemy("commander1", {
 	slowdownRate = 50,
 	implosionVelocityBoost = vec2(0, -750),
 	aiType = "boss",
-		count = function(waveNumber)
+	count = function(waveNumber)
 		return waveNumber == firstBossWave and 1 or 0
 	end
 })
