@@ -542,25 +542,25 @@ local function nextWave()
 	end
 
 	if playVars.waveNumber <= consts.finalNonBossWave then
-	if playVars.waveNumber >= consts.firstNormalPowerupWave then
-		playVars.normalPowerupsLeft = math.floor(math.lerp(1, 5, lerpFactor))
-		playVars.normalPowerupSourceSpawnTimerLength = math.floor(math.lerp(30, 5, lerpFactor))
-		playVars.normalPowerupSourceSpawnTimer = randomiseTimerLength(playVars.normalPowerupSourceSpawnTimerLength)
-	else
-		playVars.normalPowerupsLeft = 0
-		playVars.normalPowerupSourceSpawnTimerLength = nil
-		playVars.normalPowerupSourceSpawnTimer = nil
+		if playVars.waveNumber >= consts.firstNormalPowerupWave then
+			playVars.normalPowerupsLeft = math.floor(math.lerp(1, 5, lerpFactor))
+			playVars.normalPowerupSourceSpawnTimerLength = math.floor(math.lerp(30, 5, lerpFactor))
+			playVars.normalPowerupSourceSpawnTimer = randomiseTimerLength(playVars.normalPowerupSourceSpawnTimerLength)
+		else
+			playVars.normalPowerupsLeft = 0
+			playVars.normalPowerupSourceSpawnTimerLength = nil
+			playVars.normalPowerupSourceSpawnTimer = nil
+		end
+		if playVars.waveNumber >= consts.firstSuperPowerupWave then
+			playVars.superPowerupsLeft = math.floor(math.lerp(1, 2, lerpFactor))
+			playVars.superPowerupSourceSpawnTimerLength = math.floor(math.lerp(30, 7.5, lerpFactor))
+			playVars.superPowerupSourceSpawnTimer = randomiseTimerLength(playVars.normalPowerupSourceSpawnTimerLength)
+		else
+			playVars.superPowerupsLeft = 0
+			playVars.superPowerupSourceSpawnTimer = nil
+			playVars.superPowerupSourceSpawnTimer = nil
+		end
 	end
-	if playVars.waveNumber >= consts.firstSuperPowerupWave then
-		playVars.superPowerupsLeft = math.floor(math.lerp(1, 2, lerpFactor))
-		playVars.superPowerupSourceSpawnTimerLength = math.floor(math.lerp(30, 7.5, lerpFactor))
-		playVars.superPowerupSourceSpawnTimer = randomiseTimerLength(playVars.normalPowerupSourceSpawnTimerLength)
-	else
-		playVars.superPowerupsLeft = 0
-		playVars.superPowerupSourceSpawnTimer = nil
-		playVars.superPowerupSourceSpawnTimer = nil
-	end
-end
 end
 
 local function winWave()
