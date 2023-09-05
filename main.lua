@@ -541,6 +541,7 @@ local function nextWave()
 		playVars.maxEnemiesToSpawn = 2
 	end
 
+	if playVars.waveNumber <= consts.finalNonBossWave then
 	if playVars.waveNumber >= consts.firstNormalPowerupWave then
 		playVars.normalPowerupsLeft = math.floor(math.lerp(1, 5, lerpFactor))
 		playVars.normalPowerupSourceSpawnTimerLength = math.floor(math.lerp(30, 5, lerpFactor))
@@ -559,6 +560,7 @@ local function nextWave()
 		playVars.superPowerupSourceSpawnTimer = nil
 		playVars.superPowerupSourceSpawnTimer = nil
 	end
+end
 end
 
 local function winWave()
