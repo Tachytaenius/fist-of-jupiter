@@ -335,7 +335,7 @@ newEnemy("commander1", {
 	subEnemies = {
 		{
 			radius = 16,
-			health = 35,
+			health = 50,
 			offset = vec2(-15, 0),
 			shootTimerLength = 1,
 			bulletSpeed = 150,
@@ -346,7 +346,7 @@ newEnemy("commander1", {
 		},
 		{
 			radius = 16,
-			health = 35,
+			health = 50,
 			offset = vec2(15, 0),
 			shootTimerLength = 2,
 			bulletSpeed = 175,
