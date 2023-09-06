@@ -43,6 +43,7 @@ audio("gameStart")
 audio("bossEncounter")
 
 audio("enemyHit")
+audio("bossExplosion")
 
 audio("playerExplosion")
 audio("playerShoot")

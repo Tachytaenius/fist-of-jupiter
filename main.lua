@@ -283,7 +283,7 @@ local function play()
 	pausedSourcesThatWerePlaying = nil
 end
 
-local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbles, spectacular)
+local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount, spectacularParticleCount)
 	velocityBoost = velocityBoost or vec2()
 	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
 	for i = 1, newParticleCount do
@@ -307,41 +307,35 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbles, sp
 	-- 	frequency = 2,
 	-- 	phasePerDistance = 0.1
 	-- })
-	if spectacular then
-		local newParticleCount = 150
-		for i = 1, newParticleCount do
-			local invisibleTime = love.math.random() * 0.75
-			playVars.particles:add({
-				pos = vec2.clone(pos),
-				vel = randCircle(120) + velocityBoost,
-				lifetime = (love.math.random() / 2 + 0.5) * 1.25 + invisibleTime,
-				size = love.math.random() < 0.1 and 2 or 1,
-				colour = {love.math.random(), love.math.random(), love.math.random()},
-				invisibleTime = invisibleTime,
-				dontMoveIfUnrevealed = true,
-				isPlayer = isPlayer
-			})
-		end
+	for _ = 1, spectacularParticleCount or 0 do
+		local invisibleTime = love.math.random() * 0.75
+		playVars.particles:add({
+			pos = vec2.clone(pos),
+			vel = randCircle(120) + velocityBoost,
+			lifetime = (love.math.random() / 2 + 0.5) * 1.25 + invisibleTime,
+			size = love.math.random() < 0.1 and 2 or 1,
+			colour = {love.math.random(), love.math.random(), love.math.random()},
+			invisibleTime = invisibleTime,
+			dontMoveIfUnrevealed = true,
+			isPlayer = isPlayer
+		})
 	end
-	if bubbles then
-		local numWaves = 3
-		local growthRate = 120
-		local lifetime = 0.25
-		local scale = 0.25
-		local finalRadiusForFirstWave = growthRate * lifetime
-		for i = 0, numWaves - 1 do
-			local radius = -i * growthRate * scale
-			playVars.bubbles[#playVars.bubbles+1] = {
-				position = vec2.clone(pos),
-				velocity = 0,
-				radius = radius,
-				timer = lifetime + (finalRadiusForFirstWave - radius) / growthRate,
-				colour = {1, 1, 1},
-				isPlayer = isPlayer,
-				growthRate = growthRate,
-				fadeTime = lifetime * 0.5
-			}
-		end
+	local growthRate = 120
+	local lifetime = 0.25
+	local scale = 0.25
+	local finalRadiusForFirstWave = growthRate * lifetime
+	for i = 0, (bubbleCount or 0) - 1 do
+		local radius = -i * growthRate * scale
+		playVars.bubbles[#playVars.bubbles+1] = {
+			position = vec2.clone(pos),
+			velocity = 0,
+			radius = radius,
+			timer = lifetime + (finalRadiusForFirstWave - radius) / growthRate,
+			colour = {1, 1, 1},
+			isPlayer = isPlayer,
+			growthRate = growthRate,
+			fadeTime = lifetime * 0.5
+		}
 	end
 end
 
@@ -1325,7 +1319,7 @@ function love.update(dt)
 
 		if playVars.player.health <= 0 and not playVars.player.dead then
 			playVars.player.dead = true
-			explode(playVars.player.radius, playVars.player.pos, playVars.player.colour, vec2(), true, true, true)
+			explode(playVars.player.radius, playVars.player.pos, playVars.player.colour, vec2(), true, 3, 150)
 			playSound(assets.audio.playerExplosion)
 			if playVars.spareLives == 0 then
 				playVars.gameOver = true
@@ -1685,7 +1679,12 @@ function love.update(dt)
 			end
 			if enemy.health <= 0 and not isEnemyAliveBecauseOfSubEnemies(enemy) then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
-				explode(enemy.radius, enemy.pos, enemy.colour)
+				if enemy.boss then
+					explode(enemy.radius, enemy.pos, enemy.colour, vec2(), false, 6, 300)
+					playSound(assets.audio.bossExplosion)
+				else
+					explode(enemy.radius, enemy.pos, enemy.colour)
+				end
 				if isPlayerPresent() then
 					local scoreAdd = enemy.defeatScore + playVars.player.killStreak * consts.killScoreBonusPerCurrentKillStreakOnKill
 					playVars.waveScore = playVars.waveScore + scoreAdd
