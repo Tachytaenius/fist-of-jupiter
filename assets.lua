@@ -44,6 +44,7 @@ audio("gameStart")
 audio("bossEncounter")
 
 audio("enemyHit")
+audio("enemyExplosion")
 audio("bossExplosion")
 audio("shieldHit")
 audio("shieldSwap")

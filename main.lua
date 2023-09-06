@@ -1627,15 +1627,15 @@ function love.update(dt)
 										break
 									end
 								elseif vec2.distance(enemy.pos + subEnemy.offset, playerBullet.pos) <= subEnemy.radius then
-								hit = true
-								subEnemy.health = math.max(0, subEnemy.health - playerBullet.damage)
-								playSound(assets.audio.enemyHit)
-								if subEnemy.health > 0 then
-									explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(subEnemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
+									hit = true
+									subEnemy.health = math.max(0, subEnemy.health - playerBullet.damage)
+									playSound(assets.audio.enemyHit)
+									if subEnemy.health > 0 then
+										explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(subEnemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
+									end
+									break
 								end
-								break
 							end
-						end
 						end
 					else
 						if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
@@ -1693,6 +1693,7 @@ function love.update(dt)
 					playSound(assets.audio.bossExplosion)
 				else
 					explode(enemy.radius, enemy.pos, enemy.colour)
+					playSound(assets.audio.enemyExplosion)
 				end
 				if isPlayerPresent() then
 					local scoreAdd = enemy.defeatScore + playVars.player.killStreak * consts.killScoreBonusPerCurrentKillStreakOnKill
@@ -1885,10 +1886,13 @@ function love.update(dt)
 					subEnemies = true, -- Ditto
 					materialisationTime = true
 				}
-				local subEnemies = shallowClone(registryEntry.subEnemies)
-				for _, subEnemy in ipairs(subEnemies) do
-					subEnemy.shootTimer = love.math.random() * 0.5
-					subEnemy.colour = subEnemy.colour and shallowClone(subEnemy.colour) or {1, 1, 1}
+				local subEnemies
+				if registryEntry.subEnemies then
+					subEnemies = shallowClone(registryEntry.subEnemies)
+					for _, subEnemy in ipairs(subEnemies) do
+						subEnemy.shootTimer = love.math.random() * 0.5
+						subEnemy.colour = subEnemy.colour and shallowClone(subEnemy.colour) or {1, 1, 1}
+					end
 				end
 				local newEnemy = {
 					pos = vec2(x, y),
