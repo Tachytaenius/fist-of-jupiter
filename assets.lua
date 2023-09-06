@@ -29,7 +29,9 @@ image("minelayer3")
 
 image("commander1")
 image("commander1Left")
+image("commander1LeftDead")
 image("commander1Right")
+image("commander1RightDead")
 
 image("glow")
 image("normalPowerupContainer")

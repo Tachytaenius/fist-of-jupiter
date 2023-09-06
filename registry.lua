@@ -343,6 +343,7 @@ newEnemy("commander1", {
 			bulletDamage = 2,
 			bulletCount = 21, -- needs to be odd or else you can stand still and never get hit
 			bulletSpreadAngle = math.tau / 2,
+			colour = {0.8, 0.8, 0.6},
 			type = "commander1Left"
 		},
 		{
@@ -355,10 +356,11 @@ newEnemy("commander1", {
 			bulletDamage = 4,
 			bulletCount = 11, -- needs to be odd or else you can stand still and never get hit
 			bulletSpreadAngle = math.tau / 2,
+			colour = {0.8, 0.8, 0.6},
 			type = "commander1Right"
 		}
 	},
-	colour = {1, 1, 1},
+	colour = {0.8, 0.8, 0.6},
 	doesntShoot = true,
 	speed = 200,
 	deliberateSpeed = 100,

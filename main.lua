@@ -2219,7 +2219,11 @@ function love.draw()
 				end
 				if enemy.subEnemies then
 					for _, subEnemy in ipairs(enemy.subEnemies) do
-						local asset = assets.images[subEnemy.type]
+						local id = subEnemy.type
+						if subEnemy.dead then
+							id = id .. "Dead"
+						end
+						local asset = assets.images[id]
 						if asset then
 							love.graphics.draw(asset,
 								(enemy.pos.x + subEnemy.offset.x) - asset:getWidth() / 2,
