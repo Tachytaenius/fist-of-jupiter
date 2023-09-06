@@ -2217,6 +2217,17 @@ function love.draw()
 				else
 					love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
 				end
+				if enemy.subEnemies then
+					for _, subEnemy in ipairs(enemy.subEnemies) do
+						local asset = assets.images[subEnemy.type]
+						if asset then
+							love.graphics.draw(asset,
+								(enemy.pos.x + subEnemy.offset.x) - asset:getWidth() / 2,
+								(enemy.pos.y + subEnemy.offset.y) - asset:getHeight() / 2
+							)
+						end
+					end
+				end
 			end
 			for i = 1, playVars.playerBullets.size do
 				local playerBullet = playVars.playerBullets:get(i)

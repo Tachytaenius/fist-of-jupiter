@@ -27,6 +27,10 @@ image("minelayer1")
 image("minelayer2")
 image("minelayer3")
 
+image("commander1")
+image("commander1Left")
+image("commander1Right")
+
 image("glow")
 image("normalPowerupContainer")
 image("superPowerupContainer")

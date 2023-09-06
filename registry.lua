@@ -334,26 +334,28 @@ newEnemy("commander1", {
 	health = 0,
 	subEnemies = {
 		{
-			radius = 16,
+			radius = 10,
 			health = 50,
-			offset = vec2(-15, 0),
+			offset = vec2(-10, 0),
 			shootTimerLength = 1,
 			bulletSpeed = 150,
 			bulletRadius = 2,
 			bulletDamage = 2,
 			bulletCount = 21, -- needs to be odd or else you can stand still and never get hit
-			bulletSpreadAngle = math.tau / 2
+			bulletSpreadAngle = math.tau / 2,
+			type = "commander1Left"
 		},
 		{
-			radius = 16,
+			radius = 10,
 			health = 50,
-			offset = vec2(15, 0),
+			offset = vec2(10, 0),
 			shootTimerLength = 2,
 			bulletSpeed = 175,
 			bulletRadius = 3,
 			bulletDamage = 4,
 			bulletCount = 11, -- needs to be odd or else you can stand still and never get hit
-			bulletSpreadAngle = math.tau / 2
+			bulletSpreadAngle = math.tau / 2,
+			type = "commander1Right"
 		}
 	},
 	colour = {1, 1, 1},
