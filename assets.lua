@@ -32,6 +32,7 @@ image("commander1Left")
 image("commander1LeftDead")
 image("commander1Right")
 image("commander1RightDead")
+image("commander1Shield")
 
 image("glow")
 image("normalPowerupContainer")
@@ -44,6 +45,8 @@ audio("bossEncounter")
 
 audio("enemyHit")
 audio("bossExplosion")
+audio("shieldHit")
+audio("shieldSwap")
 
 audio("playerExplosion")
 audio("playerShoot")

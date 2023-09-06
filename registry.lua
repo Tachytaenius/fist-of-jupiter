@@ -373,6 +373,8 @@ newEnemy("commander1", {
 	slowdownRate = 50,
 	implosionVelocityBoost = vec2(0, -750),
 	aiType = "boss",
+	shieldSwapTimerLength = 6,
+	shieldRadius = 12,
 	count = function(waveNumber)
 		return waveNumber == firstBossWave and 1 or 0
 	end

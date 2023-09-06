@@ -1618,8 +1618,15 @@ function love.update(dt)
 				for j = 1, playVars.enemies.size do
 					local enemy = playVars.enemies:get(j)
 					if enemy.subEnemies then
-						for _, subEnemy in ipairs(enemy.subEnemies) do
-							if not subEnemy.dead and vec2.distance(enemy.pos + subEnemy.offset, playerBullet.pos) <= subEnemy.radius then
+						for i, subEnemy in ipairs(enemy.subEnemies) do
+							if not subEnemy.dead then
+								if enemy.shieldSubEnemyIndex == i then
+									if vec2.distance(enemy.pos + subEnemy.offset, playerBullet.pos) <= enemy.shieldRadius then
+										hit = true
+										playSound(assets.audio.shieldHit)
+										break
+									end
+								elseif vec2.distance(enemy.pos + subEnemy.offset, playerBullet.pos) <= subEnemy.radius then
 								hit = true
 								subEnemy.health = math.max(0, subEnemy.health - playerBullet.damage)
 								playSound(assets.audio.enemyHit)
@@ -1628,6 +1635,7 @@ function love.update(dt)
 								end
 								break
 							end
+						end
 						end
 					else
 						if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
@@ -1669,6 +1677,7 @@ function love.update(dt)
 		local enemiesToDelete = {}
 		for i = 1, playVars.enemies.size do
 			local enemy = playVars.enemies:get(i)
+
 			if enemy.subEnemies then
 				for _, subEnemy in ipairs(enemy.subEnemies) do
 					if subEnemy.health <= 0 and not subEnemy.dead then
@@ -1700,6 +1709,7 @@ function love.update(dt)
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				playVars.enemyPool[enemy.type] = playVars.enemyPool[enemy.type] + 1 -- Let the enemy come back
 			end
+
 			if enemy.aiType == "boss" then
 				enemy.newMovementTimer = (enemy.newMovementTimer or 0) - dt
 				if enemy.newMovementTimer <= 0 then
@@ -1722,6 +1732,26 @@ function love.update(dt)
 			end
 			enemy.vel = marchVectorToTarget(enemy.vel, enemy.targetVel, enemy.accel, dt)
 			enemy.pos = enemy.pos + enemy.vel * dt
+
+			if enemy.shieldSwapTimerLength then
+				enemy.shieldSubEnemyIndex = enemy.shieldSubEnemyIndex or 1
+				enemy.shieldSwapTimer = (enemy.shieldSwapTimer or enemy.shieldSwapTimerLength) - dt
+				if enemy.shieldSwapTimer <= 0 then
+					enemy.shieldSwapTimer = enemy.shieldSwapTimerLength
+					--[[ commmented out because wait... i DO want the shield on dead enemies
+					if isEnemyAliveBecauseOfSubEnemies(enemy) then -- There is at least one living enemy, so no infinite loop
+						repeat
+							enemy.shieldSubEnemyIndex = (enemy.shieldSubEnemyIndex + 1 - 1) % #enemy.subEnemies + 1
+						until not enemy.subEnemies[enemy.shieldSubEnemyIndex].dead
+					else
+						enemy.shieldSubEnemyIndex = nil
+					end
+					]]
+					enemy.shieldSubEnemyIndex = (enemy.shieldSubEnemyIndex + 1 - 1) % #enemy.subEnemies + 1
+					playSound(assets.audio.shieldSwap)
+				end
+			end
+
 			if isPlayerPresent() then
 				if not enemy.doesntShoot then
 					enemy.shootTimer = enemy.shootTimer - dt
@@ -2229,7 +2259,7 @@ function love.draw()
 					love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
 				end
 				if enemy.subEnemies then
-					for _, subEnemy in ipairs(enemy.subEnemies) do
+					for i, subEnemy in ipairs(enemy.subEnemies) do
 						local id = subEnemy.type
 						if subEnemy.dead then
 							id = id .. "Dead"
@@ -2239,6 +2269,13 @@ function love.draw()
 							love.graphics.draw(asset,
 								(enemy.pos.x + subEnemy.offset.x) - asset:getWidth() / 2,
 								(enemy.pos.y + subEnemy.offset.y) - asset:getHeight() / 2
+							)
+						end
+						if not subEnemy.dead and enemy.shieldSubEnemyIndex == i then
+							local asset = assets.images[enemy.type .. "Shield"]
+							love.graphics.draw(asset,
+								(enemy.pos.x + subEnemy.offset.x) - asset:getWidth() / 2,
+								(enemy.pos.y + subEnemy.offset.y) - asset:getHeight () / 2
 							)
 						end
 					end
