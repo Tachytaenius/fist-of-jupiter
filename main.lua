@@ -215,7 +215,14 @@ end
 
 local soundSourceList = {}
 
-local function playSound(source)
+local function playSound(source, resetList)
+	if resetList and soundSourceList[source] then
+		for _, v in ipairs(soundSourceList[source]) do
+			v:stop()
+		end
+		soundSourceList[source] = {}
+	end
+
 	local list = soundSourceList[source] or {}
 	soundSourceList[source] = list
 
@@ -918,6 +925,11 @@ end
 local function shootBullet()
 	if checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0 then
 		return
+	end
+	if playVars.player.powerups.hyperBeam then
+
+	else
+		playSound(assets.audio.playerShoot, true)
 	end
 	local double = playVars.player.powerups.doubleBullets
 	local num = double and 2 or 1

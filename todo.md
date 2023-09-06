@@ -7,7 +7,6 @@
 - Add animated sprites to enemy bullets
 - Sound effects for:
 	- shots from all enemy classes
-	- player shots
 	- game over
 	- boss start
 	- game completed
