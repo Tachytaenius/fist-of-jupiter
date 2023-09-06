@@ -1629,7 +1629,7 @@ function love.update(dt)
 								elseif vec2.distance(enemy.pos + subEnemy.offset, playerBullet.pos) <= subEnemy.radius then
 									hit = true
 									subEnemy.health = math.max(0, subEnemy.health - playerBullet.damage)
-									playSound(assets.audio.enemyHit)
+									playSound(assets.audio.enemyHit, true)
 									if subEnemy.health > 0 then
 										explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(subEnemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
 									end
@@ -1641,7 +1641,7 @@ function love.update(dt)
 						if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
 							hit = true
 							enemy.health = enemy.health - playerBullet.damage
-							playSound(assets.audio.enemyHit)
+							playSound(assets.audio.enemyHit, true)
 							if enemy.health > 0 then
 								explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
 							end
