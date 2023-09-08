@@ -17,9 +17,7 @@
 	- enemy materialising
 	- player materialising
 
-- Add bosses that construct themselves over time with an animation, with velocity boosted implosions
 - Boss waves start at wave 15.
-- Boss 1, wave 15: Ship made from two ships, shield goes from left side to right side, you hit the vulnerable side and when you've blown up either side you win.
 - Boss 2, wave 16: Two ships, ship 1 moves slowly and ship 2 moves erratically, ship 1 has a shield which is fed by ship 2, and shoots balls of energy at you. Every time you hit the energy ball it moves the ball's velocity closer to the velocity that would hit ship 2 (so aim prediction). If you can get a large volley in fast enough the ball should be able to hit ship 2. When ship 2 is downed, ship 1 loses its shield and switches to *only* shooting touhou-style volleys at you.
 - Boss 3, wave 17: Large flagship. So large that you fly above its hull and are blowing up towers and stuff. Shields appear that block your progress unless you shoot all the towers (with turrets) that support them. Eventually you reach a valley in the ship's surface and are faced with large amounts of minelayer enemies that block your progress, and have to fly through the valley to release your payload (nuclear bomb) into the reactor ventilation shaft. Adjust story accordingly. Why couldn't you just fly straight for the tunnel? Because there is a shield around the flagship, you had to go through a hole in it. Why couldn't you just go thru the hole and fly above the towers?  becuase the shield is very low to the ship's surface.
 - super metroid explosion style ending where you fly away from the exploding flagship. Don't forget to record score.
