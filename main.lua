@@ -501,31 +501,35 @@ local function nextWave()
 			presentEnemyTypes[k] = true
 		end
 	end
-	local intendedEnemyAmount = playVars.waveNumber <= consts.finalNonBossWave and math.floor(math.lerp(7, 30, lerpFactor)) or 1
-	local newEnemyAmount = 0
-	for name, amount in pairs(playVars.enemyPool) do
-		local newAmount = math.floor(amount * intendedEnemyAmount / totalEnemyAmount)
-		playVars.enemyPool[name] = newAmount
-		newEnemyAmount = newEnemyAmount + newAmount
-	end
-	local id = 0
-	while true do
-		if newEnemyAmount == intendedEnemyAmount then
-			break
+	if playVars.waveNumber <= consts.finalNonBossWave then
+		local intendedEnemyAmount = math.floor(math.lerp(7, 30, lerpFactor))
+		-- Squash/strech enemy counts to get closer to desired amount
+		local newEnemyAmount = 0
+		for name, amount in pairs(playVars.enemyPool) do
+			local newAmount = math.floor(amount * intendedEnemyAmount / totalEnemyAmount)
+			playVars.enemyPool[name] = newAmount
+			newEnemyAmount = newEnemyAmount + newAmount
 		end
-		local enemyName = registry.enemyNameIdBiMap[id]
-		if presentEnemyTypes[enemyName] then
-			if newEnemyAmount > intendedEnemyAmount then
-				if playVars.enemyPool[enemyName] > 0 then
-					playVars.enemyPool[enemyName] = playVars.enemyPool[enemyName] - 1
-					newEnemyAmount = newEnemyAmount - 1
-				end
-			elseif newEnemyAmount < intendedEnemyAmount then
-				playVars.enemyPool[enemyName] = playVars.enemyPool[enemyName] + 1
-				newEnemyAmount = newEnemyAmount + 1
+		-- Shave off/add on enemy counts to reaech desired amount
+		local id = 0
+		while true do
+			if newEnemyAmount == intendedEnemyAmount then
+				break
 			end
+			local enemyName = registry.enemyNameIdBiMap[id]
+			if presentEnemyTypes[enemyName] then
+				if newEnemyAmount > intendedEnemyAmount then
+					if playVars.enemyPool[enemyName] > 0 then
+						playVars.enemyPool[enemyName] = playVars.enemyPool[enemyName] - 1
+						newEnemyAmount = newEnemyAmount - 1
+					end
+				elseif newEnemyAmount < intendedEnemyAmount then
+					playVars.enemyPool[enemyName] = playVars.enemyPool[enemyName] + 1
+					newEnemyAmount = newEnemyAmount + 1
+				end
+			end
+			id = (id + 1) % registry.numEnemies
 		end
-		id = (id + 1) % registry.numEnemies
 	end
 
 	if playVars.waveNumber <= consts.finalNonBossWave then
