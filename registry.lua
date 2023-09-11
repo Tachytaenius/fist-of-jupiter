@@ -379,5 +379,55 @@ newEnemy("commander1", {
 		return waveNumber == firstBossWave and 1 or 0
 	end
 })
+newEnemy("commander2", {
+	radius = 20,
+	health = 60,
+	shootTimerLength = 1,
+	bulletSpeed = 125,
+	bulletRadius = 2,
+	bulletDamage = 1,
+	bulletCount = 31, -- needs to be odd or else you can stand still and never get hit
+	bulletSpreadAngle = 3 * math.tau / 4,
+	colour = {1, 1, 1},
+	speed = 200,
+	deliberateSpeed = 150,
+	contactDamage = 12,
+	accel = 200,
+	defeatScore = 100,
+	materialisationTime = 2,
+	boss = true,
+	movementTimerLength = 3,
+	slowdownRate = 25,
+	implosionVelocityBoost = vec2(0, -500),
+	aiType = "boss",
+	count = function(waveNumber)
+		return waveNumber == firstBossWave + 1 and 1 or 0
+	end
+})
+newEnemy("commander3", {
+	radius = 24,
+	health = 60,
+	shootTimerLength = 2,
+	bulletSpeed = 110,
+	bulletRadius = 4,
+	bulletDamage = 3,
+	bulletCount = 11, -- needs to be odd or else you can stand still and never get hit
+	bulletSpreadAngle = math.tau / 2,
+	colour = {1, 1, 1},
+	speed = 100,
+	deliberateSpeed = 100,
+	contactDamage = 14,
+	accel = 150,
+	defeatScore = 100,
+	materialisationTime = 3,
+	boss = true,
+	movementTimerLength = 4,
+	slowdownRate = 50,
+	implosionVelocityBoost = vec2(0, -600),
+	aiType = "boss",
+	count = function(waveNumber)
+		return waveNumber == firstBossWave + 1 and 1 or 0
+	end
+})
 
 return registry
