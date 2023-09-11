@@ -1706,7 +1706,7 @@ function love.update(dt)
 					})
 					playVars.player.killStreak = playVars.player.killStreak + 1
 				end
-			elseif circleOffScreen(enemy.radius, enemy.pos) then
+			elseif circleOffScreen(enemy.radius, enemy.pos) and not enemy.boss then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				playVars.enemyPool[enemy.type] = playVars.enemyPool[enemy.type] + 1 -- Let the enemy come back
 			end
