@@ -369,7 +369,7 @@ newEnemy("commander1", {
 	defeatScore = 100,
 	materialisationTime = 1.5,
 	boss = true,
-	movementTimerLength = 2,
+	movementTimerLength = 2.5,
 	slowdownRate = 50,
 	implosionVelocityBoost = vec2(0, -750),
 	aiType = "boss",
