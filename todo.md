@@ -1,7 +1,6 @@
 # Before release
 
 - Finish score recording system (prompt player to enter name on first quit attempt and on game over and on victory, warn on score failure to be recorded)
-- Handle without crashing and warn about invalid score records
 - Balance score so that no factor dominates
 
 - Add animated sprites to enemy bullets
@@ -22,10 +21,10 @@
 - Boss 3, wave 17: Large flagship. Show player moving towards flagship, super metroid cutscene style. So large that you fly above its hull and are blowing up towers and stuff. Shields appear that block your progress unless you shoot all the towers (with turrets) that support them. Large amounts of minelayer enemies that block your progress. Your goal is to enter the reactor ventilation shaft and access the reactor to blow it up. Adjust story accordingly. An ally flies in with you as you race for the reactor through the ventilation shaft, and is shortly blown up by a dangerous ship, which chases you through the ventilation shaft. eventually you get to the reactor and the enemy hits something and tumbles into the reactor, taking away of its health bar (which appears beforehand?). You then fight spawned enemies (no score) and the reactor's turrets as you try to shoot into the reactor itself. when successful, large explosions and you fly out. Why couldn't you just fly straight for the shaft? Because there is a shield around the flagship, you had to go through a hole in it. Why couldn't you just go thru the hole and fly above the towers?  becuase the shield is very low to the ship's surface.
 - super metroid explosion style ending where you fly away from the exploding flagship. Don't forget to record score.
 - Fix finalNonBossWave + 1 being used as final wave, causing runs to be classified as victories when they weren't
-- Possibly have Jovian command giving you information. When powerups are available, or what to do with the boss.
 
 # Some other time
 
+- Handle without crashing and warn about invalid score records
 - Add different window sizes and fullscreen
 - Add difficulty scaling
 - Add clickable linktree link to author in credits
@@ -37,3 +36,4 @@
 - Maybe make bombers static or circle-moving enemies whose offscreen radius is higher? Or maybe maybe them come in diagonally with an airstrike
 - Check if MOVING off screen when off screen before deleting an enemy/enemyBullet
 - Add stereo to sounnd effects
+- Possibly have Jovian command giving you information. When powerups are available, or what to do with the boss.
