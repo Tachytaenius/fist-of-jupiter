@@ -2145,6 +2145,16 @@ function love.draw()
 			love.graphics.setShader(titleFadeShader)
 			love.graphics.draw(titleVars.textCanvas, consts.textCanvasPad, consts.textCanvasY)
 			love.graphics.setShader()
+			-- Draw scrollbar
+			local maxScroll = titleVars.textMode == "story" and titleVars.storyTextScrollMax or titleVars.textMode == "credits" and titleVars.creditsTextScrollMax
+			if maxScroll > 0 then
+				local scrollBarTop = titleVars.textScroll / (#lines * font:getHeight()) * titleVars.textCanvas:getHeight()
+				local scrollBarHeight = titleVars.textCanvas:getHeight() ^ 2 / (#lines * font:getHeight())
+				love.graphics.line(
+					consts.textCanvasPad + titleVars.textCanvas:getWidth(), consts.textCanvasY + scrollBarTop,
+					consts.textCanvasPad + titleVars.textCanvas:getWidth(), consts.textCanvasY + scrollBarTop + scrollBarHeight
+				)
+			end
 		else
 			local texts = {
 				"PLAY",
