@@ -401,11 +401,12 @@ newEnemy("commander2", {
 	implosionVelocityBoost = vec2(0, -500),
 	aiType = "boss",
 	count = function(waveNumber)
-		return waveNumber == firstBossWave + 1 and 1 or 0
+		return waveNumber == firstBossWave + 1 and 0 or 0
 	end
 })
 newEnemy("commander3", {
 	radius = 24,
+	shieldRadius = 26,
 	health = 60,
 	shootTimerLength = 2,
 	bulletSpeed = 110,

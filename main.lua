@@ -153,7 +153,8 @@ local consts = {
 	playBackgroundRushSpeed = 100,
 	revealedPowerupSourceGravity = 75,
 	newLifePerScore = 2000,
-	pauseQuitTimerLength = 2
+	pauseQuitTimerLength = 2,
+	bossDuoWave = 16
 }
 
 local controls = {
@@ -1642,6 +1643,22 @@ function love.update(dt)
 							end
 						end
 					else
+						-- commander3 has a shield if commander2 is present
+						local commander2Present = false
+						for i = 1, playVars.enemies.size do
+							local enemy = playVars.enemies:get(i)
+							if enemy.type == "commander2" then
+								commander2Present = true
+								break
+							end
+						end
+						if enemy.type == "commander3" and commander2Present then
+							if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.shieldRadius then
+								hit = true
+								playSound(assets.audio.shieldHit)
+								break
+							end
+						else
 						if vec2.distance(enemy.pos, playerBullet.pos) <= enemy.radius then
 							hit = true
 							enemy.health = enemy.health - playerBullet.damage
@@ -1652,6 +1669,7 @@ function love.update(dt)
 							break
 						end
 					end
+				end
 				end
 				if not hit then
 					for j = 1, playVars.powerupSources.size do
@@ -2262,6 +2280,44 @@ function love.draw()
 			love.graphics.translate(0, -playVars.player.pos.y)
 			love.graphics.translate(0, gameHeight/2)
 			love.graphics.translate(0, playVars.cameraYOffset)
+
+			local commander2, commander3
+			for i = 1, playVars.enemies.size do
+				local enemy = playVars.enemies:get(i)
+				if enemy.type == "commander2" then
+					commander2 = enemy
+				elseif enemy.type == "commander3" then
+					commander3 = enemy
+				end
+			end
+			if commander2 and commander3 then
+				local numParticles = 30
+				local shiftRate = 0.5
+				local startPoint = commander2.pos
+				local endPoint = commander3.pos
+				for i = 0, numParticles - 1 do
+					local function hill(start, peak, time, power)
+						local lerpFactor = -math.abs(2 * time - 1) ^ (power or 2) + 1
+						return math.lerp(start, peak, lerpFactor)
+					end
+					local lerpFactor = (i / numParticles + shiftRate * playVars.time) % 1
+					local pos = math.lerp(startPoint, endPoint, lerpFactor)
+					love.graphics.setPointSize(i % 2 + 1)
+					love.graphics.setColor(
+						hill(0.5, 1, lerpFactor, 1/2),
+						hill(0, 0, lerpFactor, 1/2),
+						hill(0, 0, lerpFactor, 1/2)
+					)
+					for outwardsness = -2, 2 do
+						local startToEndDirection = vec2.normalise(startPoint - endPoint)
+						local outwardsnessDirection = vec2.new(-startToEndDirection.y, startToEndDirection.x)
+						local pos = pos + hill(vec2.new(), outwardsness * outwardsnessDirection * 7.5, lerpFactor)
+						love.graphics.points(pos.x, pos.y)
+					end
+				end
+				love.graphics.setColor(1, 1, 1)
+				love.graphics.setPointSize(1)
+			end
 
 			local enemiesToDraw = {}
 			for i = 1, playVars.enemies.size do
