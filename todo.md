@@ -4,6 +4,7 @@
 - Balance score so that no factor dominates
 
 - Add animated sprites to enemy bullets
+- Add volume slider
 - Sound effects for:
 	- shots from all enemy classes
 	- game over
