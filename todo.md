@@ -36,3 +36,4 @@
 - Check if MOVING off screen when off screen before deleting an enemy/enemyBullet
 - Add stereo to sounnd effects
 - Possibly have Jovian command giving you information. When powerups are available, or what to do with the boss.
+- Fix greeble shadows intersecting with object shadows wrong. see comments at top of main

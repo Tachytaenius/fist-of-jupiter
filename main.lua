@@ -6,6 +6,9 @@ local version = versionWithLineBreak and versionWithLineBreak:gsub("\n", "") or 
 
 -- There are background particle ripples from explosions that were cut in the code
 
+-- The intersection of object shadow and background shadow over the flagship greebles shouldn't make the background shadow darker, but it does.
+-- This could probably be solved with a second texture that shows where sahdows are, but...
+
 function math.sign(x)
 	return x > 0 and 1 or x == 0 and 0 or -1
 end
@@ -175,7 +178,7 @@ local backgroundParticleBlockLayers
 
 local titleVars, playVars, scoreScreenVars
 
-local gameCanvas, canvasScale, font, titleFadeShader, loopingBackgroundShader, screenMesh
+local gameCanvas, canvasScale, font, titleFadeShader, loopingBackgroundShader, screenMesh, objectCanvas, shadowCanvas, objectShadowShader, objectShadowCanvasSetup
 
 local function noiseColour(colour, range)
 	return {
@@ -625,7 +628,6 @@ local function initTitleState()
 	titleVars.creditsTextScrollMax = math.max(0, #lines * font:getHeight() - titleVars.textCanvas:getHeight())
 
 	titleFadeShader = love.graphics.newShader("titleFadeShader.glsl")
-	loopingBackgroundShader = love.graphics.newShader("loopingBackgroundShader.glsl")
 	screenMesh = love.graphics.newMesh({
 		{0, 0},
 		{gameWidth, 0},
@@ -903,6 +905,11 @@ function love.load()
 	love.graphics.setDefaultFilter("nearest", "nearest")
 	love.graphics.setLineStyle("rough")
 	gameCanvas = love.graphics.newCanvas(gameWidth, gameHeight)
+	loopingBackgroundShader = love.graphics.newShader("loopingBackgroundShader.glsl")
+	objectCanvas = love.graphics.newCanvas(gameWidth, gameHeight)
+	shadowCanvas = love.graphics.newCanvas(gameWidth, gameHeight)
+	objectShadowShader = love.graphics.newShader("objectShadowShader.glsl")
+	objectShadowCanvasSetup = {objectCanvas, shadowCanvas}
 
 	assets = require("assets")
 
@@ -2297,7 +2304,7 @@ function love.draw()
 				end
 			end
 			love.graphics.origin()
-			if consts.playLikeStates[gameState] and playVars.waveNumber == consts.finalWave then
+			if playVars.waveNumber == consts.finalWave then
 				assets.images.flagshipGreebles:setWrap("repeat")
 				assets.images.flagshipGreebles:setFilter("linear")
 				love.graphics.setShader(loopingBackgroundShader)
@@ -2312,6 +2319,8 @@ function love.draw()
 			love.graphics.translate(0, gameHeight/2)
 			love.graphics.translate(0, playVars.cameraYOffset)
 
+			love.graphics.setCanvas(objectCanvas)
+			love.graphics.clear()
 			local commander2, commander3
 			for i = 1, playVars.enemies.size do
 				local enemy = playVars.enemies:get(i)
@@ -2350,6 +2359,10 @@ function love.draw()
 				love.graphics.setPointSize(1)
 			end
 
+			love.graphics.setCanvas(shadowCanvas)
+			love.graphics.clear()
+			love.graphics.setCanvas(objectShadowCanvasSetup)
+			love.graphics.setShader(objectShadowShader)
 			local enemiesToDraw = {}
 			for i = 1, playVars.enemies.size do
 				local enemy = playVars.enemies:get(i)
@@ -2390,6 +2403,8 @@ function love.draw()
 					love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
 				end
 			end
+			love.graphics.setCanvas(objectCanvas)
+			love.graphics.setShader()
 			for i = 1, playVars.playerBullets.size do
 				local playerBullet = playVars.playerBullets:get(i)
 				love.graphics.setColor(playerBullet.colour)
@@ -2402,6 +2417,8 @@ function love.draw()
 				local enemyBullet = playVars.enemyBullets:get(i)
 				love.graphics.circle("fill", enemyBullet.pos.x, enemyBullet.pos.y, enemyBullet.radius)
 			end
+			love.graphics.setCanvas(objectShadowCanvasSetup)
+			love.graphics.setShader(objectShadowShader)
 			for i = 1, playVars.particles.size do
 				local particle = playVars.particles:get(i)
 				if not particle.invisibleTime then
@@ -2438,6 +2455,8 @@ function love.draw()
 					love.graphics.draw(assets.images.normalPowerupContainer, source.pos.x - assets.images.normalPowerupContainer:getWidth() / 2, source.pos.y - assets.images.normalPowerupContainer:getHeight() / 2)
 				end
 			end
+			love.graphics.setCanvas(objetCanvas)
+			love.graphics.setShader()
 			for _, bubble in ipairs(playVars.bubbles) do
 				love.graphics.setColor(bubble.colour[1], bubble.colour[2], bubble.colour[3], math.min(1, bubble.timer / bubble.fadeTime))
 				love.graphics.circle("line", bubble.position.x, bubble.position.y, math.max(bubble.radius, 0))
@@ -2456,10 +2475,14 @@ function love.draw()
 				if flash then
 					love.graphics.setColor(1, 1, 1, consts.flashAlpha)
 				end
+				love.graphics.setCanvas(objectShadowCanvasSetup)
+				love.graphics.setShader(objectShadowShader)
 				love.graphics.draw(assets.images.player, playVars.player.pos.x - assets.images.player:getWidth() / 2, playVars.player.pos.y - assets.images.player:getHeight() / 2)
 				love.graphics.setColor(1, 1, 1)
 			end
 
+			love.graphics.setCanvas(objectCanvas)
+			love.graphics.setShader()
 			if not playVars.gameOverTextPresent then
 				for i = 1, playVars.floatingTexts.size do
 					local floatingText = playVars.floatingTexts:get(i)
@@ -2469,6 +2492,13 @@ function love.draw()
 			end
 
 			love.graphics.origin()
+			love.graphics.setCanvas(gameCanvas)
+			if playVars.waveNumber == consts.finalWave then
+				love.graphics.setColor(1, 1, 1, 0.4)
+				love.graphics.draw(shadowCanvas, -32, 16)
+			end
+			love.graphics.setColor(1, 1, 1, 1)
+			love.graphics.draw(objectCanvas)
 
 			-- for i = 1, playVars.spareLives do
 			-- 	love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
