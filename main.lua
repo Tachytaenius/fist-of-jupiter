@@ -1005,10 +1005,11 @@ local function isEnemyAliveBecauseOfSubEnemies(enemy)
 	return false
 end
 
-local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset)
+local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset, useSecondShootTimerLength)
 	local timerFactor = love.math.random() / 0.5 + 0.75
 	local enemyPos = isSubEnemy and (offset + enemy.offset) or enemy.pos
-	enemy.shootTimer = enemy.shootTimerLength * timerFactor
+	local shootTimerLength = useSecondShootTimerLength and enemy.shootTimerLength2 or enemy.shootTimerLength
+	enemy.shootTimer = shootTimerLength * timerFactor
 	local posDiff = playVars.player.pos - enemyPos
 	if #posDiff > 0 and not (enemy.aiType == "mineLayer" and playVars.player.pos.y < enemyPos.y) then
 		for i = 0, enemy.bulletCount - 1 do
@@ -1704,6 +1705,14 @@ function love.update(dt)
 			playVars.playerBullets:remove(playerBullet)
 		end
 
+		local commander2
+		for i = 1, playVars.enemies.size do
+			local enemy = playVars.enemies:get(i)
+			if enemy.type == "commander2" then
+				commander2 = enemy
+				break
+			end
+		end
 		local enemiesToDelete = {}
 		for i = 1, playVars.enemies.size do
 			local enemy = playVars.enemies:get(i)
@@ -1744,7 +1753,10 @@ function love.update(dt)
 			if enemy.aiType == "boss" then
 				enemy.newMovementTimer = (enemy.newMovementTimer or 0) - dt
 				if enemy.newMovementTimer <= 0 then
-					enemy.targetVel = enemy.deliberateSpeed * vec2.fromAngle(love.math.random() * math.tau)
+					local deliberateSpeed =
+						not commander2 and enemy.type == "commander3" and enemy.deliberateSpeed2
+						or enemy.deliberateSpeed
+					enemy.targetVel = deliberateSpeed * vec2.fromAngle(love.math.random() * math.tau)
 					enemy.newMovementTimer = enemy.movementTimerLength
 				end
 				if enemy.pos.x - enemy.radius < consts.borderSize then
@@ -1787,7 +1799,7 @@ function love.update(dt)
 				if not enemy.doesntShoot then
 					enemy.shootTimer = enemy.shootTimer - dt
 					if enemy.shootTimer <= 0 then
-						shootWithEnemyOrSubEnemy(enemy, false)
+						shootWithEnemyOrSubEnemy(enemy, false, nil, not commander2 and enemy.type == "commander3")
 					end
 				end
 				if enemy.subEnemies then
