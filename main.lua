@@ -2354,6 +2354,10 @@ function love.draw()
 						end
 					end
 				end
+				if commander2 and enemy == commander3 then
+					local asset = assets.images[enemy.type .. "Shield"]
+					love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
+				end
 			end
 			for i = 1, playVars.playerBullets.size do
 				local playerBullet = playVars.playerBullets:get(i)

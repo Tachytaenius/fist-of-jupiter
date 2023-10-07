@@ -380,23 +380,23 @@ newEnemy("commander1", {
 	end
 })
 newEnemy("commander2", {
-	radius = 20,
+	radius = 18,
 	health = 60,
-	shootTimerLength = 1,
+	shootTimerLength = 1.25,
 	bulletSpeed = 125,
 	bulletRadius = 2,
 	bulletDamage = 1,
 	bulletCount = 31, -- needs to be odd or else you can stand still and never get hit
 	bulletSpreadAngle = 3 * math.tau / 4,
-	colour = {1, 1, 1},
+	colour = {0.2, 0.2, 0.8},
 	speed = 200,
-	deliberateSpeed = 150,
+	deliberateSpeed = 125,
 	contactDamage = 12,
 	accel = 200,
 	defeatScore = 100,
 	materialisationTime = 2,
 	boss = true,
-	movementTimerLength = 3,
+	movementTimerLength = 3.5,
 	slowdownRate = 25,
 	implosionVelocityBoost = vec2(0, -500),
 	aiType = "boss",
@@ -405,8 +405,8 @@ newEnemy("commander2", {
 	end
 })
 newEnemy("commander3", {
-	radius = 24,
-	shieldRadius = 26,
+	radius = 22,
+	shieldRadius = 30,
 	health = 60,
 	shootTimerLength = 2,
 	bulletSpeed = 110,
