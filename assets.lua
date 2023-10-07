@@ -37,6 +37,8 @@ image("commander2")
 image("commander3")
 image("commander3Shield")
 
+image("flagshipGreebles")
+
 image("glow")
 image("normalPowerupContainer")
 image("superPowerupContainer")
