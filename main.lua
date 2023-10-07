@@ -2300,7 +2300,6 @@ function love.draw()
 			if consts.playLikeStates[gameState] and playVars.waveNumber == consts.finalWave then
 				assets.images.flagshipGreebles:setWrap("repeat")
 				assets.images.flagshipGreebles:setFilter("linear")
-				love.graphics.draw(assets.images.flagshipGreebles)
 				love.graphics.setShader(loopingBackgroundShader)
 				local offset = vec2.new(playVars.player.pos.x / 2, getScreenTopInWorldSpace())
 				loopingBackgroundShader:send("offset", {vec2.components(offset)})
