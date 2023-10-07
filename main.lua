@@ -125,6 +125,7 @@ local consts = {
 		autoWithSemiAutoExtra = true
 	},
 	finalNonBossWave = 14,
+	finalWave = 17,
 	bonusScoreTimerLength = 90,
 	bonusScoreTimerScorePerSecondLeft = 2,
 	killScoreBonusPerCurrentKillStreakOnKill = 3,
@@ -442,7 +443,7 @@ local function spawnPowerup(super)
 		powerup = super and "hyperBeam" or "doubleBullets", -- Should be easy enough to add more powerups
 		scoreToGive = super and 75 or 50
 	}
-	local speed = (super and 55 or 50) * math.lerp(1, 1.5, (playVars.waveNumber - 1) / (consts.finalNonBossWave + 1 - 1))
+	local speed = (super and 55 or 50) * math.lerp(1, 1.5, (playVars.waveNumber - 1) / (consts.finalWave - 1))
 	local yMin, yMax = gameHeight / 4, gameHeight / 2
 	local y = love.math.random() * (yMax - yMin) + yMin
 	local x = powerupSource.radius * 0.1
@@ -490,7 +491,7 @@ local function nextWave()
 	generatePlayer(true)
 	playVars.backtrackLimit = getCurBacktrackLimit()
 
-	local lerpFactor = (playVars.waveNumber - 1) / (consts.finalNonBossWave + 1 - 1)
+	local lerpFactor = (playVars.waveNumber - 1) / (consts.finalWave - 1)
 	playVars.enemyPool = {}
 	local presentEnemyTypes = {} -- in case an amount gets scaled to zero
 	local totalEnemyAmount = 0
@@ -650,7 +651,7 @@ local function initPlayState()
 	playVars.scoreTimerReductionAmount = 1
 	playVars.scoreBoostPerLifeAtWaveWon = 10 -- You may go through lots of waves with the same number of lives, which would be an excessive advantage, hence the low value
 	playVars.noBacktracking = true
-	playVars.startWave = 1
+	playVars.startWave = 17
 	playVars.timeSpentInPlay = 0
 
 	nextWave()
@@ -695,7 +696,7 @@ local function decodeScoreRecord(line)
 	}
 	record.name = line:gsub(string.rep("%S+%s", 7), "") -- Handle (double or more) spaces in name
 	record.symbol =
-		(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalNonBossWave + 1) and "star" or
+		(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalWave) and "star" or
 		record.result == "quitWhileAllOppositionDefeated" and "tick" or
 		record.result == "quitDuringPlay" and "door" or
 		record.result == "gameOver" and "skull"
@@ -1186,7 +1187,7 @@ function love.update(dt)
 								-- colour = {hsv2rgb(love.math.random() * 360, 1, 0.75 * math.min(1, 3/layer.distance))}
 								-- colour = {0.5 * math.min(1, 3/layer.distance), 0, 0}
 								colour = layer.style == "play" and 
-									{hsv2rgb(((love.math.random() * 2 - 1) * 15 + (playVars.waveNumber - 1) / (consts.finalNonBossWave + 1 - 1) * 360) % 360, 0.5, 0.75 * math.min(1, 3/layer.distance))} or
+									{hsv2rgb(((love.math.random() * 2 - 1) * 15 + (playVars.waveNumber - 1) / (consts.finalWave - 1) * 360) % 360, 0.5, 0.75 * math.min(1, 3/layer.distance))} or
 									{hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
 							})
 						end
@@ -1356,7 +1357,7 @@ function love.update(dt)
 			local maxSpeedDown = slow and 50 or playVars.player.maxSpeedDown
 
 			local notFlyingAway = not (checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0) and gameState == "play"
-			local confined = playVars.waveNumber >= consts.finalNonBossWave + 1
+			local confined = playVars.waveNumber >= consts.finalWave
 
 			local function handleAxis(current, target, acceleration, dt)
 				if acceleration > 0 then
@@ -2457,7 +2458,7 @@ function love.draw()
 			love.graphics.rectangle("fill", hbx + consts.healthBarPadding, hby + consts.healthBarPadding + heightChange, consts.healthBarWidth, consts.healthBarLength - heightChange)
 			love.graphics.setColor(1, 1, 1)
 
-			local text = playVars.waveNumber .. "/" .. (consts.finalNonBossWave + 1)
+			local text = playVars.waveNumber .. "/" .. consts.finalWave
 			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, 0)
 			local enemyCount = playVars.enemies.size + playVars.enemiesToMaterialise.size
 			for _, count in pairs(playVars.enemyPool) do
