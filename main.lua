@@ -503,7 +503,7 @@ local function nextWave()
 		end
 	end
 	if playVars.waveNumber <= consts.finalNonBossWave then
-		local intendedEnemyAmount = math.floor(math.lerp(7, 30, lerpFactor))
+		local intendedEnemyAmount = math.floor(math.lerp(7, 25, lerpFactor))
 		-- Squash/strech enemy counts to get closer to desired amount
 		local newEnemyAmount = 0
 		for name, amount in pairs(playVars.enemyPool) do
@@ -534,11 +534,11 @@ local function nextWave()
 	end
 
 	if playVars.waveNumber <= consts.finalNonBossWave then
-		playVars.spawnAttemptTimerLength = math.lerp(0.75, 0.25, lerpFactor)
+		playVars.spawnAttemptTimerLength = math.lerp(0.75, 0.4, lerpFactor)
 		playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength -- Doesn't get used while spawning and gets reset when the player actually spawns
-		playVars.maxEnemies = math.floor(math.lerp(5, 10, lerpFactor))
+		playVars.maxEnemies = math.floor(math.lerp(5, 7, lerpFactor))
 		playVars.minEnemiesToSpawn = math.floor(math.lerp(2, 3, lerpFactor))
-		playVars.maxEnemiesToSpawn = math.floor(math.lerp(3, 6, lerpFactor))
+		playVars.maxEnemiesToSpawn = math.floor(math.lerp(3, 4, lerpFactor))
 	else
 		playVars.spawnAttemptTimerLength = 0
 		playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength
@@ -637,7 +637,7 @@ local function initPlayState()
 
 	playVars = {}
 
-	playVars.spareLives = 4
+	playVars.spareLives = 5
 	playVars.cameraYOffset = consts.cameraYOffsetMax
 	playVars.time = 0
 	playVars.gameOverTextPresent = false
