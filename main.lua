@@ -175,7 +175,7 @@ local backgroundParticleBlockLayers
 
 local titleVars, playVars, scoreScreenVars
 
-local gameCanvas, canvasScale, font, titleFadeShader
+local gameCanvas, canvasScale, font, titleFadeShader, loopingBackgroundShader, screenMesh
 
 local function noiseColour(colour, range)
 	return {
@@ -625,6 +625,13 @@ local function initTitleState()
 	titleVars.creditsTextScrollMax = math.max(0, #lines * font:getHeight() - titleVars.textCanvas:getHeight())
 
 	titleFadeShader = love.graphics.newShader("titleFadeShader.glsl")
+	loopingBackgroundShader = love.graphics.newShader("loopingBackgroundShader.glsl")
+	screenMesh = love.graphics.newMesh({
+		{0, 0},
+		{gameWidth, 0},
+		{gameWidth, gameHeight},
+		{0, gameHeight}
+	})
 	titleFadeShader:send("canvasSize", {titleVars.textCanvas:getDimensions()})
 	titleFadeShader:send("fadeDistance", consts.textFadeDistance)
 end
@@ -1357,7 +1364,7 @@ function love.update(dt)
 			local maxSpeedDown = slow and 50 or playVars.player.maxSpeedDown
 
 			local notFlyingAway = not (checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0) and gameState == "play"
-			local confined = playVars.waveNumber > consts.finalNonBossWave
+			local confined = playVars.waveNumber > consts.finalNonBossWave and playVars.waveNumber ~= consts.finalWave
 
 			local function handleAxis(current, target, acceleration, dt)
 				if acceleration > 0 then
@@ -2274,10 +2281,22 @@ function love.draw()
 				x = x + consts.backgroundPointOffsetX
 				for y = -consts.backgroundPointDistanceY * 5, gameHeight + consts.backgroundPointDistanceY * 5, consts.backgroundPointDistanceY do
 					y = y + consts.backgroundPointOffsetY
-
+					-- Nothing
 				end
 			end
 			love.graphics.origin()
+			if consts.playLikeStates[gameState] and playVars.waveNumber == consts.finalWave then
+				assets.images.flagshipGreebles:setWrap("repeat")
+				assets.images.flagshipGreebles:setFilter("linear")
+				love.graphics.draw(assets.images.flagshipGreebles)
+				love.graphics.setShader(loopingBackgroundShader)
+				local offset = vec2.new(playVars.player.pos.x / 2, getScreenTopInWorldSpace())
+				loopingBackgroundShader:send("offset", {vec2.components(offset)})
+				loopingBackgroundShader:send("imageToDraw", assets.images.flagshipGreebles)
+				love.graphics.draw(screenMesh)
+				love.graphics.origin()
+				love.graphics.setShader()
+			end
 			love.graphics.translate(0, -playVars.player.pos.y)
 			love.graphics.translate(0, gameHeight/2)
 			love.graphics.translate(0, playVars.cameraYOffset)
