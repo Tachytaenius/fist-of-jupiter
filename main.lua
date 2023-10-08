@@ -2455,7 +2455,7 @@ function love.draw()
 					love.graphics.draw(assets.images.normalPowerupContainer, source.pos.x - assets.images.normalPowerupContainer:getWidth() / 2, source.pos.y - assets.images.normalPowerupContainer:getHeight() / 2)
 				end
 			end
-			love.graphics.setCanvas(objetCanvas)
+			love.graphics.setCanvas(objectCanvas)
 			love.graphics.setShader()
 			for _, bubble in ipairs(playVars.bubbles) do
 				love.graphics.setColor(bubble.colour[1], bubble.colour[2], bubble.colour[3], math.min(1, bubble.timer / bubble.fadeTime))
