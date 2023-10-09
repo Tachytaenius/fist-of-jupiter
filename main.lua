@@ -158,7 +158,13 @@ local consts = {
 	revealedPowerupSourceGravity = 75,
 	newLifePerScore = 2000,
 	pauseQuitTimerLength = 2,
-	bossDuoWave = 16
+	bossDuoWave = 16,
+	shadowCanvasOffsetX = -32,
+	shadowCanvasOffsetY = 16,
+	enemyDeletionPad = 40,
+	playerBulletDeletionPad = 22,
+	shadowXExtend = 32,
+	shadowYExtend = 16
 }
 
 local controls = {
@@ -578,11 +584,13 @@ local function winWave()
 	playVars.waveWonDelayBeforeResultsScreenTimer = consts.waveWonDelayBeforeResultsScreenTimerLength
 end
 
-local function circleOffScreen(radius, pos)
+local function circleOffScreen(radius, pos, pad)
+	pad = pad or 0
 	return
-		pos.x + radius <= 0 or pos.x - radius >= gameWidth or
-		pos.y - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 + radius <= 0 or
-		pos.y - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 - radius >= gameHeight
+		pos.x + radius <= -pad or
+		pos.x - radius >= gameWidth + pad or
+		pos.y - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 + radius <= -pad or
+		pos.y - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 - radius >= gameHeight + pad
 end
 
 local function initBackgroundParticles()
@@ -906,8 +914,8 @@ function love.load()
 	love.graphics.setLineStyle("rough")
 	gameCanvas = love.graphics.newCanvas(gameWidth, gameHeight)
 	loopingBackgroundShader = love.graphics.newShader("loopingBackgroundShader.glsl")
-	objectCanvas = love.graphics.newCanvas(gameWidth, gameHeight)
-	shadowCanvas = love.graphics.newCanvas(gameWidth, gameHeight)
+	objectCanvas = love.graphics.newCanvas(gameWidth + consts.shadowXExtend * 2, gameHeight + consts.shadowYExtend * 2)
+	shadowCanvas = love.graphics.newCanvas(gameWidth + consts.shadowXExtend * 2, gameHeight + consts.shadowYExtend * 2)
 	objectShadowShader = love.graphics.newShader("objectShadowShader.glsl")
 	objectShadowCanvasSetup = {objectCanvas, shadowCanvas}
 
@@ -1629,7 +1637,7 @@ function love.update(dt)
 		for i = 1, playVars.playerBullets.size do
 			local playerBullet = playVars.playerBullets:get(i)
 			playerBullet.pos = playerBullet.pos + playerBullet.vel * dt
-			if playerBullet.pos.y + playerBullet.trailLength - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 < 0 then
+			if playerBullet.pos.y + playerBullet.trailLength - playVars.player.pos.y + playVars.cameraYOffset + gameHeight / 2 < -consts.playerBulletDeletionPad then
 				deleteThesePlayerBullets[#deleteThesePlayerBullets + 1] = playerBullet
 				if playerBullet.missingResetsKillStreak then
 					playVars.player.killStreak = 0
@@ -1752,7 +1760,7 @@ function love.update(dt)
 					})
 					playVars.player.killStreak = playVars.player.killStreak + 1
 				end
-			elseif circleOffScreen(enemy.radius, enemy.pos) and not enemy.boss then
+			elseif circleOffScreen(enemy.radius, enemy.pos, consts.enemyDeletionPad) and not enemy.boss then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				playVars.enemyPool[enemy.type] = playVars.enemyPool[enemy.type] + 1 -- Let the enemy come back
 			end
@@ -2363,6 +2371,7 @@ function love.draw()
 			love.graphics.clear()
 			love.graphics.setCanvas(objectShadowCanvasSetup)
 			love.graphics.setShader(objectShadowShader)
+			love.graphics.translate(consts.shadowXExtend, consts.shadowYExtend)
 			local enemiesToDraw = {}
 			for i = 1, playVars.enemies.size do
 				local enemy = playVars.enemies:get(i)
@@ -2493,12 +2502,14 @@ function love.draw()
 
 			love.graphics.origin()
 			love.graphics.setCanvas(gameCanvas)
+			love.graphics.translate(-consts.shadowXExtend, -consts.shadowYExtend)
 			if playVars.waveNumber == consts.finalWave then
 				love.graphics.setColor(1, 1, 1, 0.4)
-				love.graphics.draw(shadowCanvas, -32, 16)
+				love.graphics.draw(shadowCanvas, consts.shadowCanvasOffsetX, consts.shadowCanvasOffsetY)
 			end
 			love.graphics.setColor(1, 1, 1, 1)
 			love.graphics.draw(objectCanvas)
+			love.graphics.origin()
 
 			-- for i = 1, playVars.spareLives do
 			-- 	love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
