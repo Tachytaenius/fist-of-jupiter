@@ -2329,6 +2329,7 @@ function love.draw()
 
 			love.graphics.setCanvas(objectCanvas)
 			love.graphics.clear()
+			love.graphics.translate(consts.shadowXExtend, consts.shadowYExtend)
 			local commander2, commander3
 			for i = 1, playVars.enemies.size do
 				local enemy = playVars.enemies:get(i)
@@ -2371,7 +2372,6 @@ function love.draw()
 			love.graphics.clear()
 			love.graphics.setCanvas(objectShadowCanvasSetup)
 			love.graphics.setShader(objectShadowShader)
-			love.graphics.translate(consts.shadowXExtend, consts.shadowYExtend)
 			local enemiesToDraw = {}
 			for i = 1, playVars.enemies.size do
 				local enemy = playVars.enemies:get(i)
