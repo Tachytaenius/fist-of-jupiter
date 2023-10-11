@@ -17,6 +17,8 @@ local firstGenPeakWave = 3
 local secondGenPeakWave = 6
 local thirdGenPeakWave = 12
 local firstBossWave = 15
+local secondBossWave = 16
+local flagshipWave = 17
 newEnemy("fighter1", {
 	radius = 6,
 	health = 1,
@@ -401,7 +403,7 @@ newEnemy("commander2", {
 	implosionVelocityBoost = vec2(0, -500),
 	aiType = "boss",
 	count = function(waveNumber)
-		return waveNumber == firstBossWave + 1 and 1 or 0
+		return waveNumber == secondBossWave and 1 or 0
 	end
 })
 newEnemy("commander3", {
@@ -429,7 +431,7 @@ newEnemy("commander3", {
 	implosionVelocityBoost = vec2(0, -600),
 	aiType = "boss",
 	count = function(waveNumber)
-		return waveNumber == firstBossWave + 1 and 1 or 0
+		return waveNumber == secondBossWave and 1 or 0
 	end
 })
 
