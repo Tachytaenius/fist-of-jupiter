@@ -434,5 +434,26 @@ newEnemy("commander3", {
 		return waveNumber == secondBossWave and 1 or 0
 	end
 })
+newEnemy("turret", {
+	radius = 6,
+	health = 1,
+	colour = {0.5, 0.5, 0.6},
+	speed = 0,
+	shootTimerLength = 1,
+	bulletSpeed = 200,
+	bulletRadius = 1,
+	bulletDamage = 1,
+	bulletCount = 0,
+	bulletSpreadAngle = 0,
+	contactDamage = 2,
+	accel = 150,
+	defeatScore = 20,
+	offscreenEnemy = true,
+	floor = true, -- draw with background image
+	count = function(waveNumber)
+		return 0
+	end
+})
+
 
 return registry

@@ -164,7 +164,11 @@ local consts = {
 	enemyDeletionPad = 40,
 	playerBulletDeletionPad = 22,
 	shadowXExtend = 32,
-	shadowYExtend = 16
+	shadowYExtend = 16,
+	flagshipSurfaceWave = 17,
+	flagshipBlockadeSeparation = 1200,
+	flagshipBlockadeStart = 1000,
+	overCameraLimitShiftBackRate = 240
 }
 
 local controls = {
@@ -176,6 +180,8 @@ local controls = {
 	pause = "escape",
 	slow = "lshift"
 }
+
+local spawnEnemy -- functions
 
 local gameState, paused, pauseFlashTimer
 
@@ -216,12 +222,6 @@ local function implode(radius, pos, colour, timer, velocityBoost)
 			colour = addToColour(noiseColour(shallowClone(colour), consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd)
 		})
 	end
-end
-
-local function spawnEnemy(enemy, timer)
-	enemy.timeUntilSpawn = timer
-	playVars.enemiesToMaterialise:add(enemy)
-	implode(enemy.radius, enemy.pos, enemy.colour, timer, enemy.implosionVelocityBoost)
 end
 
 local soundSourceList = {}
@@ -397,6 +397,7 @@ local function generatePlayer(resetPos)
 		pos = vec2(gameWidth / 2, 0)
 	end
 	playVars.cameraYOffset = consts.cameraYOffsetMax
+	playVars.prevCameraYOffset = playVars.cameraYOffset
 	local maxHealth = 4
 	playVars.player = {
 		pos = pos,
@@ -506,10 +507,12 @@ local function nextWave()
 	local totalEnemyAmount = 0
 	for k, v in pairs(registry.enemies) do
 		local amount = math.floor(v.count(playVars.waveNumber))
-		playVars.enemyPool[k] = amount
-		totalEnemyAmount = totalEnemyAmount + amount
-		if amount > 0 then
-			presentEnemyTypes[k] = true
+		if not v.offscreenEnemy then
+			playVars.enemyPool[k] = amount
+			totalEnemyAmount = totalEnemyAmount + amount
+			if amount > 0 then
+				presentEnemyTypes[k] = true
+			end
 		end
 	end
 	if playVars.waveNumber <= consts.finalNonBossWave then
@@ -540,6 +543,18 @@ local function nextWave()
 				end
 			end
 			id = (id + 1) % registry.numEnemies
+		end
+	end
+	playVars.blockades = {}
+	if playVars.waveNumber == consts.flagshipSurfaceWave then
+		local blockadeSeparation = consts.flagshipBlockadeSeparation
+		playVars.blockades = {}
+		for blockade = 1, 7 do
+			local pad = 50
+			local y = -(blockade - 1) * blockadeSeparation - consts.flagshipBlockadeStart
+			playVars.blockades[blockade] = {y = y, destroyed = false, enemiesToKill = {}}
+			table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(pad,             y + 120)))
+			table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(gameWidth - pad, y + 120)))
 		end
 	end
 
@@ -657,6 +672,7 @@ local function initPlayState()
 
 	playVars.spareLives = 5
 	playVars.cameraYOffset = consts.cameraYOffsetMax
+	playVars.prevCameraYOffset = playVars.cameraYOffset
 	playVars.time = 0
 	playVars.gameOverTextPresent = false
 	playVars.gameOverTextWaitTimer = nil
@@ -1152,6 +1168,56 @@ local function getBlockCameraPos()
 		(playVars.player.pos * vec2(0 and 1, 1) - vec2(0, playVars.time * consts.playBackgroundRushSpeed))
 end
 
+function spawnEnemy(enemyType, pos) -- it's local up top. i wont rearrange stuff
+	local registryEntry = registry.enemies[enemyType]
+	local x, y
+	if registryEntry.boss then
+		x, y = getBossRestPos()
+	else
+		x = love.math.random() * (gameWidth - consts.borderSize * 2) + consts.borderSize
+		local screenTopInWorldSpace = getScreenTopInWorldSpace()
+		if registryEntry.spawnAtTop then
+			y = love.math.random() * gameHeight / 16 + screenTopInWorldSpace
+		else
+			y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
+		end
+	end
+	local propertiesToNotCopy = {
+		colour = true, -- Copied, but with special handling
+		subEnemies = true, -- Ditto
+		materialisationTime = true
+	}
+	local subEnemies
+	if registryEntry.subEnemies then
+		subEnemies = shallowClone(registryEntry.subEnemies)
+		for _, subEnemy in ipairs(subEnemies) do
+			subEnemy.shootTimer = love.math.random() * 0.5
+			subEnemy.colour = subEnemy.colour and shallowClone(subEnemy.colour) or {1, 1, 1}
+		end
+	end
+	local timer = registryEntry.materialisationTime or 0
+	local enemy = {
+		pos = pos or vec2(x, y),
+		vel = vec2(),
+		targetVel = vec2(),
+		type = enemyType,
+		shootTimer = love.math.random() * 0.5,
+		creationTime = playVars.time, -- For consistent draw sorting
+		timeUntilSpawn = timer,
+		subEnemies = subEnemies,
+
+		colour = shallowClone(registryEntry.colour)
+	}
+	for k, v in pairs(registryEntry) do
+		if not propertiesToNotCopy[k] then
+			enemy[k] = v
+		end
+	end
+	playVars.enemiesToMaterialise:add(enemy)
+	implode(enemy.radius, enemy.pos, enemy.colour, timer, enemy.implosionVelocityBoost)
+	return enemy
+end
+
 function love.update(dt)
 	if gameState ~= "play" then
 		play()
@@ -1295,6 +1361,60 @@ function love.update(dt)
 	elseif consts.playLikeStates[gameState] then
 		playVars.time = playVars.time + dt
 
+		playVars.spawnAttemptTimer = playVars.spawnAttemptTimer - dt
+		if playVars.spawnAttemptTimer <= 0 then
+			local timerFactor = love.math.random() / 0.5 + 0.75
+			playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength * timerFactor
+			local numEnemiesThatCount = 0
+			for i = 1, playVars.enemies.size do
+				local enemy = playVars.enemies:get(i)
+				if not enemy.offscreenEnemy then
+					numEnemiesThatCount = numEnemiesThatCount + 1
+				end
+			end
+			local numberToSpawn = not isPlayerPresent() and 0 or math.max(0, math.min(love.math.random(playVars.minEnemiesToSpawn, playVars.maxEnemiesToSpawn), playVars.maxEnemies - numEnemiesThatCount))
+			for _=1, numberToSpawn do
+				local options = {}
+				for k, v in pairs(playVars.enemyPool) do
+					if v > 0 then
+						options[#options+1] = k
+					end
+				end
+				if #options == 0 then
+					break
+				end
+				local enemyType = options[love.math.random(#options)]
+				playVars.enemyPool[enemyType] = playVars.enemyPool[enemyType] - 1
+				spawnEnemy(enemyType)
+			end
+		end
+
+		local enemiesToSpawn = {}
+		for i = 1, playVars.enemiesToMaterialise.size do
+			local enemy = playVars.enemiesToMaterialise:get(i)
+			enemy.timeUntilSpawn = enemy.timeUntilSpawn - dt
+			if enemy.timeUntilSpawn <= 0 then
+				enemy.timeUntilSpawn = nil
+				enemiesToSpawn[#enemiesToSpawn+1] = enemy
+			end
+		end
+		for _, enemy in ipairs(enemiesToSpawn) do
+			playVars.enemiesToMaterialise:remove(enemy)
+			playVars.enemies:add(enemy)
+			if playVars.player.pos ~= enemy.pos then
+				if enemy.aiType == "minelayer" then
+					enemy.targetVel = vec2(0, -enemy.speed)
+				elseif enemy.aiType == "boss" then
+					-- Set continually
+				elseif not enemy.aiType then
+					enemy.targetVel = enemy.speed * vec2.normalise(playVars.player.pos - enemy.pos)
+					enemy.targetVel.y = math.abs(enemy.targetVel.y)
+				end
+			else
+				enemy.vel = vec2()
+			end
+		end
+
 		if isPlayerPresent() and not checkAllEnemiesDefeatedAndEnemyBulletsGone() and gameState == "play" then
 			if playVars.normalPowerupSourceSpawnTimer then
 				playVars.normalPowerupSourceSpawnTimer = playVars.normalPowerupSourceSpawnTimer - dt
@@ -1381,6 +1501,15 @@ function love.update(dt)
 
 			local notFlyingAway = not (checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0) and gameState == "play"
 			local confined = playVars.waveNumber > consts.finalNonBossWave and playVars.waveNumber ~= consts.finalWave
+			if playVars.blockades then
+				for _, blockade in ipairs(playVars.blockades) do
+					if not blockade.destroyed then
+						if getScreenTopInWorldSpace() <= blockade.y then
+							confined = true
+						end
+					end
+				end
+			end
 
 			local function handleAxis(current, target, acceleration, dt)
 				if acceleration > 0 then
@@ -1457,7 +1586,17 @@ function love.update(dt)
 			local cameraSlowdownFactorOppositeDirections = (1 - (consts.cameraYOffsetMax - playVars.cameraYOffset) / consts.cameraYOffsetMax)
 			local cameraSlowdownFactor = math.sign(playVars.player.vel.y) * math.sign(playVars.cameraYOffset) == -1 and cameraSlowdownFactorOppositeDirections or cameraSlowdownFactorSameDirection
 			if notFlyingAway and not confined then
-				playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, math.max(-consts.cameraYOffsetMax * 0, playVars.cameraYOffset + yChange * cameraSlowdownFactor))
+				local desired = playVars.cameraYOffset + yChange * cameraSlowdownFactor
+				if desired < 0 and
+					(playVars.prevCameraYOffset or playVars.cameraYOffset) > 0 and
+					playVars.cameraYOffset <= 0
+				then
+					playVars.cameraYOffset = 0
+				elseif desired < 0 then
+					playVars.cameraYOffset = math.min(0, desired + consts.overCameraLimitShiftBackRate * dt)
+				else
+					playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, desired)
+				end
 			else
 				playVars.cameraYOffset = playVars.cameraYOffset + yChange
 			end
@@ -1473,6 +1612,8 @@ function love.update(dt)
 			if not confined then
 				playVars.backtrackLimit = math.min(playVars.backtrackLimit, getCurBacktrackLimit()) 
 			end
+
+			playVars.prevCameraYOffset = playVars.cameraYOffset
 		end
 
 		if not consts.autoLikeShootTypes[getPlayerShootingType()] then
@@ -1611,11 +1752,11 @@ function love.update(dt)
 				end
 			end
 
-			local noEnemiesExceptBosses = true
+			local noEnemiesExceptBossesOrOffscreeners = true
 			for i = 1, playVars.enemies.size do
 				local enemy = playVars.enemies:get(i)
-				if not enemy.boss then
-					noEnemiesExceptBosses = false
+				if not (enemy.boss or enemy.offscreenEnemy) then
+					noEnemiesExceptBossesOrOffscreeners = false
 					break
 				end
 			end
@@ -1623,7 +1764,7 @@ function love.update(dt)
 			if
 				playVars.enemyBullets.size == 0 and
 				playVars.enemiesToMaterialise.size == 0 and
-				noEnemiesExceptBosses and
+				noEnemiesExceptBossesOrOffscreeners and
 				allCentringFinished and
 				noPlayerParticlesLeft and
 				noPlayerBubblesLeft and
@@ -1749,6 +1890,21 @@ function love.update(dt)
 					explode(enemy.radius, enemy.pos, enemy.colour)
 					playSound(assets.audio.enemyExplosion)
 				end
+				if playVars.blockades then
+					for _, blockade in ipairs(playVars.blockades) do
+						if not blockade.destroyed then
+							for i, enemyToKill in ipairs(blockade.enemiesToKill) do
+								if enemy == enemyToKill then
+									table.remove(blockade.enemiesToKill, i)
+									break
+								end
+							end
+							if #blockade.enemiesToKill == 0 then
+								blockade.destroyed = true
+							end
+						end
+					end
+				end
 				if isPlayerPresent() then
 					local scoreAdd = enemy.defeatScore + playVars.player.killStreak * consts.killScoreBonusPerCurrentKillStreakOnKill
 					playVars.waveScore = playVars.waveScore + scoreAdd
@@ -1760,7 +1916,7 @@ function love.update(dt)
 					})
 					playVars.player.killStreak = playVars.player.killStreak + 1
 				end
-			elseif circleOffScreen(enemy.radius, enemy.pos, consts.enemyDeletionPad) and not enemy.boss then
+			elseif circleOffScreen(enemy.radius, enemy.pos, consts.enemyDeletionPad) and not enemy.boss and not enemy.offscreenEnemy then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				playVars.enemyPool[enemy.type] = playVars.enemyPool[enemy.type] + 1 -- Let the enemy come back
 			end
@@ -1810,7 +1966,7 @@ function love.update(dt)
 				end
 			end
 
-			if isPlayerPresent() then
+			if isPlayerPresent() and not not circleOffScreen(enemy.radius, enemy.pos) then
 				if not enemy.doesntShoot then
 					enemy.shootTimer = enemy.shootTimer - dt
 					if enemy.shootTimer <= 0 then
@@ -1880,95 +2036,6 @@ function love.update(dt)
 		end
 		for _, particle in ipairs(particlesToDelete) do
 			playVars.particles:remove(particle)
-		end
-
-		local enemiesToSpawn = {}
-		for i = 1, playVars.enemiesToMaterialise.size do
-			local enemy = playVars.enemiesToMaterialise:get(i)
-			enemy.timeUntilSpawn = enemy.timeUntilSpawn - dt
-			if enemy.timeUntilSpawn <= 0 then
-				enemy.timeUntilSpawn = nil
-				enemiesToSpawn[#enemiesToSpawn+1] = enemy
-			end
-		end
-		for _, enemy in ipairs(enemiesToSpawn) do
-			playVars.enemiesToMaterialise:remove(enemy)
-			playVars.enemies:add(enemy)
-			if playVars.player.pos ~= enemy.pos then
-				if enemy.aiType == "minelayer" then
-					enemy.targetVel = vec2(0, -enemy.speed)
-				elseif enemy.aiType == "boss" then
-					-- Set continually
-				elseif not enemy.aiType then
-					enemy.targetVel = enemy.speed * vec2.normalise(playVars.player.pos - enemy.pos)
-					enemy.targetVel.y = math.abs(enemy.targetVel.y)
-				end
-			else
-				enemy.vel = vec2()
-			end
-		end
-
-		playVars.spawnAttemptTimer = playVars.spawnAttemptTimer - dt
-		if playVars.spawnAttemptTimer <= 0 then
-			local timerFactor = love.math.random() / 0.5 + 0.75
-			playVars.spawnAttemptTimer = playVars.spawnAttemptTimerLength * timerFactor
-			local numberToSpawn = not isPlayerPresent() and 0 or math.max(0, math.min(love.math.random(playVars.minEnemiesToSpawn, playVars.maxEnemiesToSpawn), playVars.maxEnemies - playVars.enemies.size))
-			for _=1, numberToSpawn do
-				local options = {}
-				for k, v in pairs(playVars.enemyPool) do
-					if v > 0 then
-						options[#options+1] = k
-					end
-				end
-				if #options == 0 then
-					break
-				end
-				local enemyType = options[love.math.random(#options)]
-				playVars.enemyPool[enemyType] = playVars.enemyPool[enemyType] - 1
-				local registryEntry = registry.enemies[enemyType]
-				local x, y
-				if registryEntry.boss then
-					x, y = getBossRestPos()
-				else
-					x = love.math.random() * (gameWidth - consts.borderSize * 2) + consts.borderSize
-					local screenTopInWorldSpace = getScreenTopInWorldSpace()
-					if registryEntry.spawnAtTop then
-						y = love.math.random() * gameHeight / 16 + screenTopInWorldSpace
-					else
-						y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
-					end
-				end
-				local propertiesToNotCopy = {
-					colour = true, -- Copied, but with special handling
-					subEnemies = true, -- Ditto
-					materialisationTime = true
-				}
-				local subEnemies
-				if registryEntry.subEnemies then
-					subEnemies = shallowClone(registryEntry.subEnemies)
-					for _, subEnemy in ipairs(subEnemies) do
-						subEnemy.shootTimer = love.math.random() * 0.5
-						subEnemy.colour = subEnemy.colour and shallowClone(subEnemy.colour) or {1, 1, 1}
-					end
-				end
-				local newEnemy = {
-					pos = vec2(x, y),
-					vel = vec2(),
-					targetVel = vec2(),
-					type = enemyType,
-					shootTimer = love.math.random() * 0.5,
-					creationTime = playVars.time, -- For consistent draw sorting
-					subEnemies = subEnemies,
-
-					colour = shallowClone(registryEntry.colour)
-				}
-				for k, v in pairs(registryEntry) do
-					if not propertiesToNotCopy[k] then
-						newEnemy[k] = v
-					end
-				end
-				spawnEnemy(newEnemy, registryEntry.materialisationTime)
-			end
 		end
 
 		local textsToDelete = {}
@@ -2301,6 +2368,56 @@ function love.draw()
 				love.graphics.print(v, gameWidth / 2 - font:getWidth(v) / 2, font:getHeight() * (i- 1))
 			end
 		else
+			local commander2, commander3
+			for i = 1, playVars.enemies.size do
+				local enemy = playVars.enemies:get(i)
+				if enemy.type == "commander2" then
+					commander2 = enemy
+				elseif enemy.type == "commander3" then
+					commander3 = enemy
+				end
+			end
+			local function drawEnemy(enemy)
+				local asset = assets.images[enemy.type]
+				if asset then
+					love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
+				else
+					love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
+				end
+				if enemy.subEnemies then
+					for i, subEnemy in ipairs(enemy.subEnemies) do
+						local id = subEnemy.type
+						if subEnemy.dead then
+							id = id .. "Dead"
+						end
+						local asset = assets.images[id]
+						if asset then
+							love.graphics.draw(asset,
+								(enemy.pos.x + subEnemy.offset.x) - asset:getWidth() / 2,
+								(enemy.pos.y + subEnemy.offset.y) - asset:getHeight() / 2
+							)
+						end
+						if not subEnemy.dead and enemy.shieldSubEnemyIndex == i then
+							local asset = assets.images[enemy.type .. "Shield"]
+							love.graphics.draw(asset,
+								(enemy.pos.x + subEnemy.offset.x) - asset:getWidth() / 2,
+								(enemy.pos.y + subEnemy.offset.y) - asset:getHeight () / 2
+							)
+						end
+					end
+				end
+				if commander2 and enemy == commander3 then
+					local asset = assets.images[enemy.type .. "Shield"]
+					love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
+				end
+			end
+			local enemiesToDraw = {}
+			for i = 1, playVars.enemies.size do
+				local enemy = playVars.enemies:get(i)
+				enemiesToDraw[#enemiesToDraw+1] = enemy
+			end
+			table.sort(enemiesToDraw, function(a, b) return a.creationTime < b.creationTime end)
+			
 			love.graphics.translate(0, -playVars.player.pos.y / 4)
 			love.graphics.translate(0, gameHeight/2)
 			love.graphics.translate(0, playVars.cameraYOffset / 2)
@@ -2316,7 +2433,7 @@ function love.draw()
 				assets.images.flagshipGreebles:setWrap("repeat")
 				assets.images.flagshipGreebles:setFilter("linear")
 				love.graphics.setShader(loopingBackgroundShader)
-				local offset = vec2.new(playVars.player.pos.x / 2, getScreenTopInWorldSpace())
+				local offset = vec2.new(playVars.player.pos.x / 2 and 0, getScreenTopInWorldSpace())
 				loopingBackgroundShader:send("offset", {vec2.components(offset)})
 				loopingBackgroundShader:send("imageToDraw", assets.images.flagshipGreebles)
 				love.graphics.draw(screenMesh)
@@ -2326,19 +2443,15 @@ function love.draw()
 			love.graphics.translate(0, -playVars.player.pos.y)
 			love.graphics.translate(0, gameHeight/2)
 			love.graphics.translate(0, playVars.cameraYOffset)
+			for _, enemy in ipairs(enemiesToDraw) do
+				if enemy.floor then
+					drawEnemy(enemy)
+				end
+			end
 
 			love.graphics.setCanvas(objectCanvas)
 			love.graphics.clear()
 			love.graphics.translate(consts.shadowXExtend, consts.shadowYExtend)
-			local commander2, commander3
-			for i = 1, playVars.enemies.size do
-				local enemy = playVars.enemies:get(i)
-				if enemy.type == "commander2" then
-					commander2 = enemy
-				elseif enemy.type == "commander3" then
-					commander3 = enemy
-				end
-			end
 			if commander2 and commander3 then
 				local numParticles = 30
 				local shiftRate = 0.5
@@ -2372,44 +2485,9 @@ function love.draw()
 			love.graphics.clear()
 			love.graphics.setCanvas(objectShadowCanvasSetup)
 			love.graphics.setShader(objectShadowShader)
-			local enemiesToDraw = {}
-			for i = 1, playVars.enemies.size do
-				local enemy = playVars.enemies:get(i)
-				enemiesToDraw[#enemiesToDraw+1] = enemy
-			end
-			table.sort(enemiesToDraw, function(a, b) return a.creationTime < b.creationTime end)
 			for _, enemy in ipairs(enemiesToDraw) do
-				local asset = assets.images[enemy.type]
-				if asset then
-					love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
-				else
-					love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
-				end
-				if enemy.subEnemies then
-					for i, subEnemy in ipairs(enemy.subEnemies) do
-						local id = subEnemy.type
-						if subEnemy.dead then
-							id = id .. "Dead"
-						end
-						local asset = assets.images[id]
-						if asset then
-							love.graphics.draw(asset,
-								(enemy.pos.x + subEnemy.offset.x) - asset:getWidth() / 2,
-								(enemy.pos.y + subEnemy.offset.y) - asset:getHeight() / 2
-							)
-						end
-						if not subEnemy.dead and enemy.shieldSubEnemyIndex == i then
-							local asset = assets.images[enemy.type .. "Shield"]
-							love.graphics.draw(asset,
-								(enemy.pos.x + subEnemy.offset.x) - asset:getWidth() / 2,
-								(enemy.pos.y + subEnemy.offset.y) - asset:getHeight () / 2
-							)
-						end
-					end
-				end
-				if commander2 and enemy == commander3 then
-					local asset = assets.images[enemy.type .. "Shield"]
-					love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
+				if not enemy.floor then
+					drawEnemy(enemy)
 				end
 			end
 			love.graphics.setCanvas(objectCanvas)
