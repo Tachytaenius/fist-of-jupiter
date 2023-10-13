@@ -1966,7 +1966,7 @@ function love.update(dt)
 				end
 			end
 
-			if isPlayerPresent() and not not circleOffScreen(enemy.radius, enemy.pos) then
+			if isPlayerPresent() and not circleOffScreen(enemy.radius, enemy.pos) then
 				if not enemy.doesntShoot then
 					enemy.shootTimer = enemy.shootTimer - dt
 					if enemy.shootTimer <= 0 then
