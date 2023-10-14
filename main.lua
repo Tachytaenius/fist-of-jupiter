@@ -168,7 +168,9 @@ local consts = {
 	flagshipSurfaceWave = 17,
 	flagshipBlockadeSeparation = 1200,
 	flagshipBlockadeStart = 1000,
-	overCameraLimitShiftBackRate = 240
+	overCameraLimitShiftBackRate = 240,
+	blockadeScrollAllowance = 50,
+	flagshipMaxNonOffscreenEnemies = 10
 }
 
 local controls = {
@@ -552,9 +554,14 @@ local function nextWave()
 		for blockade = 1, 7 do
 			local pad = 50
 			local y = -(blockade - 1) * blockadeSeparation - consts.flagshipBlockadeStart
-			playVars.blockades[blockade] = {y = y, destroyed = false, enemiesToKill = {}}
-			table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(pad,             y + 120)))
-			table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(gameWidth - pad, y + 120)))
+			playVars.blockades[blockade] = {y = y, destroyed = false, enemiesToKill = {}, enemiesToReleaseIntoPool = {
+				minelayer2 = 2 * blockade - math.max(0, 2 * 2 * blockade - 2*4), -- increase then decrease again, all doubled for a steeper gradient
+				minelayer3 = math.max(0, blockade - 1),
+				fighter3 = math.max(0, blockade - 3),
+				bomber3 = math.max(0, blockade - 2)
+			}}
+			table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(pad,             y + 40)))
+			table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(gameWidth - pad, y + 40)))
 		end
 	end
 
@@ -1490,6 +1497,16 @@ function love.update(dt)
 			end
 		end
 		if isPlayerPresent() then
+			if playVars.blockades then
+				for _, blockade in ipairs(playVars.blockades) do
+					if not blockade.destroyed then
+						if playVars.player.pos.y < blockade.y then
+							playVars.player.health = 0
+						end
+					end
+				end
+			end
+
 			if not (checkAllEnemiesDefeatedAndEnemyBulletsGone() and playVars.powerupSources.size == 0) and gameState == "play" then
 				playVars.timeSpentInPlay = playVars.timeSpentInPlay + dt
 			end
@@ -1504,7 +1521,7 @@ function love.update(dt)
 			if playVars.blockades then
 				for _, blockade in ipairs(playVars.blockades) do
 					if not blockade.destroyed then
-						if getScreenTopInWorldSpace() <= blockade.y then
+						if getScreenTopInWorldSpace() <= blockade.y - consts.blockadeScrollAllowance then
 							confined = true
 						end
 					end
@@ -1901,6 +1918,21 @@ function love.update(dt)
 							end
 							if #blockade.enemiesToKill == 0 then
 								blockade.destroyed = true
+								for enemyType, amount in pairs(blockade.enemiesToReleaseIntoPool) do
+									local nonOffscreenEnemiesInPoolAndPlay = 0
+									for _, amount in pairs(playVars.enemyPool) do
+										nonOffscreenEnemiesInPoolAndPlay = nonOffscreenEnemiesInPoolAndPlay + amount
+									end
+									for i = 1, playVars.enemies.size do
+										local enemy = playVars.enemies:get(i)
+										if not enemy.offscreenEnemy then
+											nonOffscreenEnemiesInPoolAndPlay = nonOffscreenEnemiesInPoolAndPlay + 1
+										end
+									end
+									local maxAmountToAdd = consts.flagshipMaxNonOffscreenEnemies - nonOffscreenEnemiesInPoolAndPlay
+									local amountToAdd = math.min(maxAmountToAdd, amount)
+									playVars.enemyPool[enemyType] = playVars.enemyPool[enemyType] + amountToAdd
+								end
 							end
 						end
 					end
@@ -2452,16 +2484,16 @@ function love.draw()
 			love.graphics.setCanvas(objectCanvas)
 			love.graphics.clear()
 			love.graphics.translate(consts.shadowXExtend, consts.shadowYExtend)
+			local function hill(start, peak, time, power)
+				local lerpFactor = -math.abs(2 * time - 1) ^ (power or 2) + 1
+				return math.lerp(start, peak, lerpFactor)
+			end
 			if commander2 and commander3 then
 				local numParticles = 30
 				local shiftRate = 0.5
 				local startPoint = commander2.pos
 				local endPoint = commander3.pos
 				for i = 0, numParticles - 1 do
-					local function hill(start, peak, time, power)
-						local lerpFactor = -math.abs(2 * time - 1) ^ (power or 2) + 1
-						return math.lerp(start, peak, lerpFactor)
-					end
 					local lerpFactor = (i / numParticles + shiftRate * playVars.time) % 1
 					local pos = math.lerp(startPoint, endPoint, lerpFactor)
 					love.graphics.setPointSize(i % 2 + 1)
@@ -2477,9 +2509,38 @@ function love.draw()
 						love.graphics.points(pos.x, pos.y)
 					end
 				end
-				love.graphics.setColor(1, 1, 1)
-				love.graphics.setPointSize(1)
 			end
+			if playVars.blockades then
+				for _, blockade in ipairs(playVars.blockades) do
+					if not blockade.destroyed and getScreenTopInWorldSpace() <= blockade.y + 120 then
+						local height = 20
+						local numRows = 5
+						for row = 0, numRows - 1 do
+							local numParticles = 50
+							local shiftRate = 5
+							local h = blockade.y + math.lerp(-height/2, height/2, row / (numRows - 1))
+							local startPoint = vec2(0, h)
+							local endPoint = vec2(gameWidth, h)
+							for i = 0, numParticles - 1 do
+								local lerpFactor = (i / numParticles + shiftRate * playVars.time) % 1
+								if row % 2 == 0 then
+									lerpFactor = 1 - lerpFactor
+								end
+								local pos = math.lerp(startPoint, endPoint, lerpFactor)
+								love.graphics.setPointSize(i % 2 + 1)
+								love.graphics.setColor(
+									hill(0.2, 0.4, lerpFactor, 1/2),
+									hill(0.2, 0.4, lerpFactor, 1/2),
+									hill(0.5, 1, lerpFactor, 1/2)
+								)
+								love.graphics.points(pos.x, pos.y)
+							end
+						end
+					end
+				end
+			end
+			love.graphics.setColor(1, 1, 1)
+			love.graphics.setPointSize(1)
 
 			love.graphics.setCanvas(shadowCanvas)
 			love.graphics.clear()
