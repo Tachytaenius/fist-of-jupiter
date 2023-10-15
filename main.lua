@@ -551,17 +551,26 @@ local function nextWave()
 	if playVars.waveNumber == consts.flagshipSurfaceWave then
 		local blockadeSeparation = consts.flagshipBlockadeSeparation
 		playVars.blockades = {}
-		for blockade = 1, 7 do
+		local lastBlockadeNumber = 6
+		for blockade = 1, lastBlockadeNumber do
 			local pad = 50
 			local y = -(blockade - 1) * blockadeSeparation - consts.flagshipBlockadeStart
 			playVars.blockades[blockade] = {y = y, destroyed = false, enemiesToKill = {}, enemiesToReleaseIntoPool = {
-				minelayer2 = 2 * blockade - math.max(0, 2 * 2 * blockade - 2*4), -- increase then decrease again, all doubled for a steeper gradient
-				minelayer3 = math.max(0, blockade - 1),
+				-- this is removed for the last blockade to avoid snatching victory from the player
+				minelayer2 = math.max(0, 2 * blockade - math.max(0, 2 * 2 * blockade - 2*4)), -- increase then decrease again, all doubled for a steeper gradient
+				minelayer3 = math.floor(blockade / 3),
 				fighter3 = math.max(0, blockade - 3),
 				bomber3 = math.max(0, blockade - 2)
 			}}
 			table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(pad,             y + 40)))
 			table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(gameWidth - pad, y + 40)))
+			if blockade >= lastBlockadeNumber then
+				table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(gameWidth / 4 + 50, y + 40)))
+				table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(3 * gameWidth / 4 - 50, y + 40)))
+				playVars.blockades[blockade].enemiesToReleaseIntoPool = {}
+			elseif blockade >= 3 then
+				table.insert(playVars.blockades[blockade].enemiesToKill, spawnEnemy("turret", vec2(gameWidth / 2, y + 40)))
+			end
 		end
 	end
 
@@ -1051,15 +1060,27 @@ local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset, useSecondShoo
 	local posDiff = playVars.player.pos - enemyPos
 	if #posDiff > 0 and not (enemy.aiType == "mineLayer" and playVars.player.pos.y < enemyPos.y) then
 		for i = 0, enemy.bulletCount - 1 do
-			local angleOffset = enemy.bulletCount == 1 and 0 or (i / (enemy.bulletCount - 1) - 0.5) * enemy.bulletSpreadAngle
-			playVars.enemyBullets:add({
+			local angleOffset
+			if enemy.bulletSpreadMode2 then
+				angleOffset = enemy.bulletCount == 1 and 0 or (i / enemy.bulletCount - 0.5) * enemy.bulletSpreadAngle -- don't put two bullets in the same place for a 360 degree spread
+			else
+				angleOffset = enemy.bulletCount == 1 and 0 or (i / (enemy.bulletCount - 1) - 0.5) * enemy.bulletSpreadAngle
+			end
+			local newBullet = {
 				pos = enemyPos,
-				vel = enemy.bulletSpeed * vec2.rotate(vec2.normalise(posDiff), angleOffset),
+				vel = enemy.bulletSpeed * vec2.rotate(enemy.aimOffsetGetter and vec2.fromAngle(enemy.aimOffsetGetter(playVars)) or vec2.normalise(posDiff), angleOffset),
 				radius = enemy.bulletRadius,
 				damage = enemy.bulletDamage,
 				disappearOnPlayerDeathAndAllEnemiesDefeated = enemy.bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated,
 				colour = shallowClone(enemy.bulletColour or {1, 1, 1})
-			})
+			}
+			if enemy.heatseekingBullets then
+				newBullet.accel = enemy.bulletAccel
+				newBullet.maxSpeed = enemy.bulletMaxSpeed
+				newBullet.timer = enemy.bulletLifetime
+				newBullet.heatseeker = true
+			end
+			playVars.enemyBullets:add(newBullet)
 		end
 	end
 end
@@ -2031,10 +2052,22 @@ function love.update(dt)
 		local enemyBulletsToDelete = {}
 		for i = 1, playVars.enemyBullets.size do
 			local enemyBullet = playVars.enemyBullets:get(i)
+			if enemyBullet.heatseeker then
+				local bulletToPlayer = playVars.player.pos - enemyBullet.pos
+				if #bulletToPlayer > 0 then
+					enemyBullet.vel = marchVectorToTarget(enemyBullet.vel, bulletToPlayer * enemyBullet.maxSpeed, enemyBullet.accel, dt)
+				end
+			end
 			enemyBullet.pos = enemyBullet.pos + enemyBullet.vel * dt
+			if enemyBullet.lifetime then
+				enemyBullet.lifetime = enemyBullet.lifetime - dt
+			end
 			if circleOffScreen(enemyBullet.radius, enemyBullet.pos) then
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif playVars.enemies.size == 0 and enemyPoolIsEmpty and playVars.enemiesToMaterialise.size == 0 and enemyBullet.disappearOnPlayerDeathAndAllEnemiesDefeated then
+				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour))
+				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
+			elseif enemyBullet.lifetime and enemyBullet.lifetime <= 0 then
 				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour))
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif isPlayerPresent() and vec2.distance(enemyBullet.pos, playVars.player.pos) <= playVars.player.radius then
@@ -2412,11 +2445,13 @@ function love.draw()
 			local function drawEnemy(enemy)
 				local asset = assets.images[enemy.type]
 				if asset then
-					love.graphics.draw(asset, enemy.pos.x - asset:getWidth() / 2, enemy.pos.y - asset:getHeight() / 2)
+					local r = enemy.rotateToFacePlayer and math.atan2(playVars.player.pos.y - enemy.pos.y, playVars.player.pos.x - enemy.pos.x)
+					love.graphics.draw(asset, enemy.pos.x, enemy.pos.y, r, 1, 1, asset:getWidth() / 2, asset:getHeight() / 2)
 				else
 					love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
 				end
 				if enemy.subEnemies then
+					-- NOTE: Does NOT obey rotateToFacePlayer
 					for i, subEnemy in ipairs(enemy.subEnemies) do
 						local id = subEnemy.type
 						if subEnemy.dead then
