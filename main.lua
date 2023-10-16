@@ -173,7 +173,9 @@ local consts = {
 	overCameraLimitShiftBackRate = 240,
 	blockadeScrollAllowance = 50,
 	flagshipMaxNonOffscreenEnemies = 10,
-	playerRespawnPosOnScreen = gameHeight / 2 + cameraYOffsetMax
+	playerRespawnPosOnScreen = gameHeight / 2 + cameraYOffsetMax,
+	enemySpawnZoneBottomDistanceFromScreenTop = gameHeight / 4,
+	enemySpawnZoneSafetyPad = 40
 }
 
 local controls = {
@@ -1210,7 +1212,7 @@ function spawnEnemy(enemyType, pos) -- it's local up top. i wont rearrange stuff
 		if registryEntry.spawnAtTop then
 			y = love.math.random() * gameHeight / 16 + screenTopInWorldSpace
 		else
-			y = love.math.random() * gameHeight / 4 + screenTopInWorldSpace
+			y = love.math.random() * consts.enemySpawnZoneBottomDistanceFromScreenTop + screenTopInWorldSpace
 		end
 	end
 	local propertiesToNotCopy = {
@@ -1410,6 +1412,9 @@ function love.update(dt)
 				end
 			end
 			local numberToSpawn = not isPlayerPresent() and 0 or math.max(0, math.min(love.math.random(playVars.minEnemiesToSpawn, playVars.maxEnemiesToSpawn), playVars.maxEnemies - numEnemiesThatCount))
+			if playVars.player.pos.y <= getScreenTopInWorldSpace() + consts.enemySpawnZoneBottomDistanceFromScreenTop + consts.enemySpawnZoneSafetyPad then
+				numberToSpawn = 0
+			end
 			for _=1, numberToSpawn do
 				local options = {}
 				for k, v in pairs(playVars.enemyPool) do
