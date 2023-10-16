@@ -1400,6 +1400,12 @@ function love.update(dt)
 					numEnemiesThatCount = numEnemiesThatCount + 1
 				end
 			end
+			for i = 1, playVars.enemiesToMaterialise.size do
+				local spawningEnemy = playVars.enemiesToMaterialise:get(i)
+				if not spawningEnemy.offscreenEnemy then
+					numEnemiesThatCount = numEnemiesThatCount + 1
+				end
+			end
 			local numberToSpawn = not isPlayerPresent() and 0 or math.max(0, math.min(love.math.random(playVars.minEnemiesToSpawn, playVars.maxEnemiesToSpawn), playVars.maxEnemies - numEnemiesThatCount))
 			for _=1, numberToSpawn do
 				local options = {}
@@ -1940,17 +1946,23 @@ function love.update(dt)
 							if #blockade.enemiesToKill == 0 then
 								blockade.destroyed = true
 								for enemyType, amount in pairs(blockade.enemiesToReleaseIntoPool) do
-									local nonOffscreenEnemiesInPoolAndPlay = 0
+									local nonOffscreenEnemiesInPoolOrPlayOrMaterialising = 0
 									for _, amount in pairs(playVars.enemyPool) do
-										nonOffscreenEnemiesInPoolAndPlay = nonOffscreenEnemiesInPoolAndPlay + amount
+										nonOffscreenEnemiesInPoolOrPlayOrMaterialising = nonOffscreenEnemiesInPoolOrPlayOrMaterialising + amount
 									end
 									for i = 1, playVars.enemies.size do
 										local enemy = playVars.enemies:get(i)
 										if not enemy.offscreenEnemy then
-											nonOffscreenEnemiesInPoolAndPlay = nonOffscreenEnemiesInPoolAndPlay + 1
+											nonOffscreenEnemiesInPoolOrPlayOrMaterialising = nonOffscreenEnemiesInPoolOrPlayOrMaterialising + 1
 										end
 									end
-									local maxAmountToAdd = consts.flagshipMaxNonOffscreenEnemies - nonOffscreenEnemiesInPoolAndPlay
+									for i = 1, playVars.enemiesToMaterialise.size do
+										local spawningEnemy = playVars.enemiesToMaterialise:get(i)
+										if not spawningEnemy.offscreenEnemy then
+											nonOffscreenEnemiesInPoolOrPlayOrMaterialising = nonOffscreenEnemiesInPoolOrPlayOrMaterialising + 1
+										end
+									end
+									local maxAmountToAdd = consts.flagshipMaxNonOffscreenEnemies - nonOffscreenEnemiesInPoolOrPlayOrMaterialising
 									local amountToAdd = math.min(maxAmountToAdd, amount)
 									playVars.enemyPool[enemyType] = playVars.enemyPool[enemyType] + amountToAdd
 								end
