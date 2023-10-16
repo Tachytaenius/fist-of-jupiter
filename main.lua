@@ -428,7 +428,8 @@ local function generatePlayer(resetPos)
 		spawning = true,
 		spawnTimer = not isSoundPlaying(assets.audio.gameStart) and consts.playerSpawnTime or nil,
 		powerups = {},
-		killStreak = 0
+		killStreak = 0,
+		nextShotOffset = false
 	}
 	if not isSoundPlaying(assets.audio.gameStart) then
 		implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
@@ -986,6 +987,9 @@ local function shootBullet()
 		return
 	end
 	if playVars.player.powerups.hyperBeam then
+		playVars.player.nextShotOffset = false
+	end
+	if playVars.player.powerups.hyperBeam then
 
 	else
 		playSound(assets.audio.playerShoot, true)
@@ -995,6 +999,9 @@ local function shootBullet()
 	for i = 1, num do
 		local shotWidth = playVars.player.radius - 3
 		local xOffset = num == 1 and 0 or ((i - 1) / (num - 1) - 0.5) * shotWidth
+		if playVars.player.nextShotOffset then
+			xOffset = xOffset + 1
+		end
 		local newBullet = {
 			vel = vec2(0, -450),
 			pos = playVars.player.pos + playVars.player.bulletExitOffset + vec2(xOffset, 0),
@@ -1025,6 +1032,7 @@ local function shootBullet()
 		end
 		playVars.playerBullets:add(newBullet)
 	end
+	playVars.player.nextShotOffset = not playVars.player.nextShotOffset
 end
 
 local function resetAutoShootTimer()
