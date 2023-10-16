@@ -84,9 +84,10 @@ local assets
 local gameWidth, gameHeight = 160*2, 144*3
 
 local borderSize = 32
+local cameraYOffsetMax = gameHeight / 2 - borderSize
 local consts = {
 	borderSize = borderSize,
-	cameraYOffsetMax = gameHeight / 2 - borderSize,
+	cameraYOffsetMax = cameraYOffsetMax,
 	backgroundScale = 0.75,
 	backgroundPointDistanceX = gameWidth / 8,
 	backgroundPointDistanceY = gameWidth / 8,
@@ -112,7 +113,8 @@ local consts = {
 	gameOverTextWaitTimerLength = 1.5,
 	preRespawnCentringTimerLength = 0.25,
 	postRespawnCentringTimerLength = 0.1,
-	respawnCentringSpeed = 100,
+	respawnCentringSpeedX = 100,
+	respawnCentringSpeedY = 250,
 	playLikeStates = {
 		play = true,
 		waveWon = true
@@ -170,7 +172,8 @@ local consts = {
 	flagshipBlockadeStart = 1000,
 	overCameraLimitShiftBackRate = 240,
 	blockadeScrollAllowance = 50,
-	flagshipMaxNonOffscreenEnemies = 10
+	flagshipMaxNonOffscreenEnemies = 10,
+	playerRespawnPosOnScreen = gameHeight / 2 + cameraYOffsetMax
 }
 
 local controls = {
@@ -394,7 +397,7 @@ local function generatePlayer(resetPos)
 	local pos
 	if not resetPos and playVars.player then
 		local screenTopInWorldSpace = getScreenTopInWorldSpace()
-		pos = vec2(playVars.player.pos.x, screenTopInWorldSpace + gameHeight / 2 + consts.cameraYOffsetMax)
+		pos = vec2(playVars.player.pos.x, screenTopInWorldSpace + consts.playerRespawnPosOnScreen)
 	else
 		pos = vec2(gameWidth / 2, 0)
 	end
@@ -1762,12 +1765,22 @@ function love.update(dt)
 				end
 			end
 			if playVars.respawnCentringAnimationInProgress then
+				-- Making this handle y pos without changing the use of the word centring
 				if playVars.player.pos.x > gameWidth / 2 then
-					playVars.player.pos.x = math.max(gameWidth / 2, playVars.player.pos.x - consts.respawnCentringSpeed * dt)
+					playVars.player.pos.x = math.max(gameWidth / 2, playVars.player.pos.x - consts.respawnCentringSpeedX * dt)
 				else
-					playVars.player.pos.x = math.min(gameWidth / 2, playVars.player.pos.x + consts.respawnCentringSpeed * dt)
+					playVars.player.pos.x = math.min(gameWidth / 2, playVars.player.pos.x + consts.respawnCentringSpeedX * dt)
 				end
-				if playVars.player.pos.x == gameWidth / 2 then
+				local respawnPos = getScreenTopInWorldSpace() + consts.playerRespawnPosOnScreen
+				local prevY = playVars.player.pos.y
+				if playVars.player.pos.y > respawnPos then
+					playVars.player.pos.y = math.max(respawnPos, playVars.player.pos.y - consts.respawnCentringSpeedY * dt)
+				else
+					playVars.player.pos.y = math.min(respawnPos, playVars.player.pos.y + consts.respawnCentringSpeedY * dt)
+				end
+				local changeY = playVars.player.pos.y - prevY
+				playVars.cameraYOffset = playVars.cameraYOffset + changeY
+				if playVars.player.pos.x == gameWidth / 2 and playVars.player.pos.y == respawnPos then
 					playVars.respawnCentringAnimationInProgress = false
 					playVars.postRespawnCentringTimer = consts.postRespawnCentringTimerLength
 				end
