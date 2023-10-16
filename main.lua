@@ -1080,7 +1080,7 @@ local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset, useSecondShoo
 			if enemy.heatseekingBullets then
 				newBullet.accel = enemy.bulletAccel
 				newBullet.maxSpeed = enemy.bulletMaxSpeed
-				newBullet.timer = enemy.bulletLifetime
+				newBullet.lifetime = enemy.bulletLifetime
 				newBullet.heatseeker = true
 			end
 			playVars.enemyBullets:add(newBullet)
