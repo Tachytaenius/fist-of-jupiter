@@ -231,6 +231,10 @@ local function implode(radius, pos, colour, timer, velocityBoost)
 	end
 end
 
+local function getInitialEnemyShootTimer()
+	return love.math.random() * 0.5
+end
+
 local soundSourceList = {}
 
 local function playSound(source, resetList)
@@ -1232,7 +1236,7 @@ function spawnEnemy(enemyType, pos) -- it's local up top. i wont rearrange stuff
 	if registryEntry.subEnemies then
 		subEnemies = shallowClone(registryEntry.subEnemies)
 		for _, subEnemy in ipairs(subEnemies) do
-			subEnemy.shootTimer = love.math.random() * 0.5
+			subEnemy.shootTimer = getInitialEnemyShootTimer()
 			subEnemy.colour = subEnemy.colour and shallowClone(subEnemy.colour) or {1, 1, 1}
 		end
 	end
@@ -1242,7 +1246,7 @@ function spawnEnemy(enemyType, pos) -- it's local up top. i wont rearrange stuff
 		vel = vec2(),
 		targetVel = vec2(),
 		type = enemyType,
-		shootTimer = love.math.random() * 0.5,
+		shootTimer = getInitialEnemyShootTimer(),
 		creationTime = playVars.time, -- For consistent draw sorting
 		timeUntilSpawn = timer,
 		subEnemies = subEnemies,
@@ -1943,6 +1947,10 @@ function love.update(dt)
 		for i = 1, playVars.enemies.size do
 			local enemy = playVars.enemies:get(i)
 
+			if enemy.offscreenEnemy and not circleOffScreen(enemy.radius, enemy.pos) and not enemy.appearanceTimerResetDone then
+				enemy.appearanceTimerResetDone = true
+				enemy.shootTimer = getInitialEnemyShootTimer()
+			end
 			if enemy.subEnemies then
 				for _, subEnemy in ipairs(enemy.subEnemies) do
 					if subEnemy.health <= 0 and not subEnemy.dead then
