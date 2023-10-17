@@ -2496,7 +2496,7 @@ function love.draw()
 						love.graphics.draw(assets.images.turretBase, enemy.pos.x, enemy.pos.y, 0, 1, 1, assets.images.turretBase:getWidth() / 2, assets.images.turretBase:getHeight() / 2)
 						love.graphics.draw(assets.images.turretTop, enemy.pos.x, enemy.pos.y, r, 1, 1, assets.images.turretTop:getWidth() / 2, assets.images.turretTop:getHeight() / 2)
 					else
-					love.graphics.draw(asset, enemy.pos.x, enemy.pos.y, r, 1, 1, asset:getWidth() / 2, asset:getHeight() / 2)
+						love.graphics.draw(asset, enemy.pos.x, enemy.pos.y, r, 1, 1, asset:getWidth() / 2, asset:getHeight() / 2)
 					end
 				else
 					love.graphics.circle("fill", enemy.pos.x, enemy.pos.y, enemy.radius)
