@@ -37,7 +37,8 @@ image("commander2")
 image("commander3")
 image("commander3Shield")
 
-image("turret")
+image("turretBase")
+image("turretTop")
 
 image("flagshipGreebles")
 
