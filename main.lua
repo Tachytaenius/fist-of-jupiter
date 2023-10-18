@@ -165,6 +165,7 @@ local consts = {
 	shadowCanvasOffsetY = 16,
 	enemyDeletionPad = 40,
 	playerBulletDeletionPad = 22,
+	enemyBulletDeletionPad = 75,
 	shadowXExtend = 32,
 	shadowYExtend = 16,
 	flagshipSurfaceWave = 17,
@@ -1947,7 +1948,7 @@ function love.update(dt)
 		for i = 1, playVars.enemies.size do
 			local enemy = playVars.enemies:get(i)
 
-			if enemy.offscreenEnemy and not circleOffScreen(enemy.radius, enemy.pos) and not enemy.appearanceTimerResetDone then
+			if enemy.offscreenEnemy and not circleOffScreen(enemy.radius, enemy.pos, consts.enemyBulletDeletionPad) and not enemy.appearanceTimerResetDone then
 				enemy.appearanceTimerResetDone = true
 				enemy.shootTimer = getInitialEnemyShootTimer()
 			end
@@ -2065,7 +2066,7 @@ function love.update(dt)
 				end
 			end
 
-			if isPlayerPresent() and not circleOffScreen(enemy.radius, enemy.pos) then
+			if isPlayerPresent() and not circleOffScreen(enemy.radius, enemy.pos, consts.enemyBulletDeletionPad) then
 				if not enemy.doesntShoot then
 					enemy.shootTimer = enemy.shootTimer - dt
 					if enemy.shootTimer <= 0 then
@@ -2108,7 +2109,7 @@ function love.update(dt)
 			if enemyBullet.lifetime then
 				enemyBullet.lifetime = enemyBullet.lifetime - dt
 			end
-			if circleOffScreen(enemyBullet.radius, enemyBullet.pos) then
+			if circleOffScreen(enemyBullet.radius, enemyBullet.pos, consts.enemyBulletDeletionPad) then
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif playVars.enemies.size == 0 and enemyPoolIsEmpty and playVars.enemiesToMaterialise.size == 0 and enemyBullet.disappearOnPlayerDeathAndAllEnemiesDefeated then
 				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour))
