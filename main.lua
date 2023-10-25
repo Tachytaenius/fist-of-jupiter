@@ -176,7 +176,11 @@ local consts = {
 	flagshipMaxNonOffscreenEnemies = 10,
 	playerRespawnPosOnScreen = gameHeight / 2 + cameraYOffsetMax,
 	enemySpawnZoneBottomDistanceFromScreenTop = gameHeight / 4,
-	enemySpawnZoneSafetyPad = 40
+	enemySpawnZoneSafetyPad = 40,
+	particleVertexFormat = {
+		{"VertexPosition", "float", 4},
+		{"VertexColor", "float", 4}
+	}
 }
 
 local controls = {
@@ -198,7 +202,7 @@ local backgroundParticleBlockLayers
 
 local titleVars, playVars, scoreScreenVars
 
-local gameCanvas, canvasScale, font, titleFadeShader, loopingBackgroundShader, screenMesh, objectCanvas, shadowCanvas, objectShadowShader, objectShadowCanvasSetup
+local gameCanvas, canvasScale, font, titleFadeShader, loopingBackgroundShader, screenMesh, objectCanvas, shadowCanvas, objectShadowShader, objectShadowCanvasSetup, wobblingPointMeshShader
 
 local function noiseColour(colour, range)
 	return {
@@ -961,6 +965,7 @@ function love.load()
 	shadowCanvas = love.graphics.newCanvas(gameWidth + consts.shadowXExtend * 2, gameHeight + consts.shadowYExtend * 2)
 	objectShadowShader = love.graphics.newShader("objectShadowShader.glsl")
 	objectShadowCanvasSetup = {objectCanvas, shadowCanvas}
+	wobblingPointMeshShader = love.graphics.newShader("wobblingPointMeshShader.glsl")
 
 	assets = require("assets")
 
@@ -1310,22 +1315,31 @@ function love.update(dt)
 					end
 					if not blocksX[y] then
 						local newBlock = {
-							permanentStationaryParticles = list(),
+							pointSize = consts.backgroundParticlePointScale / layer.distance,
 							movingParticles = list()
 						}
 						blocksX[y] = newBlock
-						for i = 1, (layer.style == "play" and 0.5 or 1) * consts.permanentStationaryParticlesPerBlock do
-							newBlock.permanentStationaryParticles:add({
-								pos = consts.particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
-								vel = vec2(),
-								size = consts.backgroundParticlePointScale / layer.distance,
-								-- colour = {hsv2rgb(love.math.random() * 360, 1, 0.75 * math.min(1, 3/layer.distance))}
-								-- colour = {0.5 * math.min(1, 3/layer.distance), 0, 0}
-								colour = layer.style == "play" and 
-									{hsv2rgb(((love.math.random() * 2 - 1) * 15 + (playVars.waveNumber - 1) / (consts.finalWave - 1) * 360) % 360, 0.5, 0.75 * math.min(1, 3/layer.distance))} or
-									{hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
-							})
+						local numVertices = math.floor((layer.style == "play" and 0.5 or 1) * consts.permanentStationaryParticlesPerBlock)
+						local mesh = love.graphics.newMesh(consts.particleVertexFormat, numVertices, "points", "dynamic")
+						for i = 1, numVertices do
+							-- newBlock.permanentStationaryParticles:add({
+							-- 	pos = consts.particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
+							-- 	colour = {hsv2rgb(love.math.random() * 360, 1, 0.75 * math.min(1, 3/layer.distance))}
+							-- 	colour = {0.5 * math.min(1, 3/layer.distance), 0, 0}
+							-- 	colour = layer.style == "play" and
+							-- 		{hsv2rgb(((love.math.random() * 2 - 1) * 15 + (playVars.waveNumber - 1) / (consts.finalWave - 1) * 360) % 360, 0.5, 0.75 * math.min(1, 3/layer.distance))} or
+							-- 		{hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
+							-- })
+							local pos = consts.particleBlockSize * vec2(love.math.random() + x, love.math.random() + y)
+							local r, g, b
+							if layer.style == "play" then
+								r, g, b = hsv2rgb(((love.math.random() * 2 - 1) * 15 + (playVars.waveNumber - 1) / (consts.finalWave - 1) * 360) % 360, 0.5, 0.75 * math.min(1, 3/layer.distance))
+							else
+								r, g, b = hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))
+							end
+							mesh:setVertex(i, pos.x, pos.y, 0, 1, r, g, b, 1)
 						end
+						newBlock.permanentStationaryParticlesMesh = mesh
 						for i = 1, (layer.style == "play" and 0.5 or 1) * consts.movingParticlesPerBlock do
 							addMovingParticleToBlock(newBlock, layer, x, y)
 						end
@@ -2298,49 +2312,62 @@ function love.draw()
 				love.graphics.translate(0, playVars.cameraYOffset)
 			end
 			love.graphics.translate(-cameraPos.x, -cameraPos.y)
+			if consts.playLikeStates[gameState] then
+				wobblingPointMeshShader:send("time", playVars.time)
+				wobblingPointMeshShader:send("playBackgroundParticleAnimationFrequency", consts.playBackgroundParticleAnimationFrequency)
+				wobblingPointMeshShader:send("playBackgroundParticleTimeOffsetPerDistance", consts.playBackgroundParticleTimeOffsetPerDistance)
+				wobblingPointMeshShader:send("playBackgroundParticleAnimationAmplitude", consts.playBackgroundParticleAnimationAmplitude)
+			end
 			for x, blocksX in pairs(layer.blocks) do
 				for y, block in pairs(blocksX) do
-					for j = 1, block.permanentStationaryParticles.size do
-						local particle = block.permanentStationaryParticles:get(j)
-						love.graphics.setPointSize(particle.size)
-						love.graphics.setColor(particle.colour)
-						local offset = vec2()
-						if consts.playLikeStates[gameState] then
-							for i = 1, playVars.rippleSources.size do
-								local ripple = playVars.rippleSources:get(i)
+					-- for j = 1, block.permanentStationaryParticles.size do
+					-- 	local particle = block.permanentStationaryParticles:get(j)
+					-- 	love.graphics.setPointSize(particle.size)
+					-- 	love.graphics.setColor(particle.colour)
+					-- 	local offset = vec2()
+					-- 	if consts.playLikeStates[gameState] then
+					-- 		for i = 1, playVars.rippleSources.size do
+					-- 			local ripple = playVars.rippleSources:get(i)
 
-								local skew = 2
-								local height = 1
-								local powExp = 2
+					-- 			local skew = 2
+					-- 			local height = 1
+					-- 			local powExp = 2
 
-								local timeZeroToOne = 1 - ripple.timer / ripple.timerLength
-								local bent = timeZeroToOne ^ (1 / skew)
-								local properRange = 2 * bent - 1
-								local powOut = properRange ^ powExp
+					-- 			local timeZeroToOne = 1 - ripple.timer / ripple.timerLength
+					-- 			local bent = timeZeroToOne ^ (1 / skew)
+					-- 			local properRange = 2 * bent - 1
+					-- 			local powOut = properRange ^ powExp
 								
-								local timeFactor = height * (1 - powOut)
+					-- 			local timeFactor = height * (1 - powOut)
 
-								local dist = math.sqrt(
-									(particle.pos.x - ripple.pos.x) ^ 2 +
-									(particle.pos.y - ripple.pos.y) ^ 2 +
-									(50 * (layer.distance - 0)) ^ 2
-								)
-								local distTimeFactor = timeFactor * math.min(1, (dist / 50) ^ -1)
-								local pushFactor = ripple.force * distTimeFactor +
-									distTimeFactor * ripple.amplitude * math.sin(
-										(ripple.timerLength - ripple.timer) * ripple.frequency * math.tau +
-										dist * ripple.phasePerDistance
-									) / 2 + 1
-								offset = offset + pushFactor * normaliseOrZero(particle.pos - ripple.pos)
-							end
-							offset.y = offset.y + math.sin(
-								(playVars.time * consts.playBackgroundParticleAnimationFrequency) * math.tau +
-								particle.pos.x * consts.playBackgroundParticleTimeOffsetPerDistance +
-								particle.pos.y * consts.playBackgroundParticleTimeOffsetPerDistance
-							) * consts.playBackgroundParticleAnimationAmplitude
-						end
-						love.graphics.points(particle.pos.x + offset.x - gameWidth / 2, particle.pos.y + offset.y)
+					-- 			local dist = math.sqrt(
+					-- 				(particle.pos.x - ripple.pos.x) ^ 2 +
+					-- 				(particle.pos.y - ripple.pos.y) ^ 2 +
+					-- 				(50 * (layer.distance - 0)) ^ 2
+					-- 			)
+					-- 			local distTimeFactor = timeFactor * math.min(1, (dist / 50) ^ -1)
+					-- 			local pushFactor = ripple.force * distTimeFactor +
+					-- 				distTimeFactor * ripple.amplitude * math.sin(
+					-- 					(ripple.timerLength - ripple.timer) * ripple.frequency * math.tau +
+					-- 					dist * ripple.phasePerDistance
+					-- 				) / 2 + 1
+					-- 			offset = offset + pushFactor * normaliseOrZero(particle.pos - ripple.pos)
+					-- 		end
+					-- 		offset.y = offset.y + math.sin(
+					-- 			(playVars.time * consts.playBackgroundParticleAnimationFrequency) * math.tau +
+					-- 			particle.pos.x * consts.playBackgroundParticleTimeOffsetPerDistance +
+					-- 			particle.pos.y * consts.playBackgroundParticleTimeOffsetPerDistance
+					-- 		) * consts.playBackgroundParticleAnimationAmplitude
+					-- 	end
+					-- 	love.graphics.points(particle.pos.x + offset.x - gameWidth / 2, particle.pos.y + offset.y)
+					-- end
+					love.graphics.setPointSize(block.pointSize)
+					love.graphics.setColor(1, 1, 1)
+					if consts.playLikeStates[gameState] then
+						love.graphics.setShader(wobblingPointMeshShader)
 					end
+					love.graphics.draw(block.permanentStationaryParticlesMesh)
+					love.graphics.setShader()
 					for j = 1, block.movingParticles.size do
 						local particle = block.movingParticles:get(j)
 						love.graphics.setPointSize(particle.size)
