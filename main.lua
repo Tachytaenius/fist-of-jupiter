@@ -310,7 +310,7 @@ local function play()
 	pausedSourcesThatWerePlaying = nil
 end
 
-local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount, spectacularParticleCount)
+local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount, spectacularParticleCount, noShadow)
 	velocityBoost = velocityBoost or vec2()
 	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
 	for i = 1, newParticleCount do
@@ -321,7 +321,8 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount
 			lifetime = (love.math.random() / 2 + 0.5) * 0.5,
 			size = love.math.random() < 0.1 and 2 or 1,
 			colour = addToColour(noiseColour(shallowClone(colour), consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd),
-			isPlayer = isPlayer
+			isPlayer = isPlayer,
+			noShadow = noShadow
 		})
 	end
 	-- local timerLength = 1.5
@@ -344,7 +345,8 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount
 			colour = {love.math.random(), love.math.random(), love.math.random()},
 			invisibleTime = invisibleTime,
 			dontMoveIfUnrevealed = true,
-			isPlayer = isPlayer
+			isPlayer = isPlayer,
+			noShadow = noShadow
 		})
 	end
 	local growthRate = 120
@@ -763,12 +765,12 @@ local function decodeScoreRecord(line, lineNumber)
 		record.result = words[5]
 		record.score = tonumber(words[6])
 		record.timeSpentInPlay = tonumber(words[7])
-	record.name = line:gsub(string.rep("%S+%s", 7), "") -- Handle (double or more) spaces in name
-	record.symbol =
-		(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalWave) and "star" or
-		record.result == "quitWhileAllOppositionDefeated" and "tick" or
-		record.result == "quitDuringPlay" and "door" or
-		record.result == "gameOver" and "skull"
+		record.name = line:gsub(string.rep("%S+%s", 7), "") -- Handle (double or more) spaces in name
+		record.symbol =
+			(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalWave) and "star" or
+			record.result == "quitWhileAllOppositionDefeated" and "tick" or
+			record.result == "quitDuringPlay" and "door" or
+			record.result == "gameOver" and "skull"
 	end
 	record.line = line
 	return record
@@ -1896,7 +1898,7 @@ function love.update(dt)
 									subEnemy.health = math.max(0, subEnemy.health - playerBullet.damage)
 									playSound(assets.audio.enemyHit, true)
 									if subEnemy.health > 0 then
-										explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(subEnemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
+										explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(subEnemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplie, false, 0, 0, enemy.floor)
 									end
 									break
 								end
@@ -1924,7 +1926,7 @@ function love.update(dt)
 							enemy.health = enemy.health - playerBullet.damage
 							playSound(assets.audio.enemyHit, true)
 							if enemy.health > 0 then
-								explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier)
+								explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(enemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier, false, 0, 0, enemy.floor)
 							end
 							break
 						end
@@ -1975,7 +1977,7 @@ function love.update(dt)
 			if enemy.subEnemies then
 				for _, subEnemy in ipairs(enemy.subEnemies) do
 					if subEnemy.health <= 0 and not subEnemy.dead then
-						explode(subEnemy.radius, enemy.pos + subEnemy.offset, subEnemy.colour)
+						explode(subEnemy.radius, enemy.pos + subEnemy.offset, subEnemy.colour, vec2(), false, 0, 0, enemy.floor)
 						subEnemy.dead = true
 					end
 				end
@@ -1983,10 +1985,10 @@ function love.update(dt)
 			if enemy.health <= 0 and not isEnemyAliveBecauseOfSubEnemies(enemy) then
 				enemiesToDelete[#enemiesToDelete+1] = enemy
 				if enemy.boss then
-					explode(enemy.radius, enemy.pos, enemy.colour, vec2(), false, 6, 300)
+					explode(enemy.radius, enemy.pos, enemy.colour, vec2(), false, 6, 300, enemy.floor)
 					playSound(assets.audio.bossExplosion)
 				else
-					explode(enemy.radius, enemy.pos, enemy.colour)
+					explode(enemy.radius, enemy.pos, enemy.colour, vec2(), false, 0, 0, enemy.floor)
 					playSound(assets.audio.enemyExplosion)
 				end
 				if playVars.blockades then
@@ -2685,11 +2687,19 @@ function love.draw()
 				local enemyBullet = playVars.enemyBullets:get(i)
 				love.graphics.circle("fill", enemyBullet.pos.x, enemyBullet.pos.y, enemyBullet.radius)
 			end
+			for i = 1, playVars.particles.size do
+				local particle = playVars.particles:get(i)
+				if not particle.invisibleTime and particle.noShadow then
+					love.graphics.setPointSize(particle.size)
+					love.graphics.setColor(particle.colour)
+					love.graphics.points(particle.pos.x, particle.pos.y)
+				end
+			end
 			love.graphics.setCanvas(objectShadowCanvasSetup)
 			love.graphics.setShader(objectShadowShader)
 			for i = 1, playVars.particles.size do
 				local particle = playVars.particles:get(i)
-				if not particle.invisibleTime then
+				if not particle.invisibleTime and not particle.noShadow then
 					love.graphics.setPointSize(particle.size)
 					love.graphics.setColor(particle.colour)
 					love.graphics.points(particle.pos.x, particle.pos.y)
