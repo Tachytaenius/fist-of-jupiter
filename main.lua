@@ -722,6 +722,9 @@ local function initPlayState()
 end
 
 local function recordScore(name)
+	if version == "unknown" then
+		return -- An unknown version could be recorded in any format, so can't be decoded.
+	end
 	assert(not playVars.scoreRecorded, "Attempted to record score despite it already having been recorded")
 	local scoreToRecord =
 		playVars.onResultsScreen and playVars.totalScore or
@@ -744,26 +747,29 @@ local function recordScore(name)
 	playVars.scoreRecorded = true
 end
 
-local function decodeScoreRecord(line)
+local function decodeScoreRecord(line, lineNumber)
 	local words = {}
 	for word in line:gmatch("%S+") do
 		words[#words+1] = word
 	end
-	local record = {
-		version = words[1],
-		timestamp = tonumber(words[2]),
-		startWave = tonumber(words[3]),
-		endWave = tonumber(words[4]),
-		result = words[5],
-		score = tonumber(words[6]),
-		timeSpentInPlay = tonumber(words[7])
-	}
+	local record = {}
+	version = words[1]
+	if version == "unknown" then
+		error("Can't interpret score on scores.txt line " .. lineNumber .. " as it is from an unknown version")
+	elseif false then
+		record.timestamp = tonumber(words[2])
+		record.startWave = tonumber(words[3])
+		record.endWave = tonumber(words[4])
+		record.result = words[5]
+		record.score = tonumber(words[6])
+		record.timeSpentInPlay = tonumber(words[7])
 	record.name = line:gsub(string.rep("%S+%s", 7), "") -- Handle (double or more) spaces in name
 	record.symbol =
 		(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalWave) and "star" or
 		record.result == "quitWhileAllOppositionDefeated" and "tick" or
 		record.result == "quitDuringPlay" and "door" or
 		record.result == "gameOver" and "skull"
+	end
 	record.line = line
 	return record
 end
@@ -786,7 +792,7 @@ local function initScoreScreenState()
 	scoreScreenVars.startingWaveScoreSetsFilteredByVersionVictoriesOnly = {}
 	local i = 1
 	for line in love.filesystem.lines("scores.txt") do
-		local record = decodeScoreRecord(line)
+		local record = decodeScoreRecord(line, i)
 		record.index = i
 		scoreScreenVars.scores[#scoreScreenVars.scores+1] = record
 
