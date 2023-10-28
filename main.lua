@@ -180,7 +180,9 @@ local consts = {
 	particleVertexFormat = {
 		{"VertexPosition", "float", 4},
 		{"VertexColor", "float", 4}
-	}
+	},
+	playerThrustParticleTimeInterval = 0.02,
+	usePlayerThrustParticles = false
 }
 
 local controls = {
@@ -440,7 +442,8 @@ local function generatePlayer(resetPos)
 		spawnTimer = not isSoundPlaying(assets.audio.gameStart) and consts.playerSpawnTime or nil,
 		powerups = {},
 		killStreak = 0,
-		nextShotOffset = false
+		nextShotOffset = false,
+		thrustParticleTimeCounter = 0
 	}
 	if not isSoundPlaying(assets.audio.gameStart) then
 		implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
@@ -1701,6 +1704,35 @@ function love.update(dt)
 			end
 
 			playVars.prevCameraYOffset = playVars.cameraYOffset
+
+			if consts.usePlayerThrustParticles then
+				playVars.player.thrustParticleTimeCounter = playVars.player.thrustParticleTimeCounter + dt
+				while playVars.player.thrustParticleTimeCounter >= consts.playerThrustParticleTimeInterval do
+					playVars.player.thrustParticleTimeCounter = playVars.player.thrustParticleTimeCounter - consts.playerThrustParticleTimeInterval
+					if playVars.player.fireBackThrusters then
+						local timer = randomiseTimerLength(0.5)
+						playVars.particles:add({
+							pos = playVars.player.pos + vec2(0, playVars.player.radius) + vec2((love.math.random() * 2 - 1) * 4, 2),
+							vel = randCircle(30) + vec2(0, -50),
+							lifetime = timer,
+							size = 1,
+							colour = addToColour(noiseColour({1, 0.1, 0}, consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd),
+							noShadow = true
+						})
+					end
+					if playVars.player.fireFrontThrusters then
+						local timer = randomiseTimerLength(0.3)
+						playVars.particles:add({
+							pos = playVars.player.pos - vec2(0, playVars.player.radius) + vec2((love.math.random() * 2 - 1) * 4, -2),
+							vel = randCircle(20) + vec2(0, -40),
+							lifetime = timer,
+							size = 1,
+							colour = addToColour(noiseColour({1, 0.1, 0}, consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd),
+							noShadow = true
+						})
+					end
+				end
+			end
 		end
 
 		if not consts.autoLikeShootTypes[getPlayerShootingType()] then
