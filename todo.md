@@ -1,6 +1,6 @@
 # Before release
 
-- Finish score recording system (prompt player to enter name on first quit attempt and on game over and on victory, warn on score failure to be recorded)
+- Finish score recording system (prompt player to enter name on first quit attempt and on game over and on victory, warn on score failure to be recorded (there's a TODO for it in the code), maybe alert that scores won't be recorded on an unknown version?)
 - Balance score so that no factor dominates
 
 - Add animated sprites to enemy bullets
@@ -42,3 +42,4 @@
 - Add stereo to sounnd effects
 - Possibly have Jovian command giving you information. When powerups are available, or what to do with the boss.
 - Fix greeble shadows intersecting with object shadows wrong. see comments at top of main
+- Have bubbles appear from player when thrusters engaged if player has powerup.
