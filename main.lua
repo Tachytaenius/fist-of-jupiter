@@ -2671,7 +2671,7 @@ function love.draw()
 						local numRows = 5
 						for row = 0, numRows - 1 do
 							local numParticles = 50
-							local shiftRate = 5
+							local shiftRate = 0.25
 							local h = blockade.y + math.lerp(-height/2, height/2, row / (numRows - 1))
 							local startPoint = vec2(0, h)
 							local endPoint = vec2(gameWidth, h)
