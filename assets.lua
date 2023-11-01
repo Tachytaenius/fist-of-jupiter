@@ -48,6 +48,11 @@ image("superPowerupContainer")
 image("doubleBulletsPowerupSymbol")
 image("hyperBeamPowerupSymbol")
 
+image("endingBackground")
+image("flagship")
+image("explosionWhite")
+image("playerFront")
+
 audio("gameStart")
 audio("bossEncounter")
 
@@ -59,5 +64,7 @@ audio("shieldSwap")
 
 audio("playerExplosion")
 audio("playerShoot")
+
+audio("flagshipExplosion")
 
 return assets

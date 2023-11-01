@@ -182,7 +182,9 @@ local consts = {
 		{"VertexColor", "float", 4}
 	},
 	playerThrustParticleTimeInterval = 0.02,
-	usePlayerThrustParticles = false
+	usePlayerThrustParticles = false,
+	endingWave = 18,
+	flagshipExplosionCentre = vec2(263/2, 322/2) -- lol
 }
 
 local controls = {
@@ -312,21 +314,34 @@ local function play()
 	pausedSourcesThatWerePlaying = nil
 end
 
-local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount, spectacularParticleCount, noShadow)
+local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount, spectacularParticleCount, noShadow, delay, velocityMultiplier, lifetimeMultiplier, extraPointSizes, shaped)
 	velocityBoost = velocityBoost or vec2()
+	delay = delay or 0
+	velocityMultiplier = velocityMultiplier or 1
+	lifetimeMultiplier = lifetimeMultiplier or 1
 	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
 	for i = 1, newParticleCount do
 		local relPos = randCircle(radius)
+		local function getShaping()
+			local offset = math.tau / 5 and 0
+			local n = 16
+			local angle = vec2.toAngle(relPos)
+			local pingPongFunctionOutput = (math.tau / (2 * n) - math.abs(math.tau / (2 * n) - angle % (math.tau / n))) / (math.tau / (2 * n))
+			return pingPongFunctionOutput / 2 + 0.25
+		end
 		playVars.particles:add({
 			pos = relPos + pos,
-			vel = relPos * (isPlayer and 45 or 15) + velocityBoost,
-			lifetime = (love.math.random() / 2 + 0.5) * 0.5,
-			size = love.math.random() < 0.1 and 2 or 1,
+			vel = relPos * velocityMultiplier * (isPlayer and 45 or 15) * (shaped and getShaping() or 1) + velocityBoost,
+			lifetime = (love.math.random() / 2 + 0.5) * 0.5 * lifetimeMultiplier + delay,
+			size = extraPointSizes and (love.math.random() < 0.1 and 2 or love.math.random() < 0.1 and 3 or love.math.random() < 0.1 and 4 or 1) or (love.math.random() < 0.1 and 2 or 1),
 			colour = addToColour(noiseColour(shallowClone(colour), consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd),
 			isPlayer = isPlayer,
-			noShadow = noShadow
+			noShadow = noShadow,
+			invisibleTime = delay,
+			dontMoveIfUnrevealed = true
 		})
-	end
+ 	end
+	-- Delay not integrated into ripples
 	-- local timerLength = 1.5
 	-- playVars.rippleSources:add({
 	-- 	pos = vec2.clone(pos),
@@ -338,7 +353,7 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount
 	-- 	phasePerDistance = 0.1
 	-- })
 	for _ = 1, spectacularParticleCount or 0 do
-		local invisibleTime = love.math.random() * 0.75
+		local invisibleTime = love.math.random() * 0.75 + delay
 		playVars.particles:add({
 			pos = vec2.clone(pos),
 			vel = randCircle(120) + velocityBoost,
@@ -356,7 +371,7 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount
 	local scale = 0.25
 	local finalRadiusForFirstWave = growthRate * lifetime
 	for i = 0, (bubbleCount or 0) - 1 do
-		local radius = -i * growthRate * scale
+		local radius = -i * growthRate * scale - delay * growthRate
 		playVars.bubbles[#playVars.bubbles+1] = {
 			position = vec2.clone(pos),
 			velocity = 0,
@@ -408,7 +423,7 @@ local function getScreenTopInWorldSpace()
 	return playVars.player.pos.y - gameHeight / 2 - playVars.cameraYOffset
 end
 
-local function generatePlayer(resetPos)
+local function generatePlayer(resetPos, disabled)
 	local pos
 	if not resetPos and playVars.player then
 		local screenTopInWorldSpace = getScreenTopInWorldSpace()
@@ -443,9 +458,10 @@ local function generatePlayer(resetPos)
 		powerups = {},
 		killStreak = 0,
 		nextShotOffset = false,
-		thrustParticleTimeCounter = 0
+		thrustParticleTimeCounter = 0,
+		disabled = disabled
 	}
-	if not isSoundPlaying(assets.audio.gameStart) then
+	if not isSoundPlaying(assets.audio.gameStart) and not disabled then
 		implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
 	end
 end
@@ -520,7 +536,13 @@ local function nextWave()
 	-- not using lists anymore lol
 	playVars.bubbles = {}
 
-	generatePlayer(true)
+	if playVars.waveNumber < consts.endingWave then
+		generatePlayer(true)
+	else
+		generatePlayer(true, true)
+		playVars.cameraYOffset = 0
+		playVars.player.pos.y = gameHeight / 2
+	end
 	playVars.backtrackLimit = getCurBacktrackLimit()
 
 	local lerpFactor = (playVars.waveNumber - 1) / (consts.finalWave - 1)
@@ -628,6 +650,24 @@ local function nextWave()
 			playVars.superPowerupSourceSpawnTimer = nil
 		end
 	end
+
+	if playVars.waveNumber == consts.endingWave then
+		playVars.endingSceneElements = {
+			background = assets.images.endingBackground,
+			timer = 0,
+			flagship = {
+				pos = vec2(),
+				vel = vec2(1.25, 0.5),
+				image = assets.images.flagship
+			},
+			-- player added on explosion
+			explosionTime = 3,
+			explosionUpRampTime = 0.01,
+			explosionPeakWidth = 0.05,
+			explosionDownRampTime = 1
+		}
+		love.audio.play(assets.audio.flagshipExplosion)
+	end
 end
 
 local function winWave()
@@ -698,7 +738,7 @@ local function initTitleState()
 end
 
 local function isPlayerPresent()
-	return not (playVars.player.dead or playVars.player.spawning)
+	return not (playVars.player.dead or playVars.player.spawning or playVars.player.disabled)
 end
 
 local function initPlayState()
@@ -1432,6 +1472,109 @@ function love.update(dt)
 	elseif consts.playLikeStates[gameState] then
 		playVars.time = playVars.time + dt
 
+		if playVars.waveNumber == consts.endingWave then
+			playVars.endingSceneElements.timer = playVars.endingSceneElements.timer + dt
+			playVars.endingSceneElements.flagship.pos = playVars.endingSceneElements.flagship.pos + playVars.endingSceneElements.flagship.vel * dt
+
+			if playVars.endingSceneElements.timer > playVars.endingSceneElements.explosionTime and not playVars.endingSceneElements.spawnedPlayer then
+				playVars.endingSceneElements.spawnedPlayer = true
+				playVars.endingSceneElements.player = {
+					screenPos = vec2.clone(consts.flagshipExplosionCentre),
+					screenVel = vec2(200, 200),
+					screenAccel = vec2(-600, -50),
+					angle = 0,
+					angleChange = -1,
+					distance = 5,
+					distanceChange = -3,
+					image = assets.images.playerFront
+				}
+			end
+			if playVars.endingSceneElements.player then
+				local player = playVars.endingSceneElements.player
+				player.screenPos = player.screenPos + player.screenVel * dt
+				player.screenVel = player.screenVel + player.screenAccel * dt
+				player.angle = player.angle + player.angleChange * dt
+				player.distance = player.distance + player.distanceChange * dt
+				if player.distance <= 1 then
+					playVars.endingSceneElements.player = nil
+				end
+			end
+
+			local eventStart = 1
+			if playVars.endingSceneElements.timer > eventStart and not playVars.endingSceneElements.particlesSpawned then
+				playVars.endingSceneElements.particlesSpawned = true
+				explode(25, consts.flagshipExplosionCentre, {0.5, 0.5, 0.5}, vec2(), false, 5, 250, false, playVars.endingSceneElements.explosionTime - eventStart, 0.25, 10, true, true)
+				for i = 1, 6 do
+					local radius = i == 1 and 50 or 20
+					local pos = i == 1 and consts.flagshipExplosionCentre or consts.flagshipExplosionCentre + randCircle(30)
+					local newParticleCount = i == 1 and 750 or 300
+					for i = 1, newParticleCount do
+						local relPos = randCircle(radius)
+						local invisibleTime = 1.8 * (1 - love.math.random() ^ 3)
+						playVars.particles:add({
+							pos = relPos + pos,
+							vel = relPos * 10,
+							lifetime = (love.math.random() / 2 + 0.5) * 0.5 + invisibleTime,
+							size = love.math.random() < 0.1 and 2 or love.math.random() < 0.1 and 3 or 1,
+							colour = addToColour(noiseColour({1, 0.8, 0.1}, consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd),
+							noShadow = true,
+							invisibleTime = invisibleTime,
+							dontMoveIfUnrevealed = true
+						})
+					end
+					for _ = 1, i == 1 and 250 or 100 do
+						local invisibleTime = love.math.random() * 2
+						playVars.particles:add({
+							pos = randCircle(radius) + pos,
+							vel = randCircle(i == 1 and 300 or 100),
+							lifetime = (love.math.random() / 2 + 0.5) * 1.25 + invisibleTime,
+							size = love.math.random() < 0.05 and 2 or 1,
+							colour = addToColour(noiseColour({hsv2rgb((love.math.random() * 10 - 5) % 360, 1 - love.math.random() * 0.1, love.math.random())}, consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd),
+							invisibleTime = invisibleTime,
+							dontMoveIfUnrevealed = true
+						})
+					end
+					local growthRate = i == 1 and 120 or 60
+					local lifetime = i == 1 and 0.3 or 0.2
+					local scale = i == 1 and 0.1 or 0.15
+					local finalRadiusForFirstWave = growthRate * lifetime
+					local bubbleCount = i == 1 and 14 or 6
+					for j = 0, bubbleCount - 1 do
+						j = i == 1 and j or j + (3 + love.math.random() * 0.2)
+						local radius = -j * growthRate * scale
+						playVars.bubbles[#playVars.bubbles+1] = {
+							position = vec2.clone(pos),
+							velocity = 0,
+							radius = radius,
+							timer = lifetime + (finalRadiusForFirstWave - radius) / growthRate,
+							colour = {1, 1, 1},
+							growthRate = growthRate,
+							fadeTime = lifetime * 0.5
+						}
+					end
+					local growthRate = i == 1 and 240 or 120
+					local lifetime = 0.5
+					local scale = 0.15
+					local finalRadiusForFirstWave = growthRate * lifetime
+					local bubbleCount = 7
+					for j = 0, bubbleCount - 1 do
+						j = j + 7
+						j = i == 1 and j or (j + love.math.random() * 0.2)
+						local radius = -j * growthRate * scale
+						playVars.bubbles[#playVars.bubbles+1] = {
+							position = vec2.clone(pos),
+							velocity = 0,
+							radius = radius,
+							timer = lifetime + (finalRadiusForFirstWave - radius) / growthRate,
+							colour = {1, 1, 1},
+							growthRate = growthRate,
+							fadeTime = lifetime * 0.75
+						}
+					end
+				end
+			end
+		end
+
 		playVars.spawnAttemptTimer = playVars.spawnAttemptTimer - dt
 		if playVars.spawnAttemptTimer <= 0 then
 			local timerFactor = love.math.random() / 0.5 + 0.75
@@ -1533,7 +1676,7 @@ function love.update(dt)
 		playVars.player.fireBackThrusters = false
 		playVars.player.fireFrontThrusters = false
 
-		if playVars.player.spawning and not isSoundPlaying(assets.audio.gameStart) then
+		if playVars.player.spawning and not isSoundPlaying(assets.audio.gameStart) and not playVars.player.disabled then
 			if not playVars.player.spawnTimer then
 				playVars.player.spawnTimer = consts.playerSpawnTime
 				implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
@@ -2625,6 +2768,11 @@ function love.draw()
 				love.graphics.draw(screenMesh)
 				love.graphics.origin()
 				love.graphics.setShader()
+			elseif playVars.waveNumber == consts.endingWave then
+				love.graphics.draw(playVars.endingSceneElements.background)
+				if playVars.endingSceneElements.timer < playVars.endingSceneElements.explosionTime then
+					love.graphics.draw(playVars.endingSceneElements.flagship.image, vec2.components(playVars.endingSceneElements.flagship.pos))
+				end
 			end
 			love.graphics.translate(0, -playVars.player.pos.y)
 			love.graphics.translate(0, gameHeight/2)
@@ -2801,6 +2949,13 @@ function love.draw()
 				end
 			end
 
+			if playVars.waveNumber == consts.endingWave then
+				if playVars.endingSceneElements.player then
+					local player = playVars.endingSceneElements.player
+					love.graphics.draw(player.image, player.screenPos.x, player.screenPos.y, player.angle, 1 / player.distance, 1 / player.distance, player.image:getWidth() / 2, player.image:getHeight() / 2)
+				end
+			end
+
 			love.graphics.origin()
 			love.graphics.setCanvas(gameCanvas)
 			love.graphics.translate(-consts.shadowXExtend, -consts.shadowYExtend)
@@ -2812,44 +2967,57 @@ function love.draw()
 			love.graphics.draw(objectCanvas)
 			love.graphics.origin()
 
-			-- for i = 1, playVars.spareLives do
-			-- 	love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
-			-- end
-			love.graphics.draw(assets.images.player, gameWidth - assets.images.player:getWidth(), font:getHeight() / 2 - assets.images.player:getHeight() / 2)
-			local text = tostring(playVars.spareLives)
-			love.graphics.print(text, gameWidth - assets.images.player:getWidth() - font:getWidth(text), 0)
+			if playVars.waveNumber ~= consts.endingWave then
+				-- for i = 1, playVars.spareLives do
+				-- 	love.graphics.draw(assets.images.player, gameWidth - i * assets.images.player:getWidth(), 0)
+				-- end
+				love.graphics.draw(assets.images.player, gameWidth - assets.images.player:getWidth(), font:getHeight() / 2 - assets.images.player:getHeight() / 2)
+				local text = tostring(playVars.spareLives)
+				love.graphics.print(text, gameWidth - assets.images.player:getWidth() - font:getWidth(text), 0)
 
-			local hbx = gameWidth - 1 - consts.healthBarPadding * 2 - consts.healthBarWidth
-			local hby = assets.images.player:getHeight() + 1
-			love.graphics.setColor(0.5, 0.5, 0.5)
-			love.graphics.rectangle("fill", hbx, hby, consts.healthBarPadding * 2 + consts.healthBarWidth, consts.healthBarPadding * 2 + consts.healthBarLength)
-			love.graphics.setColor(1, 0.5, 0.5)
-			love.graphics.rectangle("fill", hbx + consts.healthBarPadding, hby + consts.healthBarPadding, consts.healthBarWidth, consts.healthBarLength)
-			love.graphics.setColor(0.5, 1, 0.5)
-			local heightChange = math.round((1 - math.max(0, playVars.player.health) / playVars.player.maxHealth) * consts.healthBarLength)
-			love.graphics.rectangle("fill", hbx + consts.healthBarPadding, hby + consts.healthBarPadding + heightChange, consts.healthBarWidth, consts.healthBarLength - heightChange)
-			love.graphics.setColor(1, 1, 1)
+				local hbx = gameWidth - 1 - consts.healthBarPadding * 2 - consts.healthBarWidth
+				local hby = assets.images.player:getHeight() + 1
+				love.graphics.setColor(0.5, 0.5, 0.5)
+				love.graphics.rectangle("fill", hbx, hby, consts.healthBarPadding * 2 + consts.healthBarWidth, consts.healthBarPadding * 2 + consts.healthBarLength)
+				love.graphics.setColor(1, 0.5, 0.5)
+				love.graphics.rectangle("fill", hbx + consts.healthBarPadding, hby + consts.healthBarPadding, consts.healthBarWidth, consts.healthBarLength)
+				love.graphics.setColor(0.5, 1, 0.5)
+				local heightChange = math.round((1 - math.max(0, playVars.player.health) / playVars.player.maxHealth) * consts.healthBarLength)
+				love.graphics.rectangle("fill", hbx + consts.healthBarPadding, hby + consts.healthBarPadding + heightChange, consts.healthBarWidth, consts.healthBarLength - heightChange)
+				love.graphics.setColor(1, 1, 1)
 
-			local text = playVars.waveNumber .. "/" .. consts.finalWave
-			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, 0)
-			local enemyCount = playVars.enemies.size + playVars.enemiesToMaterialise.size
-			for _, count in pairs(playVars.enemyPool) do
-				enemyCount = enemyCount + count
+				local text = playVars.waveNumber .. "/" .. consts.finalWave
+				love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, 0)
+				local enemyCount = playVars.enemies.size + playVars.enemiesToMaterialise.size
+				for _, count in pairs(playVars.enemyPool) do
+					enemyCount = enemyCount + count
+				end
+				local text = tostring(enemyCount)
+				love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, font:getHeight())
+
+				if playVars.gameOverTextPresent then
+					local gameOverText = "GAME OVER"
+					local totalScoreText = "TOTAL SCORE: " .. playVars.gameOverTotalScore
+					local timeText = "TIME: " .. math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60))
+					love.graphics.print(gameOverText, gameWidth / 2 - font:getWidth(gameOverText) / 2, gameHeight / 2 - 1.5 * font:getHeight())
+					love.graphics.print(totalScoreText, gameWidth / 2 - font:getWidth(totalScoreText) / 2, gameHeight / 2 - 0.5 * font:getHeight())
+					love.graphics.print(timeText, gameWidth / 2 - font:getWidth(timeText) / 2, gameHeight / 2 + 0.5 * font:getHeight())
+				end
+
+				love.graphics.print(playVars.totalScore, 1, 0)
+				love.graphics.print(playVars.waveScore, 1, font:getHeight())
+			else
+				local ese = playVars.endingSceneElements
+				local whiteness = math.max(0, math.min(1,
+					math.min(
+						(ese.timer - ese.explosionTime + ese.explosionUpRampTime) / ese.explosionUpRampTime,
+						(-ese.timer + ese.explosionTime + ese.explosionPeakWidth + ese.explosionDownRampTime) / ese.explosionDownRampTime
+					)
+				))
+				love.graphics.setColor(1, 1, 1, whiteness)
+				love.graphics.draw(assets.images.explosionWhite)
+				love.graphics.setColor(1, 1, 1)
 			end
-			local text = tostring(enemyCount)
-			love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, font:getHeight())
-
-			if playVars.gameOverTextPresent then
-				local gameOverText = "GAME OVER"
-				local totalScoreText = "TOTAL SCORE: " .. playVars.gameOverTotalScore
-				local timeText = "TIME: " .. math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60))
-				love.graphics.print(gameOverText, gameWidth / 2 - font:getWidth(gameOverText) / 2, gameHeight / 2 - 1.5 * font:getHeight())
-				love.graphics.print(totalScoreText, gameWidth / 2 - font:getWidth(totalScoreText) / 2, gameHeight / 2 - 0.5 * font:getHeight())
-				love.graphics.print(timeText, gameWidth / 2 - font:getWidth(timeText) / 2, gameHeight / 2 + 0.5 * font:getHeight())
-			end
-
-			love.graphics.print(playVars.totalScore, 1, 0)
-			love.graphics.print(playVars.waveScore, 1, font:getHeight())
 		end
 	end
 
