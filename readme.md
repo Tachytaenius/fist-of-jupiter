@@ -1,6 +1,7 @@
 # Fist of Jupiter
 
 Classic arcade shoot-'em-up.
+This is a bodge project, but I am absolutely capable of coding well.
 
 ## Releasing
 

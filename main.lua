@@ -1,3 +1,5 @@
+-- This is a bodge project, but I am absolutely capable of coding well.
+
 local versionWithLineBreak = love.filesystem.read("version.txt") -- This file is provided on build
 local version = versionWithLineBreak and versionWithLineBreak:gsub("\n", "") or "unknown"
 
