@@ -17,14 +17,10 @@
 	- enemy materialising
 	- player materialising
 
-- Boss 3, wave 17: Large flagship.
-	Flagship is so large that you fly above its hull and are blowing up towers and stuff.
-	Shields appear that block your progress unless you shoot all the towers (with turrets) that support them.
-	Large amounts of minelayer enemies try to block your progress, being added to the pool as you pass by the shields walls.
-	Your goal is to enter the reactor ventilation shaft and access the reactor to blow it up with your nuclear bomb payload-- adjust story accordingly.
-	Why couldn't you just fly straight for the shaft? Because there is a shield around the flagship, you had to go through a hole in it.
-	Why couldn't you just go thru the hole and fly above the towers?  becuase the shield is very low to the ship's surface.
-- super metroid explosion style ending where you fly away from the exploding flagship. Don't forget to record score.
+- Place reactor shaft hole you shoot nuke down on wave 17
+- Record score after the ending text goes
+- Disable hyper beam powerup?
+- Make game easier STILL
 
 # Some other time
 
