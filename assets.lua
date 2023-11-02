@@ -64,6 +64,7 @@ audio("shieldSwap")
 
 audio("playerExplosion")
 audio("playerShoot")
+audio("powerupAcquired")
 
 audio("flagshipExplosion")
 

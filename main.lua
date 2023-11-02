@@ -2379,6 +2379,7 @@ function love.update(dt)
 				})
 				powerupSourcesToDelete[#powerupSourcesToDelete+1] = source
 				givePowerup(source.powerup)
+				playSound(assets.audio.powerupAcquired, true)
 			elseif circleOffScreen(source.radius, source.pos) then
 				powerupSourcesToDelete[#powerupSourcesToDelete+1] = source
 			end

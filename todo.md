@@ -10,7 +10,6 @@
 	- game over
 	- boss start
 	- game completed
-	- powerup acquired
 	- hyper beam firing
 	- extra life(s) acquried
 	- player hit received
