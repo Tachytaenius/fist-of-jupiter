@@ -317,11 +317,12 @@ local function play()
 	pausedSourcesThatWerePlaying = nil
 end
 
-local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount, spectacularParticleCount, noShadow, delay, velocityMultiplier, lifetimeMultiplier, extraPointSizes, shaped)
+local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount, spectacularParticleCount, noShadow, delay, velocityMultiplier, lifetimeMultiplier, extraPointSizes, shaped, fireParticleChance)
 	velocityBoost = velocityBoost or vec2()
 	delay = delay or 0
 	velocityMultiplier = velocityMultiplier or 1
 	lifetimeMultiplier = lifetimeMultiplier or 1
+	fireParticleChance = fireParticleChance or 0.3
 	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
 	for i = 1, newParticleCount do
 		local relPos = randCircle(radius)
@@ -332,16 +333,21 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount
 			local pingPongFunctionOutput = (math.tau / (2 * n) - math.abs(math.tau / (2 * n) - angle % (math.tau / n))) / (math.tau / (2 * n))
 			return pingPongFunctionOutput / 2 + 0.25
 		end
+		local fireParticle = love.math.random() < fireParticleChance
 		playVars.particles:add({
 			pos = relPos + pos,
-			vel = relPos * velocityMultiplier * (isPlayer and 45 or 15) * (shaped and getShaping() or 1) + velocityBoost,
-			lifetime = (love.math.random() / 2 + 0.5) * 0.5 * lifetimeMultiplier + delay,
-			size = extraPointSizes and (love.math.random() < 0.1 and 2 or love.math.random() < 0.1 and 3 or love.math.random() < 0.1 and 4 or 1) or (love.math.random() < 0.1 and 2 or 1),
-			colour = addToColour(noiseColour(shallowClone(colour), consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd),
+			vel = relPos * velocityMultiplier * (isPlayer and 45 or 15) * (shaped and getShaping() or 1) * (fireParticle and 2 or 1) + velocityBoost,
+			lifetime = (love.math.random() / 2 + 0.5) * 0.5 * lifetimeMultiplier * (fireParticle and 0.5 or 1) + delay,
+			size = (extraPointSizes and (love.math.random() < 0.1 and 2 or love.math.random() < 0.1 and 3 or love.math.random() < 0.1 and 3 or 1) or (love.math.random() < 0.1 and 2 or 1)) + (fireParticle and 0 or 0), -- originally said and 1 or 0
+			colour = fireParticle and {1, 0.6, 0} or addToColour(noiseColour(shallowClone(colour), consts.explosionImplosionColourNoiseRange), consts.explosionImplosionColourAdd),
 			isPlayer = isPlayer,
 			noShadow = noShadow,
 			invisibleTime = delay,
-			dontMoveIfUnrevealed = true
+			dontMoveIfUnrevealed = true,
+			-- flicker = fireParticle,
+			-- flickerTimeOffset = love.math.random(),
+			-- flickerSpeed = (love.math.random() * 0.1 + 0.9) * 60,
+			-- flickerOnProportion = 0.8
 		})
  	end
 	-- Delay not integrated into ripples
@@ -1507,7 +1513,7 @@ function love.update(dt)
 			local eventStart = 1
 			if playVars.endingSceneElements.timer > eventStart and not playVars.endingSceneElements.particlesSpawned then
 				playVars.endingSceneElements.particlesSpawned = true
-				explode(25, consts.flagshipExplosionCentre, {0.5, 0.5, 0.5}, vec2(), false, 5, 250, false, playVars.endingSceneElements.explosionTime - eventStart, 0.25, 10, true, true)
+				explode(25, consts.flagshipExplosionCentre, {0.5, 0.5, 0.5}, vec2(), false, 5, 250, false, playVars.endingSceneElements.explosionTime - eventStart, 0.25, 10, true, true, 0.025)
 				for i = 1, 6 do
 					local radius = i == 1 and 50 or 20
 					local pos = i == 1 and consts.flagshipExplosionCentre or consts.flagshipExplosionCentre + randCircle(30)
@@ -1709,7 +1715,7 @@ function love.update(dt)
 			for i = 1, playVars.enemyBullets.size do
 				local enemyBullet = playVars.enemyBullets:get(i)
 				if enemyBullet.disappearOnPlayerDeathAndAllEnemiesDefeated then
-					explode(enemyBullet.radius, enemyBullet.pos, enemyBullet.colour)
+					explode(enemyBullet.radius, enemyBullet.pos, enemyBullet.colour, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, 0) -- lol
 					enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 				end
 			end
@@ -2122,7 +2128,7 @@ function love.update(dt)
 								local towardsCentreDir = math.sign(gameWidth / 2 - source.pos.x)
 								source.vel = vec2(love.math.random() * 50 * towardsCentreDir, -50)
 								source.radius = consts.revealedPowerupRadius
-								explode(20, source.pos, shallowClone(source.colour))
+								explode(20, source.pos, shallowClone(source.colour), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, 0) -- lol
 								hit = true
 							end
 							break
@@ -2314,13 +2320,13 @@ function love.update(dt)
 			if circleOffScreen(enemyBullet.radius, enemyBullet.pos, consts.enemyBulletDeletionPad) then
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif playVars.enemies.size == 0 and enemyPoolIsEmpty and playVars.enemiesToMaterialise.size == 0 and enemyBullet.disappearOnPlayerDeathAndAllEnemiesDefeated then
-				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour))
+				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, 0) -- lol
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif enemyBullet.lifetime and enemyBullet.lifetime <= 0 then
-				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour))
+				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, 0) -- lol
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif isPlayerPresent() and vec2.distance(enemyBullet.pos, playVars.player.pos) <= playVars.player.radius then
-				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour))
+				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, 0) -- lol
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 				playVars.player.health = playVars.player.health - enemyBullet.damage
 				if playVars.player.health > 0 then
@@ -2881,7 +2887,12 @@ function love.draw()
 			end
 			for i = 1, playVars.particles.size do
 				local particle = playVars.particles:get(i)
-				if not particle.invisibleTime and particle.noShadow then
+				-- local flickerInvisible
+				-- if particle.flicker then
+				-- 	flickerInvisible = ((playVars.time + particle.flickerTimeOffset) * particle.flickerSpeed) % 1 < particle.flickerOnProportion
+				-- 	flickerInvisible = love.math.random() < particle.flickerOnProportion
+				-- end
+				if not particle.invisibleTime and particle.noShadow then -- and not (particle.flicker and flickerInvisible) then
 					love.graphics.setPointSize(particle.size)
 					love.graphics.setColor(particle.colour)
 					love.graphics.points(particle.pos.x, particle.pos.y)
@@ -2891,7 +2902,11 @@ function love.draw()
 			love.graphics.setShader(objectShadowShader)
 			for i = 1, playVars.particles.size do
 				local particle = playVars.particles:get(i)
-				if not particle.invisibleTime and not particle.noShadow then
+				-- local flickerInvisible
+				-- if particle.flicker then
+				-- 	flickerInvisible = ((playVars.time + particle.flickerTimeOffset) * particle.flickerSpeed) % 1 < particle.flickerOnProportion
+				-- end
+				if not particle.invisibleTime and not particle.noShadow then -- and not (particle.flicker and flickerInvisible) then
 					love.graphics.setPointSize(particle.size)
 					love.graphics.setColor(particle.colour)
 					love.graphics.points(particle.pos.x, particle.pos.y)
