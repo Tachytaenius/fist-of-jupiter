@@ -668,7 +668,7 @@ local function nextWave()
 			explosionPeakWidth = 0.01,
 			explosionDownRampTime = 0.25
 		}
-		love.audio.play(assets.audio.flagshipExplosion)
+		playSound(assets.audio.flagshipExplosion, true)
 	end
 end
 
