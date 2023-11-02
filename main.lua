@@ -1663,7 +1663,8 @@ function love.update(dt)
 					if playVars.superPowerupsLeft <= 0 then
 						playVars.superPowerupSourceSpawnTimer = nil
 					else
-						spawnPowerup(true)
+						-- Disabled because I didn't want to have to perfect the hyper beam, which is the only super powerup
+						-- spawnPowerup(true)
 						playVars.superPowerupsLeft = playVars.superPowerupsLeft - 1
 						if playVars.superPowerupsLeft <= 0 then
 							playVars.superPowerupSourceSpawnTimer = nil
