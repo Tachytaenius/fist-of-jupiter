@@ -18,6 +18,7 @@
 	- player materialising
 
 - Place reactor shaft hole you shoot nuke down on wave 17
+- Add particle count multiplier?
 - Record score after the ending text goes
 - Disable hyper beam powerup?
 - Make game easier STILL
