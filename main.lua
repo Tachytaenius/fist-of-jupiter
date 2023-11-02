@@ -665,8 +665,8 @@ local function nextWave()
 			-- player added on explosion
 			explosionTime = 3,
 			explosionUpRampTime = 0.01,
-			explosionPeakWidth = 0.05,
-			explosionDownRampTime = 1
+			explosionPeakWidth = 0.01,
+			explosionDownRampTime = 0.25
 		}
 		love.audio.play(assets.audio.flagshipExplosion)
 	end
@@ -762,7 +762,7 @@ local function initPlayState()
 	playVars.scoreTimerReductionAmount = 1
 	playVars.scoreBoostPerLifeAtWaveWon = 10 -- You may go through lots of waves with the same number of lives, which would be an excessive advantage, hence the low value
 	playVars.noBacktracking = true
-	playVars.startWave = 1
+	playVars.startWave = 18
 	playVars.timeSpentInPlay = 0
 
 	nextWave()
