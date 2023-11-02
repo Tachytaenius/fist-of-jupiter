@@ -186,7 +186,8 @@ local consts = {
 	playerThrustParticleTimeInterval = 0.02,
 	usePlayerThrustParticles = false,
 	endingWave = 18,
-	flagshipExplosionCentre = vec2(263/2, 322/2) -- lol
+	flagshipExplosionCentre = vec2(263/2, 322/2), -- lol
+	enemyBulletRotationSpeed = math.tau * 0.75
 }
 
 local controls = {
@@ -1148,7 +1149,8 @@ local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset, useSecondShoo
 				radius = enemy.bulletRadius,
 				damage = enemy.bulletDamage,
 				disappearOnPlayerDeathAndAllEnemiesDefeated = enemy.bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated,
-				colour = shallowClone(enemy.bulletColour or {1, 1, 1})
+				colour = shallowClone(enemy.bulletColour or {1, 1, 1}),
+				asset = assets.images[enemy.type .. "Bullet"] -- sub-enemy or not, present or not
 			}
 			if enemy.heatseekingBullets then
 				newBullet.accel = enemy.bulletAccel
@@ -2076,7 +2078,7 @@ function love.update(dt)
 									subEnemy.health = math.max(0, subEnemy.health - playerBullet.damage)
 									playSound(assets.audio.enemyHit, true)
 									if subEnemy.health > 0 then
-										explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(subEnemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplie, false, 0, 0, enemy.floor)
+										explode(playerBullet.damage * consts.explosionSourceRadiusPerDamage, playerBullet.pos, shallowClone(subEnemy.colour), -playerBullet.vel * consts.bulletHitParticleBounceMultiplier, false, 0, 0, enemy.floor)
 									end
 									break
 								end
@@ -2318,6 +2320,7 @@ function love.update(dt)
 				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour))
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif isPlayerPresent() and vec2.distance(enemyBullet.pos, playVars.player.pos) <= playVars.player.radius then
+				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour))
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 				playVars.player.health = playVars.player.health - enemyBullet.damage
 				if playVars.player.health > 0 then
@@ -2869,7 +2872,12 @@ function love.draw()
 			love.graphics.setColor(1, 1, 1)
 			for i = 1, playVars.enemyBullets.size do
 				local enemyBullet = playVars.enemyBullets:get(i)
+				local asset = enemyBullet.asset
+				if asset then
+					love.graphics.draw(asset, enemyBullet.pos.x, enemyBullet.pos.y, playVars.time * consts.enemyBulletRotationSpeed, 1, 1, asset:getWidth() / 2, asset:getHeight() / 2)
+				else
 				love.graphics.circle("fill", enemyBullet.pos.x, enemyBullet.pos.y, enemyBullet.radius)
+				end
 			end
 			for i = 1, playVars.particles.size do
 				local particle = playVars.particles:get(i)

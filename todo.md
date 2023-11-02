@@ -3,7 +3,6 @@
 - Finish score recording system (prompt player to enter name on first quit attempt and on game over and on victory, warn on score failure to be recorded (there's a TODO for it in the code), maybe alert that scores won't be recorded on an unknown version?)
 - Balance score so that no factor dominates
 
-- Add animated sprites to enemy bullets
 - Add volume slider
 - Sound effects for:
 	- shots from all enemy classes

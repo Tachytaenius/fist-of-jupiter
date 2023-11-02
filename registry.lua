@@ -30,6 +30,7 @@ newEnemy("fighter1", {
 	bulletDamage = 1,
 	bulletCount = 1,
 	bulletSpreadAngle = 0,
+	bulletColour = {0, 0, 1},
 	contactDamage = 2,
 	accel = 150,
 	defeatScore = 20,
@@ -63,6 +64,7 @@ newEnemy("fighter2", {
 	bulletDamage = 0.5,
 	bulletCount = 4,
 	bulletSpreadAngle = math.tau / 180,
+	bulletColour = {0, 0, 1},
 	contactDamage = 4,
 	accel = 225,
 	defeatScore = 30,
@@ -96,6 +98,7 @@ newEnemy("fighter3", {
 	bulletDamage = 1,
 	bulletCount = 3,
 	bulletSpreadAngle = math.tau / 150,
+	bulletColour = {0, 0, 1},
 	contactDamage = 6,
 	accel = 250,
 	defeatScore = 35,
@@ -129,6 +132,7 @@ newEnemy("bomber1", {
 	bulletDamage = 2,
 	bulletCount = 1,
 	bulletSpreadAngle = 0,
+	bulletColour = {1, 0, 0},
 	contactDamage = 3,
 	accel = 125,
 	defeatScore = 25,
@@ -163,6 +167,7 @@ newEnemy("bomber2", {
 	bulletDamage = 4,
 	bulletCount = 1,
 	bulletSpreadAngle = 0,
+	bulletColour = {1, 0, 0},
 	contactDamage = 6,
 	accel = 175,
 	defeatScore = 35,
@@ -197,6 +202,7 @@ newEnemy("bomber3", {
 	bulletDamage = 6,
 	bulletCount = 2,
 	bulletSpreadAngle = math.tau/120,
+	bulletColour = {1, 0, 0},
 	contactDamage = 10,
 	accel = 200,
 	defeatScore = 40,
@@ -232,6 +238,7 @@ newEnemy("minelayer1", {
 	bulletCount = 1,
 	bulletSpreadAngle = 0,
 	bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = true,
+	bulletColour = {0, 1, 0},
 	contactDamage = 3,
 	accel = 75,
 	defeatScore = 25,
@@ -269,6 +276,7 @@ newEnemy("minelayer2", {
 	bulletCount = 3,
 	bulletSpreadAngle = math.tau / 60,
 	bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = true,
+	bulletColour = {0, 1, 0},
 	contactDamage = 4,
 	accel = 100,
 	defeatScore = 40,
@@ -306,6 +314,7 @@ newEnemy("minelayer3", {
 	bulletCount = 5,
 	bulletSpreadAngle = math.tau / 30,
 	bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = true,
+	bulletColour = {0, 1, 0},
 	contactDamage = 6,
 	accel = 125,
 	defeatScore = 50,
@@ -345,6 +354,7 @@ newEnemy("commander1", {
 			bulletDamage = 2,
 			bulletCount = 21, -- needs to be odd or else you can stand still and never get hit
 			bulletSpreadAngle = math.tau / 2,
+			bulletColour = {1, 1, 0},
 			colour = {0.8, 0.8, 0.6},
 			type = "commander1Left"
 		},
@@ -358,6 +368,7 @@ newEnemy("commander1", {
 			bulletDamage = 4,
 			bulletCount = 11, -- needs to be odd or else you can stand still and never get hit
 			bulletSpreadAngle = math.tau / 2,
+			bulletColour = {1, 1, 0},
 			colour = {0.8, 0.8, 0.6},
 			type = "commander1Right"
 		}
@@ -390,6 +401,7 @@ newEnemy("commander2", {
 	bulletDamage = 1,
 	bulletCount = 31, -- needs to be odd or else you can stand still and never get hit
 	bulletSpreadAngle = 3 * math.tau / 4,
+	bulletColour = {0.9, 0, 1},
 	colour = {0.2, 0.2, 0.8},
 	speed = 200,
 	deliberateSpeed = 125,
@@ -417,6 +429,7 @@ newEnemy("commander3", {
 	bulletDamage = 3,
 	bulletCount = 11, -- needs to be odd or else you can stand still and never get hit
 	bulletSpreadAngle = math.tau / 2,
+	bulletColour = {0.5, 0.5, 0.5},
 	colour = {0.5, 0.5, 0.5},
 	speed = 200,
 	deliberateSpeed = 100,
@@ -452,6 +465,7 @@ newEnemy("turret", {
 	bulletSpreadMode2 = true,
 	bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = true,
 	-- aimOffsetGetter = function(playVars) return 0 end, -- could return a random number or something based on time or whatever
+	bulletColour = {0.5, 0.5, 0.5},
 	rotateToFacePlayer = true,
 	contactDamage = 1,
 	accel = 0,
