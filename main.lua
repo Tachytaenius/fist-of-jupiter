@@ -1715,7 +1715,7 @@ function love.update(dt)
 			for i = 1, playVars.enemyBullets.size do
 				local enemyBullet = playVars.enemyBullets:get(i)
 				if enemyBullet.disappearOnPlayerDeathAndAllEnemiesDefeated then
-					explode(enemyBullet.radius, enemyBullet.pos, enemyBullet.colour, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, 0) -- lol
+					explode(enemyBullet.radius, enemyBullet.pos, enemyBullet.colour, nil, nil, nil, nil, true, nil, nil, nil, nil, nil, 0) -- lol
 					enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 				end
 			end
@@ -2320,13 +2320,13 @@ function love.update(dt)
 			if circleOffScreen(enemyBullet.radius, enemyBullet.pos, consts.enemyBulletDeletionPad) then
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif playVars.enemies.size == 0 and enemyPoolIsEmpty and playVars.enemiesToMaterialise.size == 0 and enemyBullet.disappearOnPlayerDeathAndAllEnemiesDefeated then
-				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, 0) -- lol
+				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour), nil, nil, nil, nil, true, nil, nil, nil, nil, nil, 0) -- lol
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif enemyBullet.lifetime and enemyBullet.lifetime <= 0 then
-				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, 0) -- lol
+				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour), nil, nil, nil, nil, true, nil, nil, nil, nil, nil, 0) -- lol
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 			elseif isPlayerPresent() and vec2.distance(enemyBullet.pos, playVars.player.pos) <= playVars.player.radius then
-				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, 0) -- lol
+				explode(enemyBullet.radius, enemyBullet.pos, shallowClone(enemyBullet.colour), nil, nil, nil, nil, true, nil, nil, nil, nil, nil, 0) -- lol
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 				playVars.player.health = playVars.player.health - enemyBullet.damage
 				if playVars.player.health > 0 then
