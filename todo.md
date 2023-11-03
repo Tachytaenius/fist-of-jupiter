@@ -1,9 +1,11 @@
 # Before release
 
 - Finish score recording system (prompt player to enter name on first quit attempt and on game over and on victory, warn on score failure to be recorded (there's a TODO for it in the code), maybe alert that scores won't be recorded on an unknown version?)
-- Balance score so that no factor dominates
+
 - Add window size/fullscreen controls
 - Add volume slider
+- Add particle count multiplier
+
 - Sound effects for:
 	- shots from all enemy classes
 	- game over
@@ -15,12 +17,11 @@
 	- player materialising
 
 - Place reactor shaft hole you shoot nuke down on wave 17
-- Add particle count multiplier?
 - Record score after the ending text goes
-- Make game easier STILL
 
 # Some other time
 
+- Balance score so that no factor dominates
 - Handle without crashing and warn about invalid score records
 - Add different window sizes and fullscreen
 - Add difficulty scaling
