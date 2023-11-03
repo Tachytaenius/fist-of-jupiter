@@ -755,7 +755,7 @@ local function initPlayState()
 
 	playVars = {}
 
-	playVars.spareLives = 5
+	playVars.spareLives = 6
 	playVars.cameraYOffset = consts.cameraYOffsetMax
 	playVars.prevCameraYOffset = playVars.cameraYOffset
 	playVars.time = 0
