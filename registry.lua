@@ -349,7 +349,7 @@ newEnemy("commander1", {
 			health = 50,
 			offset = vec2(-10, 0),
 			shootTimerLength = 1,
-			bulletSpeed = 150,
+			bulletSpeed = 125,
 			bulletRadius = 2,
 			bulletDamage = 2,
 			bulletCount = 21, -- needs to be odd or else you can stand still and never get hit
@@ -363,7 +363,7 @@ newEnemy("commander1", {
 			health = 50,
 			offset = vec2(10, 0),
 			shootTimerLength = 2,
-			bulletSpeed = 175,
+			bulletSpeed = 150,
 			bulletRadius = 3,
 			bulletDamage = 4,
 			bulletCount = 11, -- needs to be odd or else you can stand still and never get hit
