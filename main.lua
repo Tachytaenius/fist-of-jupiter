@@ -185,7 +185,8 @@ local consts = {
 	},
 	playerThrustParticleTimeInterval = 0.02,
 	usePlayerThrustParticles = false,
-	endingWave = 18,
+	reactorVentilationShaftHoleWave = 18,
+	endingWave = 19,
 	flagshipExplosionCentre = vec2(263/2, 322/2), -- lol
 	enemyBulletRotationSpeed = math.tau * 0.75
 }
@@ -462,7 +463,7 @@ local function generatePlayer(resetPos, disabled)
 		contactInvulnerabilityTimerLength = 1,
 		contactInvulnerabilityTimer = nil,
 		flashAnimationSpeed = 30,
-		spawning = true,
+		spawning = playVars.waveNumber ~= consts.reactorVentilationShaftHoleWave,
 		spawnTimer = not isSoundPlaying(assets.audio.gameStart) and consts.playerSpawnTime or nil,
 		powerups = {},
 		killStreak = 0,
@@ -470,7 +471,7 @@ local function generatePlayer(resetPos, disabled)
 		thrustParticleTimeCounter = 0,
 		disabled = disabled
 	}
-	if not isSoundPlaying(assets.audio.gameStart) and not disabled then
+	if not isSoundPlaying(assets.audio.gameStart) and not disabled and playVars.waveNumber ~= consts.reactorVentilationShaftHoleWave then
 		implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
 	end
 end
@@ -551,6 +552,11 @@ local function nextWave()
 		generatePlayer(true, true)
 		playVars.cameraYOffset = 0
 		playVars.player.pos.y = gameHeight / 2
+	end
+	if playVars.waveNumber == consts.reactorVentilationShaftHoleWave then
+		local offscreen = 200
+		playVars.cameraYOffset = consts.cameraYOffsetMax + offscreen
+		playVars.player.pos.y = offscreen
 	end
 	playVars.backtrackLimit = getCurBacktrackLimit()
 
@@ -660,7 +666,9 @@ local function nextWave()
 		end
 	end
 
-	if playVars.waveNumber == consts.endingWave then
+	if playVars.waveNumber == consts.reactorVentilationShaftHoleWave then
+		playVars.reactorVentilationShaftHolePos = vec2(gameWidth / 2, -gameHeight + 200)
+	elseif playVars.waveNumber == consts.endingWave then
 		playVars.endingSceneElements = {
 			background = assets.images.endingBackground,
 			timer = 0,
@@ -1815,7 +1823,7 @@ function love.update(dt)
 
 			local prevPlayerPosY = playVars.player.pos.y
 			playVars.player.pos = playVars.player.pos + playVars.player.vel * dt
-			if (playVars.noBacktracking or confined) and playVars.player.pos.y > playVars.backtrackLimit then
+			if (playVars.noBacktracking or confined) and playVars.player.pos.y > playVars.backtrackLimit and playVars.waveNumber ~= consts.reactorVentilationShaftHoleWave then
 				playVars.player.vel.y = 0
 				playVars.player.pos.y = playVars.backtrackLimit
 			end
@@ -1838,7 +1846,7 @@ function love.update(dt)
 					playVars.cameraYOffset = 0
 				elseif desired < 0 then
 					playVars.cameraYOffset = math.min(0, desired + consts.overCameraLimitShiftBackRate * dt)
-				else
+				elseif playVars.waveNumber ~= consts.reactorVentilationShaftHoleWave then -- allow over limit camera for flying onto screen from below
 					playVars.cameraYOffset = math.min(consts.cameraYOffsetMax, desired)
 				end
 			else
@@ -1887,6 +1895,24 @@ function love.update(dt)
 					end
 				end
 			end
+			
+			if playVars.waveNumber == consts.reactorVentilationShaftHoleWave then
+				if playVars.player.pos.y <= playVars.reactorVentilationShaftHolePos.y and not playVars.firedNuke then
+					playVars.firedNuke = true
+					-- playSound(assets.audio.nukeDropped)
+					playVars.nuke = {}
+					playVars.nuke.pos = vec2.clone(playVars.reactorVentilationShaftHolePos)
+					playVars.nuke.distance = 1
+					playVars.nuke.fallSpeed = 0
+					playVars.nuke.angle = 0
+				end
+			end
+		end
+
+		if playVars.nuke then
+			playVars.nuke.angle = playVars.nuke.angle + 0.5 * dt
+			playVars.nuke.fallSpeed = playVars.nuke.fallSpeed + 10 * dt
+			playVars.nuke.distance = playVars.nuke.distance + playVars.nuke.fallSpeed * dt
 		end
 
 		if not consts.autoLikeShootTypes[getPlayerShootingType()] then
@@ -2445,30 +2471,34 @@ function love.update(dt)
 			if playVars.waveWonDelayBeforeResultsScreenTimer then
 				playVars.waveWonDelayBeforeResultsScreenTimer = playVars.waveWonDelayBeforeResultsScreenTimer - dt
 				local screenTopInWorldSpace = getScreenTopInWorldSpace()
-				local extra = 10
+				local extra = playVars.waveNumber == consts.reactorVentilationShaftHoleWave and 200 or 10
 				local thrusters = 16
 				if playVars.waveWonDelayBeforeResultsScreenTimer <= 0 and playVars.player.pos.y + assets.images.player:getHeight () / 2 + thrusters + extra < screenTopInWorldSpace then
 					playVars.waveWonDelayBeforeResultsScreenTimer = nil
-					playVars.onResultsScreen = true
-					playVars.resultsScreenVars = {}
-					playVars.resultsScreenVars.prevTotalScore = playVars.totalScore
-					local lifeBonus = playVars.spareLives * playVars.scoreBoostPerLifeAtWaveWon
-					playVars.resultsScreenVars.lifeBonus = lifeBonus
-					local timeBonus = math.ceil(playVars.bonusTimer * consts.bonusScoreTimerScorePerSecondLeft)
-					playVars.resultsScreenVars.timeBonus = timeBonus
-					local addToTotal = playVars.waveScore + lifeBonus + timeBonus
-					local livesToAward = 0
-					while addToTotal > 0 do
-						local nextMultipleOfNewLifePerScore = playVars.totalScore + (consts.newLifePerScore - playVars.totalScore % consts.newLifePerScore) -- excluding the one total is on if it is one
-						local prevTotal = playVars.totalScore
-						playVars.totalScore = math.min(nextMultipleOfNewLifePerScore, playVars.totalScore + addToTotal)
-						if playVars.totalScore == nextMultipleOfNewLifePerScore then
-							livesToAward = livesToAward + 1
-				end
-						addToTotal = addToTotal - (playVars.totalScore - prevTotal)
-			end
-					playVars.resultsScreenVars.addedLives = livesToAward
-					playVars.spareLives = playVars.spareLives + livesToAward
+					if playVars.waveNumber == consts.reactorVentilationShaftHoleWave then
+						nextWave()
+					else
+						playVars.onResultsScreen = true
+						playVars.resultsScreenVars = {}
+						playVars.resultsScreenVars.prevTotalScore = playVars.totalScore
+						local lifeBonus = playVars.spareLives * playVars.scoreBoostPerLifeAtWaveWon
+						playVars.resultsScreenVars.lifeBonus = lifeBonus
+						local timeBonus = math.ceil(playVars.bonusTimer * consts.bonusScoreTimerScorePerSecondLeft)
+						playVars.resultsScreenVars.timeBonus = timeBonus
+						local addToTotal = playVars.waveScore + lifeBonus + timeBonus
+						local livesToAward = 0
+						while addToTotal > 0 do
+							local nextMultipleOfNewLifePerScore = playVars.totalScore + (consts.newLifePerScore - playVars.totalScore % consts.newLifePerScore) -- excluding the one total is on if it is one
+							local prevTotal = playVars.totalScore
+							playVars.totalScore = math.min(nextMultipleOfNewLifePerScore, playVars.totalScore + addToTotal)
+							if playVars.totalScore == nextMultipleOfNewLifePerScore then
+								livesToAward = livesToAward + 1
+							end
+							addToTotal = addToTotal - (playVars.totalScore - prevTotal)
+						end
+						playVars.resultsScreenVars.addedLives = livesToAward
+						playVars.spareLives = playVars.spareLives + livesToAward
+					end
 				end
 			end
 		end
@@ -2771,7 +2801,7 @@ function love.draw()
 				end
 			end
 			love.graphics.origin()
-			if playVars.waveNumber == consts.finalWave then
+			if playVars.waveNumber == consts.finalWave or playVars.waveNumber == consts.reactorVentilationShaftHoleWave then
 				assets.images.flagshipGreebles:setWrap("repeat")
 				assets.images.flagshipGreebles:setFilter("linear")
 				love.graphics.setShader(loopingBackgroundShader)
@@ -2794,6 +2824,9 @@ function love.draw()
 				if enemy.floor then
 					drawEnemy(enemy)
 				end
+			end
+			if playVars.waveNumber == consts.reactorVentilationShaftHoleWave then
+				love.graphics.draw(assets.images.reactorVentilationShaftHole, playVars.reactorVentilationShaftHolePos.x, playVars.reactorVentilationShaftHolePos.y, 0, 1, 1, assets.images.reactorVentilationShaftHole:getWidth() / 2, assets.images.reactorVentilationShaftHole:getHeight() / 2)
 			end
 
 			love.graphics.setCanvas(objectCanvas)
@@ -2865,6 +2898,9 @@ function love.draw()
 				if not enemy.floor then
 					drawEnemy(enemy)
 				end
+			end
+			if playVars.nuke then
+				love.graphics.draw(assets.images.nuke, playVars.nuke.pos.x, playVars.nuke.pos.y, playVars.nuke.angle, 1 / playVars.nuke.distance, nil, assets.images.nuke:getWidth() / 2, assets.images.nuke:getHeight() / 2)
 			end
 			love.graphics.setCanvas(objectCanvas)
 			love.graphics.setShader()
@@ -2986,7 +3022,7 @@ function love.draw()
 			love.graphics.origin()
 			love.graphics.setCanvas(gameCanvas)
 			love.graphics.translate(-consts.shadowXExtend, -consts.shadowYExtend)
-			if playVars.waveNumber == consts.finalWave then
+			if playVars.waveNumber == consts.finalWave or playVars.waveNumber == consts.reactorVentilationShaftHoleWave then
 				love.graphics.setColor(1, 1, 1, 0.4)
 				love.graphics.draw(shadowCanvas, consts.shadowCanvasOffsetX, consts.shadowCanvasOffsetY)
 			end

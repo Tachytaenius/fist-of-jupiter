@@ -1,6 +1,12 @@
 # Before release
 
 - Finish score recording system (prompt player to enter name on first quit attempt and on game over and on victory, warn on score failure to be recorded (there's a TODO for it in the code), maybe alert that scores won't be recorded on an unknown version?)
+- ^no names!!!
+- record score immediately after last flagship enemy is defeated
+- TEST score system wrt ending waves!
+- Place reactor shaft hole you shoot nuke down on wave 17
+
+- Add sound for defeating sub-enemy
 
 - Add window size/fullscreen controls
 - Add volume slider
@@ -10,14 +16,11 @@
 	- shots from all enemy classes
 	- game over
 	- boss start
-	- game completed
 	- extra life(s) acquried
 	- player hit received
 	- enemy materialising
 	- player materialising
-
-- Place reactor shaft hole you shoot nuke down on wave 17
-- Record score after the ending text goes
+	- wave finished
 
 # Some other time
 

@@ -43,6 +43,8 @@ image("superPowerupContainer")
 image("doubleBulletsPowerupSymbol")
 image("hyperBeamPowerupSymbol")
 
+image("nuke")
+image("reactorVentilationShaftHole")
 image("endingBackground")
 image("flagship")
 image("explosionWhite")
@@ -61,6 +63,7 @@ audio("playerExplosion")
 audio("playerShoot")
 audio("powerupAcquired")
 
+audio("nukeDropped")
 audio("flagshipExplosion")
 
 return assets
