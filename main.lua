@@ -99,7 +99,7 @@ local consts = {
 	flashAlpha = 0.5,
 	explosionSourceRadiusPerDamage = 1.5,
 	bulletHitParticleBounceMultiplier = 0.1,
-	titleOptionCount = 4,
+	titleOptionCount = 5,
 	titleOptionsYPos = 256,
 	distanceToGenerateBlocksForDistance1 = math.max(gameWidth, gameHeight),
 	particleBlockSize = 500,
@@ -188,7 +188,9 @@ local consts = {
 	reactorVentilationShaftHoleWave = 18,
 	endingWave = 19,
 	flagshipExplosionCentre = vec2(263/2, 322/2), -- lol
-	enemyBulletRotationSpeed = math.tau * 0.75
+	enemyBulletRotationSpeed = math.tau * 0.75,
+	settingsMessageStartingOpacity = 2.5,
+	settingsMessageOpacityChange = 1.5
 }
 
 local controls = {
@@ -208,9 +210,9 @@ local gameState, paused, pauseFlashTimer
 -- Variables for all states
 local backgroundParticleBlockLayers
 
-local titleVars, playVars, scoreScreenVars
+local titleVars, playVars, scoreScreenVars, settingsVars
 
-local gameCanvas, canvasScale, font, titleFadeShader, loopingBackgroundShader, screenMesh, objectCanvas, shadowCanvas, objectShadowShader, objectShadowCanvasSetup, wobblingPointMeshShader
+local gameCanvas, canvasScale, font, titleFadeShader, loopingBackgroundShader, screenMesh, objectCanvas, shadowCanvas, objectShadowShader, objectShadowCanvasSetup, wobblingPointMeshShader, settingsCanvas
 
 local function noiseColour(colour, range)
 	return {
@@ -749,6 +751,11 @@ local function initTitleState()
 	titleVars.creditsTextLines = lines
 	titleVars.creditsTextScrollMax = math.max(0, #lines * font:getHeight() - titleVars.textCanvas:getHeight())
 
+	titleVars.settingsText = love.filesystem.read("settingsControls.txt")
+	local _, lines = font:getWrap(titleVars.settingsText, titleVars.textCanvas:getWidth())
+	titleVars.settingsTextLines = lines
+	titleVars.settingsTextScrollMax = math.max(0, #lines * font:getHeight() - titleVars.textCanvas:getHeight())
+
 	titleFadeShader = love.graphics.newShader("titleFadeShader.glsl")
 	screenMesh = love.graphics.newMesh({
 		{0, 0},
@@ -1040,6 +1047,7 @@ function love.load()
 	objectShadowShader = love.graphics.newShader("objectShadowShader.glsl")
 	objectShadowCanvasSetup = {objectCanvas, shadowCanvas}
 	wobblingPointMeshShader = love.graphics.newShader("wobblingPointMeshShader.glsl")
+	settingsCanvas = love.graphics.newCanvas(gameWidth, gameHeight)
 
 	assets = require("assets")
 
@@ -1055,6 +1063,13 @@ function love.load()
 		love.graphics.newQuad(0, 16, 16, 16, 16, 32)
 	}
 
+	settingsVars = {
+		messageOpacity = 0,
+		message = "",
+		settings = {
+			-- TODO
+		}
+	}
 	initTitleState()
 end
 
@@ -1184,7 +1199,11 @@ local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset, useSecondShoo
 end
 
 function love.keypressed(key)
-	if key == controls.pause then
+	if key == "f4" then
+		settingsVars.message = "MRRP MROW"
+		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		
+	elseif key == controls.pause then
 		local nextPauseState
 		if paused then
 			nextPauseState = false
@@ -1235,6 +1254,10 @@ function love.keypressed(key)
 						titleVars.textScroll = 0
 						titleVars.textMode = "story"
 					elseif titleVars.cursorPos == 3 then
+						titleVars.textView = true
+						titleVars.textScroll = 0
+						titleVars.textMode = "settings"
+					elseif titleVars.cursorPos == 4 then
 						titleVars.textView = true
 						titleVars.textScroll = 0
 						titleVars.textMode = "credits"
@@ -1349,6 +1372,7 @@ function spawnEnemy(enemyType, pos) -- it's local up top. i wont rearrange stuff
 end
 
 function love.update(dt)
+	settingsVars.messageOpacity = math.max(0, settingsVars.messageOpacity - dt)
 	if gameState ~= "play" then
 		play()
 	end
@@ -1494,7 +1518,7 @@ function love.update(dt)
 			if love.keyboard.isDown(controls.down) then
 				titleVars.textScroll = titleVars.textScroll + consts.titleScrollSpeed * dt
 			end
-			local maxScroll = titleVars.textMode == "story" and titleVars.storyTextScrollMax or titleVars.textMode == "credits" and titleVars.creditsTextScrollMax
+			local maxScroll = titleVars.textMode == "story" and titleVars.storyTextScrollMax or titleVars.textMode == "credits" and titleVars.creditsTextScrollMax or titleVars.textMode == "settings" and titleVars.settingsTextScrollMax
 			titleVars.textScroll = math.max(0, math.min(maxScroll, titleVars.textScroll))
 		end
 	elseif consts.playLikeStates[gameState] then
@@ -2537,6 +2561,12 @@ end
 function love.draw()
 	love.graphics.setFont(font)
 
+	love.graphics.setCanvas(settingsCanvas)
+	love.graphics.clear()
+	love.graphics.setColor(1, 1, 1, math.min(settingsVars.messageOpacity, 1))
+	love.graphics.print(settingsVars.message or "", 0, gameHeight - font:getHeight())
+	love.graphics.setCanvas()
+
 	if paused then
 		if pauseFlashTimer / consts.pauseFlashTimerLength < 0.5 then
 			love.graphics.setColor(0.5, 0.5, 0.5)
@@ -2551,6 +2581,7 @@ function love.draw()
 		local text = "Hold shoot for 2 seconds to quit"
 		love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight / 2)
 		love.graphics.setCanvas()
+		love.graphics.draw(settingsCanvas)
 		return
 	end
 
@@ -2645,7 +2676,7 @@ function love.draw()
 			love.graphics.origin()
 			love.graphics.setCanvas(titleVars.textCanvas)
 			love.graphics.clear()
-			local lines = titleVars.textMode == "story" and titleVars.storyTextLines or titleVars.textMode == "credits" and titleVars.creditsTextLines
+			local lines = titleVars.textMode == "story" and titleVars.storyTextLines or titleVars.textMode == "credits" and titleVars.creditsTextLines or titleVars.textMode == "settings" and titleVars.settingsTextLines
 			for i, line in ipairs(lines) do
 				love.graphics.printf(
 					line,
@@ -2660,7 +2691,7 @@ function love.draw()
 			love.graphics.draw(titleVars.textCanvas, consts.textCanvasPad, consts.textCanvasY)
 			love.graphics.setShader()
 			-- Draw scrollbar
-			local maxScroll = titleVars.textMode == "story" and titleVars.storyTextScrollMax or titleVars.textMode == "credits" and titleVars.creditsTextScrollMax
+			local maxScroll = titleVars.textMode == "story" and titleVars.storyTextScrollMax or titleVars.textMode == "credits" and titleVars.creditsTextScrollMax or titleVars.textMode == "settings" and titleVars.settingsTextScrollMax
 			if maxScroll > 0 then
 				local scrollBarTop = titleVars.textScroll / (#lines * font:getHeight()) * titleVars.textCanvas:getHeight()
 				local scrollBarHeight = titleVars.textCanvas:getHeight() ^ 2 / (#lines * font:getHeight())
@@ -2674,6 +2705,7 @@ function love.draw()
 				"PLAY",
 				"SCORES",
 				"STORY",
+				"SETTINGS",
 				"CREDITS"
 			}
 			local textWidth = 0
@@ -3116,4 +3148,5 @@ function love.draw()
 	love.graphics.origin()
 	love.graphics.setCanvas()
 	love.graphics.draw(gameCanvas, 0, 0, 0, canvasScale)
+	love.graphics.draw(settingsCanvas, 0, 0, 0, canvasScale)
 end

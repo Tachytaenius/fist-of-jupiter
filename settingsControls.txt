@@ -1,0 +1,10 @@
+These work during play:
+
+F4: Volume down
+F5: Volume up
+F6: Particle mesh toggle
+F7: Particles down
+F8: Particles up
+F9: Scale down
+F10: Scale up
+F11: Fullscreen
