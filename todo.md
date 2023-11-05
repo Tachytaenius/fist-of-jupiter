@@ -6,12 +6,12 @@
 - TEST score system wrt ending waves!
 - Place reactor shaft hole you shoot nuke down on wave 17
 
-- Add sound for defeating sub-enemy
-
 - Add window size/fullscreen controls
 - Add volume slider
 - Add particle count multiplier
 
+- Add sound for defeating sub-enemy
+- Add different sound for boss spawning
 - Sound effects for:
 	- shots from all enemy classes
 	- game over

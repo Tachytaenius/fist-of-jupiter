@@ -296,6 +296,7 @@ local function pause()
 	paused = true
 	pauseFlashTimer = 0
 	playVars.pauseQuitTimer = consts.pauseQuitTimerLength
+
 	pausedSourcesThatWerePlaying = {}
 	for _, list in pairs(soundSourceList) do
 		for _, source in ipairs(list) do
@@ -305,6 +306,10 @@ local function pause()
 			end
 		end
 	end
+	if assets.audio.enemyMaterialising:isPlaying() then
+		pausedSourcesThatWerePlaying[assets.audio.enemyMaterialising] = true
+		assets.audio.enemyMaterialising:pause()
+	end
 end
 
 local function play()
@@ -312,6 +317,7 @@ local function play()
 		return
 	end
 	paused = false
+	
 	for source in pairs(pausedSourcesThatWerePlaying) do
 		source:play()
 	end
@@ -1325,9 +1331,13 @@ function spawnEnemy(enemyType, pos) -- it's local up top. i wont rearrange stuff
 		creationTime = playVars.time, -- For consistent draw sorting
 		timeUntilSpawn = timer,
 		subEnemies = subEnemies,
-
 		colour = shallowClone(registryEntry.colour)
 	}
+	if timer > 0 then
+		assets.audio.enemyMaterialising:stop()
+		assets.audio.enemyMaterialising:play()
+	end
+	playVars.newEnemiesThisUpdate[#playVars.newEnemiesThisUpdate+1] = enemy -- whichever has the longest sound is the owner of the sound
 	for k, v in pairs(registryEntry) do
 		if not propertiesToNotCopy[k] then
 			enemy[k] = v
@@ -1490,6 +1500,8 @@ function love.update(dt)
 	elseif consts.playLikeStates[gameState] then
 		playVars.time = playVars.time + dt
 
+		playVars.newEnemiesThisUpdate = {}
+
 		if playVars.waveNumber == consts.endingWave then
 			playVars.endingSceneElements.timer = playVars.endingSceneElements.timer + dt
 			playVars.endingSceneElements.flagship.pos = playVars.endingSceneElements.flagship.pos + playVars.endingSceneElements.flagship.vel * dt
@@ -1642,6 +1654,9 @@ function love.update(dt)
 		for _, enemy in ipairs(enemiesToSpawn) do
 			playVars.enemiesToMaterialise:remove(enemy)
 			playVars.enemies:add(enemy)
+			if playVars.enemyMaterialisingSoundOwner == enemy then
+				assets.audio.enemyMaterialising:stop()
+			end
 			if playVars.player.pos ~= enemy.pos then
 				if enemy.aiType == "minelayer" then
 					enemy.targetVel = vec2(0, -enemy.speed)
@@ -2451,6 +2466,20 @@ function love.update(dt)
 			else
 				i = i + 1
 			end
+		end
+
+		if #playVars.newEnemiesThisUpdate > 0 then
+			local currentWinner
+			for _, enemy in ipairs(playVars.newEnemiesThisUpdate) do
+				if currentWinner then
+					if enemy.timeUntilSpawn > currentWinner.timeUntilSpawn then
+						currentWinner = enemy
+					end
+				else
+					currentWinner = enemy
+				end
+			end
+			playVars.enemyMaterialisingSoundOwner = currentWinner
 		end
 
 		if
