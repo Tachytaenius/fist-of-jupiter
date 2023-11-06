@@ -1375,34 +1375,36 @@ function love.keypressed(key)
 			}
 			if key == controls.shoot then
 				gameState = "title"
-			elseif key == controls.left then
-				if scoreScreenVars.configCursor == 0 then
-					scoreScreenVars.scoreSetIndex = (scoreScreenVars.scoreSetIndex - 1 - 1) % #getScoreScreenSetsToShow() + 1
-				elseif scoreScreenVars.configCursor == 1 then
-					scoreScreenVars.sortingBy = sortTypes[(sortTypes[scoreScreenVars.sortingBy] - 1 - 1) % #sortTypes + 1]
-				elseif scoreScreenVars.configCursor == 2 then
-					scoreScreenVars.filteringByVersion = not scoreScreenVars.filteringByVersion
-					scoreScreenVars.scoreSetIndex = 1
-				elseif scoreScreenVars.configCursor == 3 then
-					scoreScreenVars.victoriesOnly = not scoreScreenVars.victoriesOnly
-					scoreScreenVars.scoreSetIndex = 1
+			elseif not scoreScreenVars.noScores then
+				if key == controls.left then
+					if scoreScreenVars.configCursor == 0 then
+						scoreScreenVars.scoreSetIndex = (scoreScreenVars.scoreSetIndex - 1 - 1) % #getScoreScreenSetsToShow() + 1
+					elseif scoreScreenVars.configCursor == 1 then
+						scoreScreenVars.sortingBy = sortTypes[(sortTypes[scoreScreenVars.sortingBy] - 1 - 1) % #sortTypes + 1]
+					elseif scoreScreenVars.configCursor == 2 then
+						scoreScreenVars.filteringByVersion = not scoreScreenVars.filteringByVersion
+						scoreScreenVars.scoreSetIndex = 1
+					elseif scoreScreenVars.configCursor == 3 then
+						scoreScreenVars.victoriesOnly = not scoreScreenVars.victoriesOnly
+						scoreScreenVars.scoreSetIndex = 1
+					end
+				elseif key == controls.right then
+					if scoreScreenVars.configCursor == 0 then
+						scoreScreenVars.scoreSetIndex = (scoreScreenVars.scoreSetIndex + 1 - 1) % #getScoreScreenSetsToShow() + 1
+					elseif scoreScreenVars.configCursor == 1 then
+						scoreScreenVars.sortingBy = sortTypes[(sortTypes[scoreScreenVars.sortingBy] + 1 - 1) % #sortTypes + 1]
+					elseif scoreScreenVars.configCursor == 2 then
+						scoreScreenVars.filteringByVersion = not scoreScreenVars.filteringByVersion
+						scoreScreenVars.scoreSetIndex = 1
+					elseif scoreScreenVars.configCursor == 3 then
+						scoreScreenVars.victoriesOnly = not scoreScreenVars.victoriesOnly
+						scoreScreenVars.scoreSetIndex = 1
+					end
+				elseif key == controls.up then
+					scoreScreenVars.configCursor = (scoreScreenVars.configCursor - 1) % 4
+				elseif key == controls.down then
+					scoreScreenVars.configCursor = (scoreScreenVars.configCursor + 1) % 4
 				end
-			elseif key == controls.right then
-				if scoreScreenVars.configCursor == 0 then
-					scoreScreenVars.scoreSetIndex = (scoreScreenVars.scoreSetIndex + 1 - 1) % #getScoreScreenSetsToShow() + 1
-				elseif scoreScreenVars.configCursor == 1 then
-					scoreScreenVars.sortingBy = sortTypes[(sortTypes[scoreScreenVars.sortingBy] + 1 - 1) % #sortTypes + 1]
-				elseif scoreScreenVars.configCursor == 2 then
-					scoreScreenVars.filteringByVersion = not scoreScreenVars.filteringByVersion
-					scoreScreenVars.scoreSetIndex = 1
-				elseif scoreScreenVars.configCursor == 3 then
-					scoreScreenVars.victoriesOnly = not scoreScreenVars.victoriesOnly
-					scoreScreenVars.scoreSetIndex = 1
-				end
-			elseif key == controls.up then
-				scoreScreenVars.configCursor = (scoreScreenVars.configCursor - 1) % 4
-			elseif key == controls.down then
-				scoreScreenVars.configCursor = (scoreScreenVars.configCursor + 1) % 4
 			end
 		end
 	end
