@@ -6,9 +6,6 @@
 - TEST score system wrt ending waves!
 - Place reactor shaft hole you shoot nuke down on wave 17
 
-- Add window size/fullscreen controls
-- Add volume slider
-- Add particle count multiplier
 - Test multiple monitor stuff
 
 - Add sound for defeating sub-enemy
