@@ -1059,11 +1059,17 @@ local function remakeWindow()
 	love.window.setTitle("Fist of Jupiter")
 end
 
+local function remakeBackgroundParticles()
+	for _, layer in ipairs(backgroundParticleBlockLayers) do
+		layer.blocks = {}
+	end
+end
+
 local function saveSettings()
 	love.filesystem.write("settings.json", json.encode(settingsVars.settings))
 end
 
-local function resetSettings()
+local function resetSettings(resetWindowAndBackgroundParticles)
 	settingsVars.settings = {
 		volumeMultiplier = 0.75,
 		particleMeshOptimisation = true,
@@ -1071,6 +1077,10 @@ local function resetSettings()
 		canvasScale = 2,
 		fullscreen = false
 	}
+	if resetWindowAndBackgroundParticles then
+		remakeBackgroundParticles()
+		remakeWindow()
+	end
 end
 
 function love.load()
@@ -1241,14 +1251,14 @@ local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset, useSecondShoo
 	end
 end
 
-local function remakeBackgroundParticles()
-	for _, layer in ipairs(backgroundParticleBlockLayers) do
-		layer.blocks = {}
-	end
-end
-
 function love.keypressed(key)
-	if key == "f3" then
+	if key == "f1" then
+		resetSettings(true)
+		settingsVars.message = "Settings reset to defaults"
+		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		settingsVars.drawBackground = false
+		saveSettings()
+	elseif key == "f3" then
 		settingsVars.message =
 			"Volume: " .. (settingsVars.settings.volumeMultiplier * 100) .. "%\n" ..
 			"Particle meshes: " .. (settingsVars.settings.particleMeshOptimisation and "on" or "off") .. "\n" ..

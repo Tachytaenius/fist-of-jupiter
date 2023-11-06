@@ -1,8 +1,8 @@
+F1: Reset to defaults
 F3: Show settings
 F4/F5: Volume down/up
 F6: Toggle particle meshes
 F7/F8: Particles down/up
 F9/F10: Scale down/up
-F11: Fullscreen
-
+F11: Toggle fullscreen
 These work outside of this screen.
