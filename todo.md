@@ -5,8 +5,10 @@
 - record score immediately after last flagship enemy is defeated
 - TEST score system wrt ending waves!
 
-- Add different sound for boss spawning
+- Draw ending text and allow leaving ending menu 3 seconds after text is displayed?
+
 - Sound effects for:
+	- Boss spawning
 	- shots from all enemy classes
 	- game over
 	- boss start
