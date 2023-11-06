@@ -1227,7 +1227,9 @@ local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset, useSecondShoo
 end
 
 local function remakeBackgroundParticles()
-	-- TODO
+	for _, layer in ipairs(backgroundParticleBlockLayers) do
+		layer.blocks = {}
+	end
 end
 
 function love.keypressed(key)
@@ -1509,29 +1511,31 @@ function love.update(dt)
 							movingParticles = list()
 						}
 						blocksX[y] = newBlock
-						local numVertices = math.floor((layer.style == "play" and 0.5 or 1) * consts.permanentStationaryParticlesPerBlock)
-						local mesh = love.graphics.newMesh(consts.particleVertexFormat, numVertices, "points", "dynamic")
-						for i = 1, numVertices do
-							-- newBlock.permanentStationaryParticles:add({
-							-- 	pos = consts.particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
-							-- 	colour = {hsv2rgb(love.math.random() * 360, 1, 0.75 * math.min(1, 3/layer.distance))}
-							-- 	colour = {0.5 * math.min(1, 3/layer.distance), 0, 0}
-							-- 	colour = layer.style == "play" and
-							-- 		{hsv2rgb(((love.math.random() * 2 - 1) * 15 + (playVars.waveNumber - 1) / (consts.finalWave - 1) * 360) % 360, 0.5, 0.75 * math.min(1, 3/layer.distance))} or
-							-- 		{hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
-							-- })
-							local pos = consts.particleBlockSize * vec2(love.math.random() + x, love.math.random() + y)
-							local r, g, b
-							if layer.style == "play" then
-								r, g, b = hsv2rgb(((love.math.random() * 2 - 1) * 15 + (playVars.waveNumber - 1) / (consts.finalWave - 1) * 360) % 360, 0.5, 0.75 * math.min(1, 3/layer.distance))
-							else
-								r, g, b = hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))
+						local numVertices = math.floor((layer.style == "play" and 0.5 or 1) * consts.permanentStationaryParticlesPerBlock * settingsVars.settings.particleMultiplier)
+						local mesh = settingsVars.settings.particleMultiplier > 0 and love.graphics.newMesh(consts.particleVertexFormat, numVertices, "points", "dynamic")
+						if mesh then
+							for i = 1, numVertices do
+								-- newBlock.permanentStationaryParticles:add({
+								-- 	pos = consts.particleBlockSize * vec2(love.math.random() + x, love.math.random() + y),
+								-- 	colour = {hsv2rgb(love.math.random() * 360, 1, 0.75 * math.min(1, 3/layer.distance))}
+								-- 	colour = {0.5 * math.min(1, 3/layer.distance), 0, 0}
+								-- 	colour = layer.style == "play" and
+								-- 		{hsv2rgb(((love.math.random() * 2 - 1) * 15 + (playVars.waveNumber - 1) / (consts.finalWave - 1) * 360) % 360, 0.5, 0.75 * math.min(1, 3/layer.distance))} or
+								-- 		{hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))}
+								-- })
+								local pos = consts.particleBlockSize * vec2(love.math.random() + x, love.math.random() + y)
+								local r, g, b
+								if layer.style == "play" then
+									r, g, b = hsv2rgb(((love.math.random() * 2 - 1) * 15 + (playVars.waveNumber - 1) / (consts.finalWave - 1) * 360) % 360, 0.5, 0.75 * math.min(1, 3/layer.distance))
+								else
+									r, g, b = hsv2rgb(((love.math.random() * 2 - 1) * 30) % 360, 1, 0.75 * math.min(1, 3/layer.distance))
+								end
+								mesh:setVertex(i, pos.x, pos.y, 0, 1, r, g, b, 1)
 							end
-							mesh:setVertex(i, pos.x, pos.y, 0, 1, r, g, b, 1)
-						end
-						newBlock.permanentStationaryParticlesMesh = mesh
-						for i = 1, (layer.style == "play" and 0.5 or 1) * consts.movingParticlesPerBlock do
-							addMovingParticleToBlock(newBlock, layer, x, y)
+							newBlock.permanentStationaryParticlesMesh = mesh
+							for i = 1, (layer.style == "play" and 0.5 or 1) * consts.movingParticlesPerBlock * settingsVars.settings.particleMultiplier do
+								addMovingParticleToBlock(newBlock, layer, x, y)
+							end
 						end
 					end
 				end
@@ -1571,7 +1575,7 @@ function love.update(dt)
 					for _, particle in ipairs(particlesToDelete) do
 						block.movingParticles:remove(particle)
 					end
-					for _=1, (layer.style == "play" and 0.5 or 1) * consts.movingParticlesPerBlock - block.movingParticles.size do
+					for _=1, (layer.style == "play" and 0.5 or 1) * consts.movingParticlesPerBlock * settingsVars.settings.particleMultiplier - block.movingParticles.size do
 						addMovingParticleToBlock(block, layer, x, y)
 					end
 				end
@@ -2753,7 +2757,9 @@ function love.draw()
 					if consts.playLikeStates[gameState] then
 						love.graphics.setShader(wobblingPointMeshShader)
 					end
-					love.graphics.draw(block.permanentStationaryParticlesMesh)
+					if block.permanentStationaryParticlesMesh then
+						love.graphics.draw(block.permanentStationaryParticlesMesh)
+					end
 					love.graphics.setShader()
 					for j = 1, block.movingParticles.size do
 						local particle = block.movingParticles:get(j)
