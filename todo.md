@@ -5,6 +5,8 @@
 - record score immediately after last flagship enemy is defeated
 - TEST score system wrt ending waves!
 
+- Save and load settings
+
 - Draw ending text and allow leaving ending menu 3 seconds after text is displayed?
 
 - Sound effects for:
