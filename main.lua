@@ -2831,8 +2831,8 @@ function love.draw()
 				local scrollBarTop = titleVars.textScroll / (#lines * font:getHeight()) * titleVars.textCanvas:getHeight()
 				local scrollBarHeight = titleVars.textCanvas:getHeight() ^ 2 / (#lines * font:getHeight())
 				love.graphics.line(
-					consts.textCanvasPad + titleVars.textCanvas:getWidth(), consts.textCanvasY + scrollBarTop,
-					consts.textCanvasPad + titleVars.textCanvas:getWidth(), consts.textCanvasY + scrollBarTop + scrollBarHeight
+					consts.textCanvasPad + titleVars.textCanvas:getWidth() + 1, consts.textCanvasY + scrollBarTop,
+					consts.textCanvasPad + titleVars.textCanvas:getWidth() + 1, consts.textCanvasY + scrollBarTop + scrollBarHeight
 				)
 			end
 		else
