@@ -9,6 +9,7 @@
 - Add window size/fullscreen controls
 - Add volume slider
 - Add particle count multiplier
+- Test multiple monitor stuff
 
 - Add sound for defeating sub-enemy
 - Add different sound for boss spawning

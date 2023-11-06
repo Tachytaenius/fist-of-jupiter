@@ -212,7 +212,7 @@ local backgroundParticleBlockLayers
 
 local titleVars, playVars, scoreScreenVars, settingsVars
 
-local gameCanvas, canvasScale, font, titleFadeShader, loopingBackgroundShader, screenMesh, objectCanvas, shadowCanvas, objectShadowShader, objectShadowCanvasSetup, wobblingPointMeshShader, settingsCanvas
+local gameCanvas, font, titleFadeShader, loopingBackgroundShader, screenMesh, objectCanvas, shadowCanvas, objectShadowShader, objectShadowCanvasSetup, wobblingPointMeshShader, settingsCanvas
 
 local function noiseColour(colour, range)
 	return {
@@ -231,7 +231,7 @@ local function addToColour(colour, amount)
 end
 
 local function implode(radius, pos, colour, timer, velocityBoost)
-	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
+	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea * settingsVars.settings.particleMultiplier)
 	for i = 1, newParticleCount do
 		local relPos = randCircle(radius)
 		local vel = relPos * 15 + (velocityBoost or vec2())
@@ -332,7 +332,7 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount
 	velocityMultiplier = velocityMultiplier or 1
 	lifetimeMultiplier = lifetimeMultiplier or 1
 	fireParticleChance = fireParticleChance or 0.3
-	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea)
+	local newParticleCount = math.floor((math.pi * radius ^ 2) * consts.particlesPerArea * settingsVars.settings.particleMultiplier)
 	for i = 1, newParticleCount do
 		local relPos = randCircle(radius)
 		local function getShaping()
@@ -370,7 +370,7 @@ local function explode(radius, pos, colour, velocityBoost, isPlayer, bubbleCount
 	-- 	frequency = 2,
 	-- 	phasePerDistance = 0.1
 	-- })
-	for _ = 1, spectacularParticleCount or 0 do
+	for _ = 1, spectacularParticleCount and (spectacularParticleCount * settingsVars.settings.particleMultiplier) or 0 do
 		local invisibleTime = love.math.random() * 0.75 + delay
 		playVars.particles:add({
 			pos = vec2.clone(pos),
@@ -1034,10 +1034,45 @@ function love.quit()
 	-- end
 end
 
-function love.load()
-	canvasScale = 2
-	love.window.setMode(gameWidth * canvasScale, gameHeight * canvasScale)
+local function getLargestAllowableCanvasScale()
+	-- Doesn't account for title bar etc
+	local _, _, flags = love.window.getMode()
+	local w, h = love.window.getDesktopDimensions(flags.display)
+	return math.min(
+		math.floor(w / gameWidth),
+		math.floor(h / gameHeight)
+	)
+end
+
+local function getCurrentWindowDisplay()
+	local _, _, flags = love.window.getMode()
+	return flags.display
+end
+
+local function remakeWindow()
+	love.window.setMode(gameWidth * settingsVars.settings.canvasScale, gameHeight * settingsVars.settings.canvasScale, {
+		fullscreen = settingsVars.settings.fullscreen,
+		borderless = settingsVars.settings.fullscreen,
+		display = getCurrentWindowDisplay()
+	})
 	love.window.setTitle("Fist of Jupiter")
+end
+
+function love.load()
+	settingsVars = {
+		messageOpacity = 0,
+		message = "",
+		settings = {
+			volumeMultiplier = 0.75,
+			particleMeshOptimisation = true,
+			particleMultiplier = 1,
+			canvasScale = 2,
+			fullscreen = false
+		}
+	}
+	settingsVars.settings.canvasScale = getLargestAllowableCanvasScale() -- After load, reset window scale
+
+	remakeWindow()
 	love.graphics.setDefaultFilter("nearest", "nearest")
 	love.graphics.setLineStyle("rough")
 	gameCanvas = love.graphics.newCanvas(gameWidth, gameHeight)
@@ -1063,13 +1098,6 @@ function love.load()
 		love.graphics.newQuad(0, 16, 16, 16, 16, 32)
 	}
 
-	settingsVars = {
-		messageOpacity = 0,
-		message = "",
-		settings = {
-			-- TODO
-		}
-	}
 	initTitleState()
 end
 
@@ -1198,11 +1226,69 @@ local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset, useSecondShoo
 	end
 end
 
+local function remakeBackgroundParticles()
+	-- TODO
+end
+
 function love.keypressed(key)
-	if key == "f4" then
-		settingsVars.message = "MRRP MROW"
+	if key == "f3" then
+		settingsVars.message =
+			"Volume: " .. (settingsVars.settings.volumeMultiplier * 100) .. "%\n" ..
+			"Particle meshes: " .. (settingsVars.settings.particleMeshOptimisation and "on" or "off") .. "\n" ..
+			"Particle multiplier: " .. (settingsVars.settings.particleMultiplier * 100) .. "%\n" ..
+			"Game scale: " .. (settingsVars.settings.canvasScale) .. "x\n" ..
+			"Fullscreen: " .. (settingsVars.settings.fullscreen and "on" or "off")
+		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity + 1.5
+	elseif key == "f4" then
+		settingsVars.settings.volumeMultiplier = math.max(0, settingsVars.settings.volumeMultiplier - 0.125)
+		settingsVars.message = "Volume: " .. (settingsVars.settings.volumeMultiplier * 100) .. "%"
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
-		
+	elseif key == "f5" then
+		settingsVars.settings.volumeMultiplier = math.min(1, settingsVars.settings.volumeMultiplier + 0.125)
+		settingsVars.message = "Volume: " .. (settingsVars.settings.volumeMultiplier * 100) .. "%"
+		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+	elseif key == "f6" then
+		settingsVars.settings.particleMeshOptimisation = not settingsVars.settings.particleMeshOptimisation
+		settingsVars.message = "Particle meshes: " .. (settingsVars.settings.particleMeshOptimisation and "on" or "off")
+		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		remakeBackgroundParticles()
+	elseif key == "f7" then
+		settingsVars.settings.particleMultiplier = math.max(0, settingsVars.settings.particleMultiplier - 0.125)
+		settingsVars.message = "Particle multiplier: " .. (settingsVars.settings.particleMultiplier * 100) .. "%"
+		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		remakeBackgroundParticles()
+	elseif key == "f8" then
+		settingsVars.settings.particleMultiplier = math.min(2, settingsVars.settings.particleMultiplier + 0.125)
+		settingsVars.message = "Particle multiplier: " .. (settingsVars.settings.particleMultiplier * 100) .. "%"
+		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		remakeBackgroundParticles()
+	elseif key == "f9" then
+		if settingsVars.settings.canvasScale > 1 then
+			settingsVars.settings.canvasScale = settingsVars.settings.canvasScale - 1
+			settingsVars.message = "Canvas scale: " .. (settingsVars.settings.canvasScale) .. "x"
+			settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+			if not settingsVars.settings.fullscreen then
+				remakeWindow()
+			end
+		end
+	elseif key == "f10" then
+		if settingsVars.settings.canvasScale < getLargestAllowableCanvasScale() then
+			settingsVars.settings.canvasScale = settingsVars.settings.canvasScale + 1
+			settingsVars.message = "Canvas scale: " .. (settingsVars.settings.canvasScale) .. "x"
+			settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+			if not settingsVars.settings.fullscreen then
+				remakeWindow()
+			end
+		end
+	elseif key == "f11" then
+		settingsVars.settings.fullscreen = not settingsVars.settings.fullscreen
+		settingsVars.message = "Fullscreen: " .. (settingsVars.settings.fullscreen and "on" or "off")
+		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		if settingsVars.settings.fullscreen then
+			love.window.setFullscreen(settingsVars.settings.fullscreen, "desktop")
+		else
+			remakeWindow() -- would have size of desktop otherwise
+		end
 	elseif key == controls.pause then
 		local nextPauseState
 		if paused then
@@ -1372,6 +1458,7 @@ function spawnEnemy(enemyType, pos) -- it's local up top. i wont rearrange stuff
 end
 
 function love.update(dt)
+	love.audio.setVolume(settingsVars.settings.volumeMultiplier)
 	settingsVars.messageOpacity = math.max(0, settingsVars.messageOpacity - dt)
 	if gameState ~= "play" then
 		play()
@@ -1561,7 +1648,7 @@ function love.update(dt)
 				for i = 1, 6 do
 					local radius = i == 1 and 50 or 20
 					local pos = i == 1 and consts.flagshipExplosionCentre or consts.flagshipExplosionCentre + randCircle(30)
-					local newParticleCount = i == 1 and 750 or 300
+					local newParticleCount = (i == 1 and 750 or 300) * settingsVars.settings.particleMultiplier
 					for i = 1, newParticleCount do
 						local relPos = randCircle(radius)
 						local invisibleTime = 1.8 * (1 - love.math.random() ^ 3)
@@ -1576,7 +1663,7 @@ function love.update(dt)
 							dontMoveIfUnrevealed = true
 						})
 					end
-					for _ = 1, i == 1 and 250 or 100 do
+					for _ = 1, (i == 1 and 250 or 100) * settingsVars.settings.particleMultiplier do
 						local invisibleTime = love.math.random() * 2
 						playVars.particles:add({
 							pos = randCircle(radius) + pos,
@@ -2496,7 +2583,10 @@ function love.update(dt)
 			local currentWinner
 			for _, enemy in ipairs(playVars.newEnemiesThisUpdate) do
 				if currentWinner then
-					if enemy.timeUntilSpawn > currentWinner.timeUntilSpawn then
+					if
+						enemy.timeUntilSpawn and currentWinner.timeUntilSpawn -- NOTE: spamming fullscreen sometimes caused the two values to be nil, so...
+						and enemy.timeUntilSpawn > currentWinner.timeUntilSpawn
+					then
 						currentWinner = enemy
 					end
 				else
@@ -2558,13 +2648,24 @@ function love.update(dt)
 	end
 end
 
+local function getLineCount(str)
+	local lines = 1
+	for i = 1, #str do
+		local c = str:sub(i, i)
+		if c == "\n" then
+			lines = lines + 1
+		end
+	end
+	return lines
+end
+
 function love.draw()
 	love.graphics.setFont(font)
 
 	love.graphics.setCanvas(settingsCanvas)
 	love.graphics.clear()
 	love.graphics.setColor(1, 1, 1, math.min(settingsVars.messageOpacity, 1))
-	love.graphics.print(settingsVars.message or "", 0, gameHeight - font:getHeight())
+	love.graphics.print(settingsVars.message or "", 1, gameHeight - font:getHeight() * getLineCount(settingsVars.message))
 	love.graphics.setCanvas()
 
 	if paused then
@@ -2573,9 +2674,9 @@ function love.draw()
 		else
 			love.graphics.setColor(1, 1, 1)
 		end
-		love.graphics.draw(gameCanvas, 0, 0, 0, canvasScale)
+		love.graphics.draw(gameCanvas, 0, 0, 0, settingsVars.settings.canvasScale)
 		love.graphics.setColor(1, 1, 1)
-		love.graphics.scale(canvasScale) -- The text does remain perfectly aligned
+		love.graphics.scale(settingsVars.settings.canvasScale) -- The text does remain perfectly aligned
 		local text = "Paused"
 		love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight /2 - font:getHeight())
 		local text = "Hold shoot for 2 seconds to quit"
@@ -3147,6 +3248,9 @@ function love.draw()
 
 	love.graphics.origin()
 	love.graphics.setCanvas()
-	love.graphics.draw(gameCanvas, 0, 0, 0, canvasScale)
-	love.graphics.draw(settingsCanvas, 0, 0, 0, canvasScale)
+	local x, y =
+		(love.graphics.getWidth() - gameWidth * settingsVars.settings.canvasScale) / 2,
+		(love.graphics.getHeight() - gameHeight * settingsVars.settings.canvasScale) / 2
+	love.graphics.draw(gameCanvas, x, y, 0, settingsVars.settings.canvasScale)
+	love.graphics.draw(settingsCanvas, x, y, 0, settingsVars.settings.canvasScale)
 end
