@@ -6,8 +6,6 @@
 - TEST score system wrt ending waves!
 - Place reactor shaft hole you shoot nuke down on wave 17
 
-- Test multiple monitor stuff
-
 - Add sound for defeating sub-enemy
 - Add different sound for boss spawning
 - Sound effects for:
