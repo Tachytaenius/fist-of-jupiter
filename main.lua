@@ -1260,10 +1260,12 @@ function love.keypressed(key)
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
 		remakeBackgroundParticles()
 	elseif key == "f8" then
-		settingsVars.settings.particleMultiplier = math.min(2, settingsVars.settings.particleMultiplier + 0.125)
+		if settingsVars.settings.particleMultiplier < 2 then
+			settingsVars.settings.particleMultiplier = math.min(2, settingsVars.settings.particleMultiplier + 0.125)
+			remakeBackgroundParticles()
+		end
 		settingsVars.message = "Particle multiplier: " .. (settingsVars.settings.particleMultiplier * 100) .. "%"
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
-		remakeBackgroundParticles()
 	elseif key == "f9" then
 		if settingsVars.settings.canvasScale > 1 then
 			settingsVars.settings.canvasScale = settingsVars.settings.canvasScale - 1
