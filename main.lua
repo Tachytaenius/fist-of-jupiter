@@ -99,8 +99,8 @@ local consts = {
 	flashAlpha = 0.5,
 	explosionSourceRadiusPerDamage = 1.5,
 	bulletHitParticleBounceMultiplier = 0.1,
-	titleOptionCount = 5,
-	titleOptionsYPos = 256,
+	titleOptionCount = 6,
+	titleOptionsYPos = 240,
 	distanceToGenerateBlocksForDistance1 = math.max(gameWidth, gameHeight),
 	particleBlockSize = 500,
 	permanentStationaryParticlesPerBlock = 20,
@@ -1360,6 +1360,8 @@ function love.keypressed(key)
 						titleVars.textView = true
 						titleVars.textScroll = 0
 						titleVars.textMode = "credits"
+					elseif titleVars.cursorPos == 5 then
+						love.event.quit()
 					end
 				end
 			end
@@ -2839,7 +2841,8 @@ function love.draw()
 				"SCORES",
 				"STORY",
 				"SETTINGS",
-				"CREDITS"
+				"CREDITS",
+				"QUIT"
 			}
 			local textWidth = 0
 			for i, v in ipairs(texts) do
