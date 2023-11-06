@@ -4,7 +4,6 @@
 - ^no names!!!
 - record score immediately after last flagship enemy is defeated
 - TEST score system wrt ending waves!
-- Place reactor shaft hole you shoot nuke down on wave 17
 
 - Add sound for defeating sub-enemy
 - Add different sound for boss spawning
