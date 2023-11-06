@@ -5,7 +5,6 @@
 - record score immediately after last flagship enemy is defeated
 - TEST score system wrt ending waves!
 
-- Add sound for defeating sub-enemy
 - Add different sound for boss spawning
 - Sound effects for:
 	- shots from all enemy classes
