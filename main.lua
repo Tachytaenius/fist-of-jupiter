@@ -1240,24 +1240,29 @@ function love.keypressed(key)
 			"Particle multiplier: " .. (settingsVars.settings.particleMultiplier * 100) .. "%\n" ..
 			"Game scale: " .. (settingsVars.settings.canvasScale) .. "x\n" ..
 			"Fullscreen: " .. (settingsVars.settings.fullscreen and "on" or "off")
+		settingsVars.drawBackground = true
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity + 1.5
 	elseif key == "f4" then
 		settingsVars.settings.volumeMultiplier = math.max(0, settingsVars.settings.volumeMultiplier - 0.125)
 		settingsVars.message = "Volume: " .. (settingsVars.settings.volumeMultiplier * 100) .. "%"
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		settingsVars.drawBackground = false
 	elseif key == "f5" then
 		settingsVars.settings.volumeMultiplier = math.min(1, settingsVars.settings.volumeMultiplier + 0.125)
 		settingsVars.message = "Volume: " .. (settingsVars.settings.volumeMultiplier * 100) .. "%"
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		settingsVars.drawBackground = false
 	elseif key == "f6" then
 		settingsVars.settings.particleMeshOptimisation = not settingsVars.settings.particleMeshOptimisation
 		settingsVars.message = "Particle meshes: " .. (settingsVars.settings.particleMeshOptimisation and "on" or "off")
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		settingsVars.drawBackground = false
 		remakeBackgroundParticles()
 	elseif key == "f7" then
 		settingsVars.settings.particleMultiplier = math.max(0, settingsVars.settings.particleMultiplier - 0.125)
 		settingsVars.message = "Particle multiplier: " .. (settingsVars.settings.particleMultiplier * 100) .. "%"
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		settingsVars.drawBackground = false
 		remakeBackgroundParticles()
 	elseif key == "f8" then
 		if settingsVars.settings.particleMultiplier < 2 then
@@ -1266,6 +1271,7 @@ function love.keypressed(key)
 		end
 		settingsVars.message = "Particle multiplier: " .. (settingsVars.settings.particleMultiplier * 100) .. "%"
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
+		settingsVars.drawBackground = false
 	elseif key == "f9" then
 		if settingsVars.settings.canvasScale > 1 then
 			settingsVars.settings.canvasScale = settingsVars.settings.canvasScale - 1
@@ -1275,6 +1281,7 @@ function love.keypressed(key)
 				remakeWindow()
 			end
 		end
+		settingsVars.drawBackground = false
 	elseif key == "f10" then
 		if settingsVars.settings.canvasScale < getLargestAllowableCanvasScale() then
 			settingsVars.settings.canvasScale = settingsVars.settings.canvasScale + 1
@@ -1284,6 +1291,7 @@ function love.keypressed(key)
 				remakeWindow()
 			end
 		end
+		settingsVars.drawBackground = false
 	elseif key == "f11" then
 		settingsVars.settings.fullscreen = not settingsVars.settings.fullscreen
 		settingsVars.message = "Fullscreen: " .. (settingsVars.settings.fullscreen and "on" or "off")
@@ -1293,6 +1301,7 @@ function love.keypressed(key)
 		else
 			remakeWindow() -- would have size of desktop otherwise
 		end
+		settingsVars.drawBackground = false
 	elseif key == controls.pause then
 		local nextPauseState
 		if paused then
@@ -2674,8 +2683,14 @@ function love.draw()
 
 	love.graphics.setCanvas(settingsCanvas)
 	love.graphics.clear()
-	love.graphics.setColor(1, 1, 1, math.min(settingsVars.messageOpacity, 1))
-	love.graphics.print(settingsVars.message or "", 1, gameHeight - font:getHeight() * getLineCount(settingsVars.message))
+	local lineCount = getLineCount(settingsVars.message)
+	if settingsVars.drawBackground then
+		love.graphics.setColor(0.25, 0.25, 0.25)
+		local w, h = font:getWidth(settingsVars.message), getLineCount(settingsVars.message) * font:getHeight()
+		love.graphics.rectangle("fill", 0, gameHeight - h, w + 1, h)
+	end
+	love.graphics.setColor(1, 1, 1)
+	love.graphics.print(settingsVars.message or "", 1, gameHeight - font:getHeight() * lineCount)
 	love.graphics.setCanvas()
 
 	if paused then
@@ -3267,5 +3282,7 @@ function love.draw()
 		(love.graphics.getWidth() - gameWidth * settingsVars.settings.canvasScale) / 2,
 		(love.graphics.getHeight() - gameHeight * settingsVars.settings.canvasScale) / 2
 	love.graphics.draw(gameCanvas, x, y, 0, settingsVars.settings.canvasScale)
+	love.graphics.setColor(1, 1, 1, math.min(settingsVars.messageOpacity, 1))
 	love.graphics.draw(settingsCanvas, x, y, 0, settingsVars.settings.canvasScale)
+	love.graphics.setColor(1, 1, 1)
 end
