@@ -24,6 +24,7 @@ math.tau = math.pi * 2
 
 local vec2 = require("lib.mathsies").vec2
 local list = require("lib.list")
+local json = require("lib.json")
 
 local registry = require("registry")
 
@@ -1058,19 +1059,33 @@ local function remakeWindow()
 	love.window.setTitle("Fist of Jupiter")
 end
 
+local function saveSettings()
+	love.filesystem.write("settings.json", json.encode(settingsVars.settings))
+end
+
+local function resetSettings()
+	settingsVars.settings = {
+		volumeMultiplier = 0.75,
+		particleMeshOptimisation = true,
+		particleMultiplier = 1,
+		canvasScale = 2,
+		fullscreen = false
+	}
+end
+
 function love.load()
 	settingsVars = {
 		messageOpacity = 0,
-		message = "",
-		settings = {
-			volumeMultiplier = 0.75,
-			particleMeshOptimisation = true,
-			particleMultiplier = 1,
-			canvasScale = 2,
-			fullscreen = false
-		}
+		message = ""
 	}
+	local settingsFileString = love.filesystem.read("settings.json")
+	if settingsFileString then
+		settingsVars.settings = json.decode(settingsFileString) -- no checks lol
+	else
+		resetSettings()
+	end
 	settingsVars.settings.canvasScale = getLargestAllowableCanvasScale() -- After load, reset window scale
+	saveSettings()
 
 	remakeWindow()
 	love.graphics.setDefaultFilter("nearest", "nearest")
@@ -1247,23 +1262,27 @@ function love.keypressed(key)
 		settingsVars.message = "Volume: " .. (settingsVars.settings.volumeMultiplier * 100) .. "%"
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
 		settingsVars.drawBackground = false
+		saveSettings()
 	elseif key == "f5" then
 		settingsVars.settings.volumeMultiplier = math.min(1, settingsVars.settings.volumeMultiplier + 0.125)
 		settingsVars.message = "Volume: " .. (settingsVars.settings.volumeMultiplier * 100) .. "%"
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
 		settingsVars.drawBackground = false
+		saveSettings()
 	elseif key == "f6" then
 		settingsVars.settings.particleMeshOptimisation = not settingsVars.settings.particleMeshOptimisation
 		settingsVars.message = "Particle meshes: " .. (settingsVars.settings.particleMeshOptimisation and "on" or "off")
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
 		settingsVars.drawBackground = false
 		remakeBackgroundParticles()
+		saveSettings()
 	elseif key == "f7" then
 		settingsVars.settings.particleMultiplier = math.max(0, settingsVars.settings.particleMultiplier - 0.125)
 		settingsVars.message = "Particle multiplier: " .. (settingsVars.settings.particleMultiplier * 100) .. "%"
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
 		settingsVars.drawBackground = false
 		remakeBackgroundParticles()
+		saveSettings()
 	elseif key == "f8" then
 		if settingsVars.settings.particleMultiplier < 2 then
 			settingsVars.settings.particleMultiplier = math.min(2, settingsVars.settings.particleMultiplier + 0.125)
@@ -1272,6 +1291,7 @@ function love.keypressed(key)
 		settingsVars.message = "Particle multiplier: " .. (settingsVars.settings.particleMultiplier * 100) .. "%"
 		settingsVars.messageOpacity = consts.settingsMessageStartingOpacity
 		settingsVars.drawBackground = false
+		saveSettings()
 	elseif key == "f9" then
 		if settingsVars.settings.canvasScale > 1 then
 			settingsVars.settings.canvasScale = settingsVars.settings.canvasScale - 1
@@ -1282,6 +1302,7 @@ function love.keypressed(key)
 			end
 		end
 		settingsVars.drawBackground = false
+		saveSettings()
 	elseif key == "f10" then
 		if settingsVars.settings.canvasScale < getLargestAllowableCanvasScale() then
 			settingsVars.settings.canvasScale = settingsVars.settings.canvasScale + 1
@@ -1292,6 +1313,7 @@ function love.keypressed(key)
 			end
 		end
 		settingsVars.drawBackground = false
+		saveSettings()
 	elseif key == "f11" then
 		settingsVars.settings.fullscreen = not settingsVars.settings.fullscreen
 		settingsVars.message = "Fullscreen: " .. (settingsVars.settings.fullscreen and "on" or "off")
@@ -1302,6 +1324,7 @@ function love.keypressed(key)
 			remakeWindow() -- would have size of desktop otherwise
 		end
 		settingsVars.drawBackground = false
+		saveSettings()
 	elseif key == controls.pause then
 		local nextPauseState
 		if paused then
