@@ -2339,6 +2339,7 @@ function love.update(dt)
 				for _, subEnemy in ipairs(enemy.subEnemies) do
 					if subEnemy.health <= 0 and not subEnemy.dead then
 						explode(subEnemy.radius, enemy.pos + subEnemy.offset, subEnemy.colour, vec2(), false, 0, 0, enemy.floor)
+						playSound(assets.audio.enemyExplosion)
 						subEnemy.dead = true
 					end
 				end
