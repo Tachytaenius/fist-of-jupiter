@@ -1,7 +1,6 @@
 # Before release
 
-- Finish score recording system (prompt player to enter name on first quit attempt and on game over and on victory, warn on score failure to be recorded (there's a TODO for it in the code), maybe alert that scores won't be recorded on an unknown version?)
-- ^no names!!!
+- Finish score recording system (warn on score failure to be recorded (there's a TODO for it in the code), maybe alert that scores won't be recorded on an unknown version?)
 - record score immediately after last flagship enemy is defeated
 - TEST score system wrt ending waves!
 

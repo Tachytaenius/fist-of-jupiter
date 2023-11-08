@@ -797,7 +797,7 @@ local function initPlayState()
 	nextWave()
 end
 
-local function recordScore(name)
+local function recordScore()
 	if version == "unknown" then
 		return -- An unknown version could be recorded in any format, so can't be decoded.
 	end
@@ -813,8 +813,7 @@ local function recordScore(name)
 		playVars.waveNumber,
 		playVars.gameOver and "gameOver" or checkAllEnemiesDefeatedAndEnemyBulletsGone() and "quitWhileAllOppositionDefeated" or "quitDuringPlay",
 		scoreToRecord,
-		math.floor(playVars.timeSpentInPlay),
-		name
+		math.floor(playVars.timeSpentInPlay)
 	}, " ") .. "\n"
 	local success, errorMessage = love.filesystem.append("scores.txt", scoreString)
 	if not success then
@@ -839,7 +838,6 @@ local function decodeScoreRecord(line, lineNumber)
 		record.result = words[5]
 		record.score = tonumber(words[6])
 		record.timeSpentInPlay = tonumber(words[7])
-		record.name = line:gsub(string.rep("%S+%s", 7), "") -- Handle (double or more) spaces in name
 		record.symbol =
 			(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalWave) and "star" or
 			record.result == "quitWhileAllOppositionDefeated" and "tick" or
@@ -993,7 +991,7 @@ end
 local function victory()
 	-- play victory sfx, centre on screen and fly away, scroll victory text, add to score like on results screen...
 	playVars.victory = true
-	recordScore("Names are NYI")
+	recordScore()
 end
 
 local function getScoreScreenSetsToShow()
@@ -1021,18 +1019,12 @@ end
 
 local function tryRecordQuitScore()
 	if consts.playLikeStates[gameState] and not playVars.gameOverTextPresent and not playVars.victory then
-		recordScore("Names are NYI") -- TEMP
+		recordScore()
 	end
 end
 
 function love.quit()
 	tryRecordQuitScore()
-
-	-- if alreadyAskingForName then
-	-- 	return false
-	-- else
-	-- 	return true
-	-- end
 end
 
 local function getLargestAllowableCanvasScale()
@@ -2134,7 +2126,7 @@ function love.update(dt)
 							playVars.gameOverTextWaitTimer = playVars.gameOverTextWaitTimer - dt
 							if playVars.gameOverTextWaitTimer <= 0 then
 								playVars.gameOverTextPresent = true
-								recordScore("Names are NYI")
+								recordScore()
 							end
 						end
 					-- elseif playVars.enemyBullets.size == 0 and playVars.enemiesToMaterialise.size == 0 and playVars.enemies.size == 0 then
@@ -2925,7 +2917,7 @@ function love.draw()
 						record.symbol == "skull" and "died"
 					local timeSpentString = math.floor(record.timeSpentInPlay / 60) .. " mins and " .. (record.timeSpentInPlay % 60) .. " secs"
 					local text =
-						"\"" .. record.name .. "\" scored " .. record.score .. " points\n" ..
+						"A pilot scored " .. record.score .. " points\n" ..
 						timeString .. " on waves " .. record.startWave .. "-" .. record.endWave .. " and\n" ..
 						resultString .. " after " .. timeSpentString .. ",\n" ..
 						"on " .. versionString .. ".\n"
