@@ -828,10 +828,11 @@ local function decodeScoreRecord(line, lineNumber)
 		words[#words+1] = word
 	end
 	local record = {}
-	version = words[1]
+	local recordVersion = words[1]
+	record.version = recordVersion
 	if version == "unknown" then
 		error("Can't interpret score on scores.txt line " .. lineNumber .. " as it is from an unknown version")
-	elseif false then
+	elseif false then -- Replace false with version == <first version to be released>
 		record.timestamp = tonumber(words[2])
 		record.startWave = tonumber(words[3])
 		record.endWave = tonumber(words[4])
@@ -2917,7 +2918,7 @@ function love.draw()
 						record.symbol == "skull" and "died"
 					local timeSpentString = math.floor(record.timeSpentInPlay / 60) .. " mins and " .. (record.timeSpentInPlay % 60) .. " secs"
 					local text =
-						"A pilot scored " .. record.score .. " points\n" ..
+						"A noble pilot of Jupiter scored " .. record.score .. " points\n" ..
 						timeString .. " on waves " .. record.startWave .. "-" .. record.endWave .. " and\n" ..
 						resultString .. " after " .. timeSpentString .. ",\n" ..
 						"on " .. versionString .. ".\n"
