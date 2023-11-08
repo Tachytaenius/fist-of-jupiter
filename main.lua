@@ -816,9 +816,6 @@ local function recordScore()
 		math.floor(playVars.timeSpentInPlay)
 	}, " ") .. "\n"
 	local success, errorMessage = love.filesystem.append("scores.txt", scoreString)
-	if not success then
-		-- TODO
-	end
 	playVars.scoreRecorded = true
 end
 
