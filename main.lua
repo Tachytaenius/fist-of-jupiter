@@ -2740,10 +2740,14 @@ function love.draw()
 		love.graphics.draw(gameCanvas, 0, 0, 0, settingsVars.settings.canvasScale)
 		love.graphics.setColor(1, 1, 1)
 		love.graphics.scale(settingsVars.settings.canvasScale) -- The text does remain perfectly aligned
+		local settingsTextLines = getLineCount(titleVars.settingsText) - 1
+		local lineCount = 3 + settingsTextLines
+		local top = gameHeight / 2 - (lineCount / 2) * font:getHeight()
 		local text = "Paused"
-		love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight /2 - font:getHeight())
+		love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, top)
 		local text = "Hold shoot for 2 seconds to quit"
-		love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, gameHeight / 2)
+		love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, top + 1 * font:getHeight())
+		love.graphics.print(titleVars.settingsText, gameWidth / 2 - font:getWidth(text) / 2, top + 3 * font:getHeight())
 		love.graphics.setCanvas()
 		love.graphics.draw(settingsCanvas)
 		return
