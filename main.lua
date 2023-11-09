@@ -2743,6 +2743,7 @@ function love.update(dt)
 						nextWave()
 					else
 						playVars.onResultsScreen = true
+						playSound(assets.audio.waveResultsScreen, true)
 						playVars.resultsScreenVars = {}
 						playVars.resultsScreenVars.prevTotalScore = playVars.totalScore
 						local lifeBonus = playVars.spareLives * playVars.scoreBoostPerLifeAtWaveWon

@@ -66,6 +66,7 @@ audio("playerExplosion")
 audio("playerShoot")
 audio("powerupAcquired")
 audio("gameOver")
+audio("waveResultsScreen")
 
 audio("nukeDropped")
 audio("flagshipExplosion")

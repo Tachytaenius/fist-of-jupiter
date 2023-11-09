@@ -2,9 +2,7 @@
 
 - Sound effects for:
 	- shots from all enemy classes
-	- extra life(s) acquried
 	- player materialising
-	- wave finished
 
 # Some other time
 
