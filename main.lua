@@ -497,6 +497,7 @@ local function generatePlayer(resetPos, disabled)
 		disabled = disabled
 	}
 	if not isSoundPlaying(assets.audio.gameStart) and not disabled and playVars.waveNumber ~= consts.reactorVentilationShaftHoleWave then
+		playSound(assets.audio.playerMaterialising, true)
 		implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
 	end
 end
@@ -1927,6 +1928,7 @@ function love.update(dt)
 		if playVars.player.spawning and not isSoundPlaying(assets.audio.gameStart) and not playVars.player.disabled then
 			if not playVars.player.spawnTimer then
 				playVars.player.spawnTimer = consts.playerSpawnTime
+				playSound(assets.audio.playerMaterialising, true)
 				implode(playVars.player.radius, playVars.player.pos, playVars.player.colour, consts.playerSpawnTime)
 			end
 			playVars.player.spawnTimer = playVars.player.spawnTimer - dt

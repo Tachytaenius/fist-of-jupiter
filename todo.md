@@ -2,7 +2,6 @@
 
 - Sound effects for:
 	- shots from all enemy classes
-	- player materialising
 
 # Some other time
 

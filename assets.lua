@@ -61,6 +61,7 @@ audio("bossExplosion")
 audio("shieldHit")
 audio("shieldSwap")
 
+audio("playerMaterialising")
 audio("playerHit")
 audio("playerExplosion")
 audio("playerShoot")
