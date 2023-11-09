@@ -1,9 +1,5 @@
 # Before release
 
-- Finish score recording system (warn on score failure to be recorded (there's a TODO for it in the code), maybe alert that scores won't be recorded on an unknown version?)
-- record score immediately after last flagship enemy is defeated
-- TEST score system wrt ending waves!
-
 - Draw ending text and allow leaving ending menu 3 seconds after text is displayed?
 
 - Sound effects for:

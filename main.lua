@@ -696,11 +696,6 @@ local function nextWave()
 	end
 end
 
-local function winWave()
-	gameState = "waveWon"
-	playVars.waveWonDelayBeforeResultsScreenTimer = consts.waveWonDelayBeforeResultsScreenTimerLength
-end
-
 local function circleOffScreen(radius, pos, pad)
 	pad = pad or 0
 	return
@@ -791,7 +786,7 @@ local function initPlayState()
 	playVars.scoreTimerReductionAmount = 1
 	playVars.scoreBoostPerLifeAtWaveWon = 10 -- You may go through lots of waves with the same number of lives, which would be an excessive advantage, hence the low value
 	playVars.noBacktracking = true
-	playVars.startWave = 1
+	playVars.startWave = 17
 	playVars.timeSpentInPlay = 0
 
 	nextWave()
@@ -810,7 +805,7 @@ local function recordScore()
 		version,
 		os.time(),
 		playVars.startWave,
-		playVars.waveNumber,
+		math.min(consts.finalWave, playVars.waveNumber),
 		playVars.gameOver and "gameOver" or checkAllEnemiesDefeatedAndEnemyBulletsGone() and "quitWhileAllOppositionDefeated" or "quitDuringPlay",
 		scoreToRecord,
 		math.floor(playVars.timeSpentInPlay)
@@ -829,7 +824,7 @@ local function decodeScoreRecord(line, lineNumber)
 	record.version = recordVersion
 	if version == "unknown" then
 		error("Can't interpret score on scores.txt line " .. lineNumber .. " as it is from an unknown version")
-	elseif false then -- Replace false with version == <first version to be released>
+	elseif true then -- Replace false with version == <first version to be released>
 		record.timestamp = tonumber(words[2])
 		record.startWave = tonumber(words[3])
 		record.endWave = tonumber(words[4])
@@ -837,7 +832,7 @@ local function decodeScoreRecord(line, lineNumber)
 		record.score = tonumber(words[6])
 		record.timeSpentInPlay = tonumber(words[7])
 		record.symbol =
-			(record.result == "quitWhileAllOppositionDefeated" and record.endWave == consts.finalWave) and "star" or
+			(record.result == "quitWhileAllOppositionDefeated" and record.endWave >= consts.finalWave) and "star" or
 			record.result == "quitWhileAllOppositionDefeated" and "tick" or
 			record.result == "quitDuringPlay" and "door" or
 			record.result == "gameOver" and "skull"
@@ -987,9 +982,16 @@ local function initScoreScreenState()
 end
 
 local function victory()
-	-- play victory sfx, centre on screen and fly away, scroll victory text, add to score like on results screen...
 	playVars.victory = true
 	recordScore()
+end
+
+local function winWave()
+	gameState = "waveWon"
+	if playVars.waveNumber == consts.finalWave then
+		victory()
+	end
+	playVars.waveWonDelayBeforeResultsScreenTimer = consts.waveWonDelayBeforeResultsScreenTimerLength
 end
 
 local function getScoreScreenSetsToShow()
