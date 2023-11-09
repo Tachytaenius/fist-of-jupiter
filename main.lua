@@ -839,9 +839,7 @@ local function decodeScoreRecord(line, lineNumber)
 	local record = {}
 	local recordVersion = words[1]
 	record.version = recordVersion
-	if version == "unknown" then
-		error("Can't interpret score on scores.txt line " .. lineNumber .. " as it is from an unknown version")
-	elseif true then -- Replace false with version == <first version to be released>
+	if version == "0.1.0" then
 		record.timestamp = tonumber(words[2])
 		record.startWave = tonumber(words[3])
 		record.endWave = tonumber(words[4])
@@ -853,6 +851,8 @@ local function decodeScoreRecord(line, lineNumber)
 			record.result == "quitWhileAllOppositionDefeated" and "tick" or
 			record.result == "quitDuringPlay" and "door" or
 			record.result == "gameOver" and "skull"
+	else
+		error("Can't interpret score on scores.txt line " .. lineNumber .. " as it is from an unknown version")
 	end
 	record.line = line
 	return record
