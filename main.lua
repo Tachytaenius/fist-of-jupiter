@@ -601,8 +601,8 @@ local function nextWave()
 		end
 	end
 	if playVars.waveNumber <= consts.finalNonBossWave then
-		local intendedEnemyAmount = math.floor(math.lerp(7, 25, lerpFactor))
-		-- Squash/strech enemy counts to get closer to desired amount
+		local intendedEnemyAmount = math.floor(math.lerp(7, 20, lerpFactor))
+		-- Squash/stretch enemy counts to get closer to desired amount
 		local newEnemyAmount = 0
 		for name, amount in pairs(playVars.enemyPool) do
 			local newAmount = math.floor(amount * intendedEnemyAmount / totalEnemyAmount)
