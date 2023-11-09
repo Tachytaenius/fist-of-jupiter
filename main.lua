@@ -82,6 +82,17 @@ local function marchVectorToTarget(movee, target, speed, dt)
 	return newMoveeRelativeToTarget + target
 end
 
+local function getLineCount(str)
+	local lines = 1
+	for i = 1, #str do
+		local c = str:sub(i, i)
+		if c == "\n" then
+			lines = lines + 1
+		end
+	end
+	return lines
+end
+
 local assets
 
 local gameWidth, gameHeight = 160*2, 144*3
@@ -191,7 +202,8 @@ local consts = {
 	flagshipExplosionCentre = vec2(263/2, 322/2), -- lol
 	enemyBulletRotationSpeed = math.tau * 0.75,
 	settingsMessageStartingOpacity = 2.5,
-	settingsMessageOpacityChange = 1.5
+	settingsMessageOpacityChange = 1.5,
+	justifyThreshold = 200
 }
 
 local controls = {
@@ -1356,6 +1368,10 @@ function love.keypressed(key)
 					end
 				elseif playVars.player.dead and playVars.gameOverTextPresent then
 					initTitleState()
+					playVars = nil
+				elseif playVars.endingSceneElements and playVars.endingSceneElements.text and playVars.endingSceneElements.text.opacity == 1 then
+					initTitleState()
+					playVars = nil
 				end
 			end
 		elseif gameState == "title" then
@@ -1760,6 +1776,28 @@ function love.update(dt)
 							fadeTime = lifetime * 0.75
 						}
 					end
+				end
+			end
+
+			if playVars.endingSceneElements.timer > 6 then
+				if not playVars.endingSceneElements.text then
+					local text =
+						love.filesystem.read("ending.txt") .. "\n" ..
+						"  Score: " .. playVars.totalScore .. "\n" ..
+						"  Time: " .. math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60)) .. "\n\n" ..
+						love.filesystem.read("ending2.txt")
+					local _, lines = font:getWrap(text, gameWidth - borderSize * 2)
+					playVars.endingSceneElements.text = {
+						lines = lines,
+						pos = vec2(
+							borderSize,
+							gameHeight / 2 - font:getHeight() * #lines / 2
+						),
+						opacity = 0,
+						opacityAdd = 0.75
+					}
+				else
+					playVars.endingSceneElements.text.opacity = math.min(1, playVars.endingSceneElements.text.opacity + playVars.endingSceneElements.text.opacityAdd * dt)
 				end
 			end
 		end
@@ -2697,17 +2735,6 @@ function love.update(dt)
 	end
 end
 
-local function getLineCount(str)
-	local lines = 1
-	for i = 1, #str do
-		local c = str:sub(i, i)
-		if c == "\n" then
-			lines = lines + 1
-		end
-	end
-	return lines
-end
-
 function love.draw()
 	love.graphics.setFont(font)
 
@@ -2848,7 +2875,7 @@ function love.draw()
 					0,
 					consts.textFadeDistance + font:getHeight() * (i - 1) - titleVars.textScroll,
 					titleVars.textCanvas:getWidth(),
-					font:getWidth(line) > 200 and "justify" or "left"
+					font:getWidth(line) > consts.justifyThreshold and "justify" or "left"
 				)
 			end
 			love.graphics.setCanvas(gameCanvas)
@@ -3306,6 +3333,19 @@ function love.draw()
 				))
 				love.graphics.setColor(1, 1, 1, whiteness)
 				love.graphics.draw(assets.images.explosionWhite)
+
+				if ese.text then
+					love.graphics.setColor(1, 1, 1, ese.text.opacity)
+					for i, line in ipairs(ese.text.lines) do
+						love.graphics.printf(
+							line,
+							ese.text.pos.x,
+							ese.text.pos.y + (i - 1) * font:getHeight(),
+							gameWidth - borderSize * 2,
+							font:getWidth(line) > consts.justifyThreshold and "justify" or "left"
+						)
+					end
+				end
 				love.graphics.setColor(1, 1, 1)
 			end
 		end

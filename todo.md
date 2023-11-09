@@ -1,7 +1,5 @@
 # Before release
 
-- Draw ending text and allow leaving ending menu 3 seconds after text is displayed?
-
 - Sound effects for:
 	- Boss spawning
 	- shots from all enemy classes
