@@ -325,6 +325,10 @@ local function pause()
 		pausedSourcesThatWerePlaying[assets.audio.enemyMaterialising] = true
 		assets.audio.enemyMaterialising:pause()
 	end
+	if assets.audio.bossMaterialising:isPlaying() then
+		pausedSourcesThatWerePlaying[assets.audio.bossMaterialising] = true
+		assets.audio.bossMaterialising:pause()
+	end
 end
 
 local function play()
@@ -1500,14 +1504,21 @@ function spawnEnemy(enemyType, pos) -- it's local up top. i wont rearrange stuff
 		subEnemies = subEnemies,
 		colour = shallowClone(registryEntry.colour)
 	}
-	if timer > 0 then
-		assets.audio.enemyMaterialising:stop()
-		assets.audio.enemyMaterialising:play()
-	end
 	playVars.newEnemiesThisUpdate[#playVars.newEnemiesThisUpdate+1] = enemy -- whichever has the longest sound is the owner of the sound
 	for k, v in pairs(registryEntry) do
 		if not propertiesToNotCopy[k] then
 			enemy[k] = v
+		end
+	end
+	if enemy.boss then
+		if timer > 0 then
+			assets.audio.bossMaterialising:stop()
+			assets.audio.bossMaterialising:play()
+		end
+	else
+		if timer > 0 then
+			assets.audio.enemyMaterialising:stop()
+			assets.audio.enemyMaterialising:play()
 		end
 	end
 	playVars.enemiesToMaterialise:add(enemy)
@@ -1851,8 +1862,14 @@ function love.update(dt)
 		for _, enemy in ipairs(enemiesToSpawn) do
 			playVars.enemiesToMaterialise:remove(enemy)
 			playVars.enemies:add(enemy)
+			if enemy.boss then
+				if playVars.bossMaterialisingSoundOwner == enemy then
+					assets.audio.bossMaterialising:stop()
+				end
+			else
 			if playVars.enemyMaterialisingSoundOwner == enemy then
 				assets.audio.enemyMaterialising:stop()
+				end
 			end
 			if playVars.player.pos ~= enemy.pos then
 				if enemy.aiType == "minelayer" then
@@ -2667,20 +2684,34 @@ function love.update(dt)
 		end
 
 		if #playVars.newEnemiesThisUpdate > 0 then
-			local currentWinner
+			local currentWinnerEnemy, currentWinnerBoss
 			for _, enemy in ipairs(playVars.newEnemiesThisUpdate) do
-				if currentWinner then
+				if enemy.boss then
+					if currentWinnerBoss then
 					if
-						enemy.timeUntilSpawn and currentWinner.timeUntilSpawn -- NOTE: spamming fullscreen sometimes caused the two values to be nil, so...
-						and enemy.timeUntilSpawn > currentWinner.timeUntilSpawn
+							enemy.timeUntilSpawn and currentWinnerBoss.timeUntilSpawn -- NOTE: spamming fullscreen sometimes caused the two values to be nil, so...
+							and enemy.timeUntilSpawn > currentWinnerBoss.timeUntilSpawn
 					then
-						currentWinner = enemy
+							currentWinnerBoss = enemy
 					end
 				else
-					currentWinner = enemy
+						currentWinnerBoss = enemy
+				end
+				else
+					if currentWinnerEnemy then
+						if
+							enemy.timeUntilSpawn and currentWinnerEnemy.timeUntilSpawn -- NOTE: spamming fullscreen sometimes caused the two values to be nil, so...
+							and enemy.timeUntilSpawn > currentWinnerEnemy.timeUntilSpawn
+						then
+							currentWinnerEnemy = enemy
+						end
+					else
+						currentWinnerEnemy = enemy
+					end
 				end
 			end
-			playVars.enemyMaterialisingSoundOwner = currentWinner
+			playVars.enemyMaterialisingSoundOwner = currentWinnerEnemy
+			playVars.bossMaterialisingSoundOwner = currentWinnerBoss
 		end
 
 		if

@@ -1,7 +1,6 @@
 # Before release
 
 - Sound effects for:
-	- Boss spawning
 	- shots from all enemy classes
 	- game over
 	- boss start

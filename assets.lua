@@ -54,6 +54,7 @@ audio("gameStart")
 audio("bossEncounter")
 
 audio("enemyMaterialising")
+audio("bossMaterialising")
 audio("enemyHit")
 audio("enemyExplosion")
 audio("bossExplosion")
