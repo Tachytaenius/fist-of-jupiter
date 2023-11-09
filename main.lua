@@ -2037,6 +2037,7 @@ function love.update(dt)
 					if vec2.distance(playVars.player.pos, enemy.pos) <= playVars.player.radius + enemy.radius then
 						playVars.player.health = playVars.player.health - enemy.contactDamage
 						if playVars.player.health > 0 then
+							playSound(assets.audio.playerHit, true)
 							explode(enemy.contactDamage * consts.explosionSourceRadiusPerDamage, playVars.player.pos + normaliseOrZero(enemy.pos - playVars.player.pos) * playVars.player.radius, shallowClone(playVars.player.colour))
 						end
 						playVars.player.contactInvulnerabilityTimer = playVars.player.contactInvulnerabilityTimerLength
@@ -2586,6 +2587,7 @@ function love.update(dt)
 				enemyBulletsToDelete[#enemyBulletsToDelete+1] = enemyBullet
 				playVars.player.health = playVars.player.health - enemyBullet.damage
 				if playVars.player.health > 0 then
+					playSound(assets.audio.playerHit, true)
 					explode(enemyBullet.damage * consts.explosionSourceRadiusPerDamage, enemyBullet.pos, shallowClone(playVars.player.colour), -enemyBullet.vel * consts.bulletHitParticleBounceMultiplier, true)
 				end
 			end
