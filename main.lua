@@ -124,7 +124,7 @@ local consts = {
 	titleScreenVelocityChangeTimerLength = 3,
 	titleScreenCameraSpeed = 600,
 	titleCameraAccel = 1000,
-	gameOverTextWaitTimerLength = 1.5,
+	gameOverTextWaitTimerLength = 2.5,
 	preRespawnCentringTimerLength = 0.25,
 	postRespawnCentringTimerLength = 0.1,
 	respawnCentringSpeedX = 100,
@@ -2182,6 +2182,7 @@ function love.update(dt)
 							playVars.gameOverTextWaitTimer = playVars.gameOverTextWaitTimer - dt
 							if playVars.gameOverTextWaitTimer <= 0 then
 								playVars.gameOverTextPresent = true
+								playSound(assets.audio.gameOver)
 								recordScore()
 							end
 						end
