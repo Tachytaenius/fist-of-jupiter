@@ -3,15 +3,13 @@
 - Sound effects for:
 	- shots from all enemy classes
 	- game over
-	- boss start
 	- extra life(s) acquried
-	- player hit received
-	- enemy materialising
 	- player materialising
 	- wave finished
 
 # Some other time
 
+- Use boss start sound effect
 - Balance score so that no factor dominates
 - Handle without crashing and warn about invalid score records
 - Add different window sizes and fullscreen
