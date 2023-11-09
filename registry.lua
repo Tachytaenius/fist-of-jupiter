@@ -389,7 +389,7 @@ newEnemy("commander1", {
 	shieldSwapTimerLength = 6,
 	shieldRadius = 12,
 	count = function(waveNumber)
-		return waveNumber == firstBossWave and 1 or 0
+		return waveNumber == secondBossWave and 1 or 0
 	end
 })
 newEnemy("commander2", {
@@ -415,7 +415,7 @@ newEnemy("commander2", {
 	implosionVelocityBoost = vec2(0, -500),
 	aiType = "boss",
 	count = function(waveNumber)
-		return waveNumber == secondBossWave and 1 or 0
+		return waveNumber == firstBossWave and 1 or 0
 	end
 })
 newEnemy("commander3", {
@@ -444,7 +444,7 @@ newEnemy("commander3", {
 	implosionVelocityBoost = vec2(0, -600),
 	aiType = "boss",
 	count = function(waveNumber)
-		return waveNumber == secondBossWave and 1 or 0
+		return waveNumber == firstBossWave and 1 or 0
 	end
 })
 newEnemy("turret", {
