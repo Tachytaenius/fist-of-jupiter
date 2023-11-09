@@ -1233,6 +1233,7 @@ local function shootWithEnemyOrSubEnemy(enemy, isSubEnemy, offset, useSecondShoo
 	enemy.shootTimer = shootTimerLength * timerFactor
 	local posDiff = playVars.player.pos - enemyPos
 	if #posDiff > 0 and not (enemy.aiType == "mineLayer" and playVars.player.pos.y < enemyPos.y) then
+		playSound(assets.audio.enemyShot, true)
 		for i = 0, enemy.bulletCount - 1 do
 			local angleOffset
 			if enemy.bulletSpreadMode2 then

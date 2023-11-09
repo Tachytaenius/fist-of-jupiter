@@ -1,8 +1,5 @@
 # Before release
 
-- Sound effects for:
-	- shots from all enemy classes
-
 # Some other time
 
 - Use boss start sound effect

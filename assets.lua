@@ -53,6 +53,7 @@ image("playerFront")
 audio("gameStart")
 audio("bossEncounter")
 
+audio("enemyShot")
 audio("enemyMaterialising")
 audio("bossMaterialising")
 audio("enemyHit")
