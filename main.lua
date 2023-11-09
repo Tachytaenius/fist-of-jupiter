@@ -1415,6 +1415,7 @@ function love.keypressed(key)
 		elseif gameState == "waveWon" and playVars.onResultsScreen then
 			if key == controls.shoot then
 				nextWave()
+				assets.audio.waveResultsScreen:stop()
 			end
 		elseif gameState == "scoreScreen" then
 			local sortTypes = {
@@ -2746,7 +2747,7 @@ function love.update(dt)
 						nextWave()
 					else
 						playVars.onResultsScreen = true
-						playSound(assets.audio.waveResultsScreen, true)
+						love.audio.play(assets.audio.waveResultsScreen)
 						playVars.resultsScreenVars = {}
 						playVars.resultsScreenVars.prevTotalScore = playVars.totalScore
 						local lifeBonus = playVars.spareLives * playVars.scoreBoostPerLifeAtWaveWon
@@ -2920,6 +2921,8 @@ function love.draw()
 			love.graphics.setShader(titleFadeShader)
 			love.graphics.draw(titleVars.textCanvas, consts.textCanvasPad, consts.textCanvasY)
 			love.graphics.setShader()
+			local text = "Press space to exit"
+			love.graphics.print(text, gameWidth - borderSize - font:getWidth(text), gameHeight - font:getHeight())
 			-- Draw scrollbar
 			local maxScroll = titleVars.textMode == "story" and titleVars.storyTextScrollMax or titleVars.textMode == "credits" and titleVars.creditsTextScrollMax or titleVars.textMode == "settings" and titleVars.settingsTextScrollMax
 			if maxScroll > 0 then
@@ -3011,18 +3014,26 @@ function love.draw()
 		if gameState == "waveWon" and playVars.onResultsScreen then
 			love.graphics.origin()
 			local texts = {
-				"PREV. TOTAL: " .. playVars.resultsScreenVars.prevTotalScore,
-				"WAVE SCORE: " .. playVars.waveScore,
-				"LIFE BONUS: " .. playVars.resultsScreenVars.lifeBonus,
-				"TIME BONUS: " .. playVars.resultsScreenVars.timeBonus,
-				"TOTAL SCORE: " .. playVars.totalScore,
-				"LIVES AWARDED: " .. playVars.resultsScreenVars.addedLives,
-				"TIME: " .. math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60))
+				{"PREV. TOTAL", playVars.resultsScreenVars.prevTotalScore},
+				{"WAVE SCORE", playVars.waveScore},
+				{"LIFE BONUS", playVars.resultsScreenVars.lifeBonus},
+				{"TIME BONUS", playVars.resultsScreenVars.timeBonus},
+				{"TOTAL SCORE", playVars.totalScore},
+				{"LIVES AWARDED", playVars.resultsScreenVars.addedLives},
+				{"TIME", math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60))}
 			}
+			local colonWidth = font:getWidth(": ")
+			local width = -math.huge
+			for _, v in ipairs(texts) do
+				width = math.max(width, font:getWidth(v[1]) + colonWidth + font:getWidth(v[2]))
+			end
 			local textHeight = font:getHeight() * #texts
 			love.graphics.translate(0, gameHeight / 2 - textHeight / 2)
 			for i, v in ipairs(texts) do
-				love.graphics.print(v, gameWidth / 2 - font:getWidth(v) / 2, font:getHeight() * (i- 1))
+				local y = font:getHeight() * (i- 1)
+				love.graphics.print(v[1], gameWidth / 2 - font:getWidth(v[1]), y)
+				love.graphics.print(": ", gameWidth / 2, y)
+				love.graphics.print(v[2], gameWidth / 2 + colonWidth, y)
 			end
 		else
 			local commander2, commander3
@@ -3341,14 +3352,14 @@ function love.draw()
 				love.graphics.rectangle("fill", hbx + consts.healthBarPadding, hby + consts.healthBarPadding + heightChange, consts.healthBarWidth, consts.healthBarLength - heightChange)
 				love.graphics.setColor(1, 1, 1)
 
-				local text = playVars.waveNumber .. "/" .. consts.finalWave
-				love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, 0)
+				local text = "Wave " .. playVars.waveNumber .. "/" .. consts.finalWave
+				love.graphics.print(text, gameWidth / 3 - font:getWidth(text) / 2, 0)
 				local enemyCount = playVars.enemies.size + playVars.enemiesToMaterialise.size
 				for _, count in pairs(playVars.enemyPool) do
 					enemyCount = enemyCount + count
 				end
-				local text = tostring(enemyCount)
-				love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, font:getHeight())
+				local text = tostring(enemyCount) .. " enemies"
+				love.graphics.print(text, 2 * gameWidth / 3 - font:getWidth(text) / 2, 0)
 
 				if playVars.gameOverTextPresent then
 					local gameOverText = "GAME OVER"
@@ -3359,8 +3370,7 @@ function love.draw()
 					love.graphics.print(timeText, gameWidth / 2 - font:getWidth(timeText) / 2, gameHeight / 2 + 0.5 * font:getHeight())
 				end
 
-				love.graphics.print(playVars.totalScore, 1, 0)
-				love.graphics.print(playVars.waveScore, 1, font:getHeight())
+				love.graphics.print(playVars.totalScore + playVars.waveScore, 1, 0)
 			else
 				local ese = playVars.endingSceneElements
 				local whiteness = math.max(0, math.min(1,
