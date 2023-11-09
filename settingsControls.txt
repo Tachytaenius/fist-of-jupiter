@@ -1,4 +1,4 @@
-F1: Reset to defaults
+F1: Reset settings to defaults
 F3: Show settings
 F4/F5: Volume down/up
 F6: Toggle particle meshes
