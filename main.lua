@@ -1083,7 +1083,7 @@ local function resetSettings(resetWindowAndBackgroundParticles)
 		volumeMultiplier = 0.75,
 		particleMeshOptimisation = true,
 		particleMultiplier = 1,
-		canvasScale = 2,
+		canvasScale = getLargestAllowableCanvasScale(),
 		fullscreen = false
 	}
 	if resetWindowAndBackgroundParticles then
