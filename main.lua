@@ -134,7 +134,7 @@ local consts = {
 		waveWon = true
 	},
 	waveWonDelayBeforeResultsScreenTimerLength = 0, -- was 1.5, replaced to make it so that the results screen appears when you go offscreen
-	defaultAutoShootTime = 0.15,
+	defaultAutoShootTime = 0.1125,
 	autoLikeShootTypes = {
 		auto = true,
 		autoWithSemiAutoExtra = true
