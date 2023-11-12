@@ -3023,17 +3023,21 @@ function love.draw()
 				{"TIME", math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60))}
 			}
 			local colonWidth = font:getWidth(": ")
-			local width = -math.huge
+			local maxLeftWidth = -math.huge
+			local maxWidth = -math.huge
 			for _, v in ipairs(texts) do
-				width = math.max(width, font:getWidth(v[1]) + colonWidth + font:getWidth(v[2]))
+				maxLeftWidth = math.max(maxLeftWidth, font:getWidth(v[1]))
+				maxWidth = math.max(maxWidth, font:getWidth(v[1]) + colonWidth + font:getWidth(v[2]))
 			end
 			local textHeight = font:getHeight() * #texts
+
+			local colonPos = gameWidth / 2 - maxWidth / 2 + maxLeftWidth
 			love.graphics.translate(0, gameHeight / 2 - textHeight / 2)
 			for i, v in ipairs(texts) do
 				local y = font:getHeight() * (i- 1)
-				love.graphics.print(v[1], gameWidth / 2 - font:getWidth(v[1]), y)
-				love.graphics.print(": ", gameWidth / 2, y)
-				love.graphics.print(v[2], gameWidth / 2 + colonWidth, y)
+				love.graphics.print(v[1], colonPos - font:getWidth(v[1]), y)
+				love.graphics.print(": ", colonPos, y)
+				love.graphics.print(v[2], colonPos + colonWidth, y)
 			end
 		else
 			local commander2, commander3
