@@ -234,7 +234,7 @@ newEnemy("minelayer1", {
 	shootTimerLength = 2,
 	bulletSpeed = 25,
 	bulletRadius = 5,
-	bulletDamage = 4,
+	bulletDamage = 3,
 	bulletCount = 1,
 	bulletSpreadAngle = 0,
 	bulletsDisappearOnPlayerDeathAndAllEnemiesDefeated = true,
