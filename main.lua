@@ -2818,7 +2818,9 @@ function love.draw()
 		love.graphics.print(text, gameWidth / 2 - font:getWidth(text) / 2, top + 1 * font:getHeight())
 		love.graphics.print(titleVars.settingsText, gameWidth / 2 - font:getWidth(text) / 2, top + 3 * font:getHeight())
 		love.graphics.setCanvas()
+		love.graphics.setColor(1, 1, 1, math.min(settingsVars.messageOpacity, 1))
 		love.graphics.draw(settingsCanvas)
+		love.graphics.setColor(1, 1, 1)
 		love.graphics.origin()
 		return
 	end
