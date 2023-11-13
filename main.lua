@@ -2905,6 +2905,7 @@ function love.draw()
 	end
 
 	if gameState == "title" then
+		love.graphics.print("Version: " .. version)
 		love.graphics.draw(assets.images.title)
 
 		if titleVars.textView then
