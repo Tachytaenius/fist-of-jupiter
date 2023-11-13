@@ -218,6 +218,8 @@ local controls = {
 
 local spawnEnemy -- functions
 
+local iconImageData
+
 local gameState, paused, pauseFlashTimer
 
 -- Variables for all states
@@ -1065,6 +1067,7 @@ local function remakeWindow()
 		borderless = settingsVars.settings.fullscreen,
 		display = getCurrentWindowDisplay()
 	})
+	love.window.setIcon(iconImageData)
 	love.window.setTitle("Fist of Jupiter")
 end
 
@@ -1093,6 +1096,7 @@ local function resetSettings(resetWindowAndBackgroundParticles)
 end
 
 function love.load()
+	iconImageData = love.image.newImageData("icon.png")
 	settingsVars = {
 		messageOpacity = 0,
 		message = ""

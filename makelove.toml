@@ -2,6 +2,8 @@ name = "fist-of-jupiter"
 default_targets = ["win32", "win64", "appimage", "macos"]
 build_directory = "makelove-build"
 
+icon_file = "icon.png"
+
 love_files = [
     "::git-ls-tree::",
     "./version.txt",
