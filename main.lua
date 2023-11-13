@@ -2799,6 +2799,10 @@ function love.draw()
 		else
 			love.graphics.setColor(1, 1, 1)
 		end
+		love.graphics.translate(
+			(love.graphics.getWidth() - gameWidth * settingsVars.settings.canvasScale) / 2,
+			(love.graphics.getHeight() - gameHeight * settingsVars.settings.canvasScale) / 2
+		)
 		love.graphics.draw(gameCanvas, 0, 0, 0, settingsVars.settings.canvasScale)
 		love.graphics.setColor(1, 1, 1)
 		love.graphics.scale(settingsVars.settings.canvasScale) -- The text does remain perfectly aligned
@@ -2812,6 +2816,7 @@ function love.draw()
 		love.graphics.print(titleVars.settingsText, gameWidth / 2 - font:getWidth(text) / 2, top + 3 * font:getHeight())
 		love.graphics.setCanvas()
 		love.graphics.draw(settingsCanvas)
+		love.graphics.origin()
 		return
 	end
 
