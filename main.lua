@@ -841,7 +841,15 @@ local function decodeScoreRecord(line, lineNumber)
 	local record = {}
 	local recordVersion = words[1]
 	record.version = recordVersion
-	if version == "0.1.0" then
+	local function versionIsOneOf(versions)
+		for _, possibleVersion in ipairs(versions) do
+			if version == possibleVersion then
+				return true
+			end
+		end
+		return false
+	end
+	if versionIsOneOf({"0.1.0", "1.0.0"}) then
 		record.timestamp = tonumber(words[2])
 		record.startWave = tonumber(words[3])
 		record.endWave = tonumber(words[4])
