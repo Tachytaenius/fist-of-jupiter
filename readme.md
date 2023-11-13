@@ -5,5 +5,5 @@ This is a bodge project, but I am absolutely capable of coding well.
 
 ## Releasing
 
-Make `decodeScoreRecord` account for previous format of recorded scores, if applicable (if not applicable, do adjust any if/elseif blocks to include as appropriate).
+Make `decodeScoreRecord` account for new version of game and, if changed, the new score format.
 Use `makelove` with version parameter set to next version (increment major or minor number as appropriate), and release the files.
