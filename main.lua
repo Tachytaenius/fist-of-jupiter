@@ -3018,30 +3018,45 @@ function love.draw()
 		if gameState == "waveWon" and playVars.onResultsScreen then
 			love.graphics.origin()
 			local texts = {
+				{"TIME", math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60))},
 				{"PREV. TOTAL", playVars.resultsScreenVars.prevTotalScore},
 				{"WAVE SCORE", playVars.waveScore},
 				{"LIFE BONUS", playVars.resultsScreenVars.lifeBonus},
 				{"TIME BONUS", playVars.resultsScreenVars.timeBonus},
 				{"TOTAL SCORE", playVars.totalScore},
-				{"LIVES AWARDED", playVars.resultsScreenVars.addedLives},
-				{"TIME", math.floor(math.floor(playVars.timeSpentInPlay) / 60) .. ":" .. string.format("%02d", (math.floor(playVars.timeSpentInPlay) % 60))}
+				{"LIVES AWARDED", playVars.resultsScreenVars.addedLives}
 			}
-			local colonWidth = font:getWidth(": ")
-			local maxLeftWidth = -math.huge
-			local maxWidth = -math.huge
-			for _, v in ipairs(texts) do
-				maxLeftWidth = math.max(maxLeftWidth, font:getWidth(v[1]))
-				maxWidth = math.max(maxWidth, font:getWidth(v[1]) + colonWidth + font:getWidth(v[2]))
-			end
-			local textHeight = font:getHeight() * #texts
+			-- local colonWidth = font:getWidth(": ")
+			-- local maxLeftWidth = -math.huge
+			-- local maxWidth = -math.huge
+			-- for _, v in ipairs(texts) do
+			-- 	maxLeftWidth = math.max(maxLeftWidth, font:getWidth(v[1]))
+			-- 	maxWidth = math.max(maxWidth, font:getWidth(v[1]) + colonWidth + font:getWidth(v[2]))
+			-- end
+			-- local textHeight = font:getHeight() * #texts
 
-			local colonPos = gameWidth / 2 - maxWidth / 2 + maxLeftWidth
+			-- local colonPos = gameWidth / 2 - maxWidth / 2 + maxLeftWidth
+			-- love.graphics.translate(0, gameHeight / 2 - textHeight / 2)
+			-- for i, v in ipairs(texts) do
+			-- 	local y = font:getHeight() * (i- 1)
+			-- 	love.graphics.print(v[1], colonPos - font:getWidth(v[1]), y)
+			-- 	love.graphics.print(": ", colonPos, y)
+			-- 	love.graphics.print(v[2], colonPos + colonWidth, y)
+			-- end
+
+			local textHeight = font:getHeight() * #texts
 			love.graphics.translate(0, gameHeight / 2 - textHeight / 2)
+			local border = 64
 			for i, v in ipairs(texts) do
-				local y = font:getHeight() * (i- 1)
-				love.graphics.print(v[1], colonPos - font:getWidth(v[1]), y)
-				love.graphics.print(": ", colonPos, y)
-				love.graphics.print(v[2], colonPos + colonWidth, y)
+				local y = font:getHeight() * (i - 1)
+				local lineOffset = font:getHeight() / 2
+				love.graphics.line(border, y + lineOffset, gameWidth - border, y + lineOffset)
+				love.graphics.setColor(0, 0, 0)
+				love.graphics.rectangle("fill", border, y, font:getWidth(v[1]), font:getHeight())
+				love.graphics.rectangle("fill", gameWidth - border - font:getWidth(v[2]) - 1, y, font:getWidth(v[2]) + 1, font:getHeight())
+				love.graphics.setColor(1, 1, 1)
+				love.graphics.print(v[1], border, y)
+				love.graphics.print(v[2], gameWidth - border - font:getWidth(v[2]), y)
 			end
 		else
 			local commander2, commander3
