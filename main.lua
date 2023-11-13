@@ -1511,6 +1511,9 @@ function spawnEnemy(enemyType, pos) -- it's local up top. i wont rearrange stuff
 		subEnemies = subEnemies,
 		colour = shallowClone(registryEntry.colour)
 	}
+	if not playVars.newEnemiesThisUpdate then -- There was a crash
+		playVars.newEnemiesThisUpdate = {}
+	end
 	playVars.newEnemiesThisUpdate[#playVars.newEnemiesThisUpdate+1] = enemy -- whichever has the longest sound is the owner of the sound
 	for k, v in pairs(registryEntry) do
 		if not propertiesToNotCopy[k] then
